@@ -1,0 +1,116 @@
+Virtual address manager:
+
+	Maintain mapping of virtual id numbers for logs, inodes and
+	extend descriptors to physical addresses.
+
+
+
+Log manager
+
+	Operations to make a new log, activate an existing log,
+	clean a log into one or more existing logs, delete/recycle a log
+
+
+free space manager
+     	Maintains the lists of freed used blocks and freed partially
+	used blocks.
+
+
+
+Page cache manager
+        write-through cache for all data and meta data pages. Should keep track
+	of dependency relationships among meta-data pages stored in the cache.
+
+
+File Metadata processing
+        code to identify the current physical page number associated
+	with a logical page within a file, code to add data and
+	indirect pages as needed when a new page is written.
+
+
+An implementation plan?
+
+1) Implement simple “makefs”.
+
+makefs is a utility that creates an empty file system on a device. 
+Any file system relies on the presence of certain essential data structures
+accessible on the persistent store. These include things like a superblock,
+a root directory, a free-space bit-map or linked list of free pages, etc.
+The goal of makefs is to place the initial versions of such structures into
+the appropriate pages of a portion of a disk or NAND memory so that it can
+be successfully mounted as an empty file system.
+
+In steady state, all free (and partially free) blocks in the systems should be
+held in linked lists. Initially, however, we have the option of using a single
+“nextBlock” variable to save the address of the boundary between the blocks
+that have been used once and those that haven’t been used at all.
+
+
+2) Implement Virtual NAND memory interface
+
+We will be writing pages of data to a virtual NAND memory implemented by writing
+the actual data (and info in spare area) to a single large file stored in the
+standard Unix file system. This virtual NAND memory should be implemented by
+a .c file providing four methods: initNAND, readNAND, writeNAND and eraseNAND.
+readNAND and writeNAND should each take one parameter which is a page number
+in the NAND memory. eraseNAND should take a block number as a parameter.
+Internally, this code should maintain a record of the highest page number
+written since erasure for each block of simulated pages. It should enforce 
+the NAND memory restriction that the next page written to a block must always
+be the first page that has not been written since the blocks last erasure.
+For experimental purposes, it should also maintain an erase count for each block.
+The information about block erasures and the first unused page in each block
+must be stored persistently. 
+
+3) The page cache
+
+The primary purpose of the page cache is to avoid unnecessary page reads.
+Whenever a page is read or written, a copy of the page should be kept in
+RAM for as long as reasonably practical and used to avoid another read if
+the page’s contents are subsequently requested. For data pages, this should
+be fairly simple. This is partly because our system will be write-through for
+data pages. Every data page write should be performed as soon as possible.
+The only tricky issue here is that when the write occurs, the page’s real address
+must change.
+
+To avoid unnecessary copying of pages worth of data between buffers in RAM,
+the cache manager should share its page buffers with the higher level methods
+that depend on it. That is, the method to read/get a page should not take the
+address of a buffer as a parameter. Instead, it should return a pointer to a
+buffer allocated within the page cache code to the caller. If the page was
+read as part of a write operation, the higher-level method should modify the
+contents of the buffer that was returned by read and then pass the pointer to
+the buffer as a parameter to write.
+
+Large writes that cover multiple pages should not need to first read pages
+whose contents will be completely replaced. To make this possible, the cache
+should provide some form of “get buffer” method that simply returns a page
+cache buffer that the higher-level code can then fill with data and pass back
+to the page manager in a write request.
+
+This approach will require that code in the page cache manager is responsible
+for allocating and freeing page cache buffers. To do this safely, the higher-level
+code will either have to follow a protocol that limits how long it can safely
+use a buffer returned to it (as in up until the next buffer allocation request) or
+it will have to explicitly free buffers.
+
+Handling meta-data pages in the cache will be a bit trickier. They should not
+be handled “write-through”. Instead, we will typically delay the write of
+each meta-data page as long as possible. The other issue is that they are
+interdependent. Suppose I-node x refers to double-indirect page y which in turn
+refers to single-indirect page z which finally refers to data page d. If a user
+program tries to write a sub-section of page d, our code will first issue
+reads for pages x, y, and z to find the address of d and then finally read d.
+Therefore, all 4 pages should be in the cache. It will then move the new
+data into the copy of page d in RAM and issue a write. This write should occur
+immediately. The data will, however, be written to some new address d’ rather
+than to d. The contents of the single-indirect page z can (and should)
+ be immediately updated to refer to d’. z, however, should not be immediately
+written. Its page cache descriptor should be modified to indicate that it
+needs to be written and the descriptors for the cache entry for the i-node
+from page x and the double-indirect page from address y should be updated
+to indicate that they should not be written until z has been written since
+the address z’ to which the updated copy of the page from z is written
+must be included in y and x will eventually be modified and written to refer
+to the modified copy of y.
+
