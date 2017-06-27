@@ -112,7 +112,6 @@ int eraseNAND(block_addr b)
 
   //lseek and read in the block
   struct block curBlock;
-  //curBlock = (block) malloc(sizeof (struct block));
   read(fd, &curBlock, (sizeof (struct block)));
 
   //clear block, set nextPage to 0, increment eraseCount
@@ -125,7 +124,6 @@ int eraseNAND(block_addr b)
 	     + b*(sizeof (struct block))), SEEK_SET);
   write(fd, &curBlock, (sizeof (struct block)));
 
-  //free(curBlock);
   return eraseCount;
 }
 
