@@ -15,7 +15,7 @@ int main (int argc, char *argv[])
   
   char array[PAGESIZE];
   strcpy(array, "hello");
-  writeNAND(array, 48);
+  writeNAND(array, 48, 0);
   
   memset(array, 0, PAGESIZE);
   //bu = malloc(PAGESIZE);

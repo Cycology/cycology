@@ -8,7 +8,7 @@
 #include "fuseLogging.h"
 #include "vNANDlib.h"
 
-static nandFeatures features;
+static struct nandFeatures features;
 
 int main (int argc, char *argv[])
 {
@@ -18,9 +18,9 @@ int main (int argc, char *argv[])
   }
 
   //hold size of page, block and #blocks
-  features = (nandFeatures) malloc( sizeof (struct nandFeatures));
-  features->numBlocks = atoi(*++argv);
-  features->memSize = (sizeof (struct nandFeatures)) + (sizeof (struct block))*(features->numBlocks);
+  //features = (nandFeatures) malloc( sizeof (struct nandFeatures));
+  features.numBlocks = atoi(*++argv);
+  features.memSize = (sizeof (struct nandFeatures)) + (sizeof (struct block))*(features.numBlocks);
 
   int fd;
   char *filename = "NANDexample";
@@ -30,12 +30,12 @@ int main (int argc, char *argv[])
     return NULL;
   }
 
-  int res = write(fd, features, sizeof(features));
+  int res = write(fd, &features, sizeof(struct nandFeatures));
   if (res == -1) {
     perror("ERROR IN WRITING METADATA TO BIG FILE");
   }
-  lseek(fd, (sizeof(features)
-	     + ((sizeof (struct block))*(features->numBlocks))), SEEK_SET);
+  lseek(fd, (sizeof(struct nandFeatures)
+	     + ((sizeof (struct block))*(features.numBlocks))), SEEK_SET);
   //writing 0 at end of file to specify size
   res = write(fd, "\0", 1);
 
