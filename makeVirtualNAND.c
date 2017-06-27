@@ -20,7 +20,7 @@ int main (int argc, char *argv[])
   //hold size of page, block and #blocks
   features = (nandFeatures) malloc( sizeof (struct nandFeatures));
   features->numBlocks = atoi(*++argv);
-  features->memSize = PAGESIZE*BLOCKSIZE*(features->numBlocks);
+  features->memSize = (sizeof (struct nandFeatures)) + (sizeof (struct block))*(features->numBlocks);
 
   int fd;
   char *filename = "NANDexample";
