@@ -156,8 +156,10 @@ typedef struct superPage {
 	*/
 	page_addr prev_vaddr_map;
 	page_addr prev_journal;
-
-
+  
+        page_addr pFreeListPtr;       //Points to partially used free list
+        page_addr cFreeListPtr;       //Points to completely used free list
+ 
 } *superPage;
 
 /* Every page on a NAND memory includes an overhead area used to store information

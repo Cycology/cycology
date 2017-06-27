@@ -24,7 +24,7 @@ typedef struct block{
 } *block;
 
 //POST: open big NAND file; save its nandFeatures field
-void initNAND(void);
+struct nandFeatures initNAND(void);
 
 /*PRE:
   char *buf - buffer to store data read
@@ -40,7 +40,7 @@ int readNAND(char *buf, page_addr k);
   POST:
   returns number of bytes written; -1 if error
  */
-int writeNAND(char *buf, page_addr k);
+int writeNAND(char *buf, page_addr k, int random_access);
 
 /*PRE:
   block_addr b - absolute block address to erase

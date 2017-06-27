@@ -15,15 +15,16 @@ static struct nandFeatures features;
 //}
 
 //open the big NAND file and save features
-void initNAND(void)
+struct nandFeatures initNAND(void)
 {
   fd = open("NANDexample", O_RDWR);
   if (fd == -1) {
     perror("ERROR IN OPENING BIG NAND FILE");
-    return;
+    return features;     //Hmm what to return?
   }
   
   read(fd, &features, (sizeof (struct nandFeatures)));
+  return features;
 }
 
 //lseek to position of page and read entire page
@@ -46,7 +47,7 @@ int readNAND(char *buf, page_addr k)
 }
 
 
-int writeNAND(char *buf, page_addr k)
+int writeNAND(char *buf, page_addr k, int random_access)
 {
   //Read in the block containing target page
   struct block curBlock;
@@ -60,8 +61,8 @@ int writeNAND(char *buf, page_addr k)
   read(fd, &curBlock, (sizeof (struct block)));
   
   //position of page k in the block
-  int kInBlock = k%BLOCKSIZE;  
-  if (kInBlock != curBlock.nextPage) {
+  int kInBlock = k%BLOCKSIZE; 
+  if (random_access == 0 && kInBlock != curBlock.nextPage) {
     printf("DOES NOT WRITE TO NEXT FREE PAGE OF BLOCK IN NAND");
     return -1;
   }
@@ -93,8 +94,6 @@ int eraseNAND(block_addr b)
   read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
 
   //clear block, set nextPage to 0, increment eraseCount
-  //memset(curBlock.contents, 0, PAGESIZE*BLOCKSIZE); //find a way not to have to read block in
-  //curBlock.nextPage = 0;
   int eraseCount = ++(curBlock.eraseCount);
 
   //paste the empty block into offset
