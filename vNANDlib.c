@@ -10,10 +10,6 @@
 static int fd;
 static struct nandFeatures features;
 
-//void main (int argc, char *argv[])
-//{
-//}
-
 //open the big NAND file and save features
 struct nandFeatures initNAND(void)
 {
@@ -30,17 +26,17 @@ struct nandFeatures initNAND(void)
 //lseek to position of page and read entire page
 int readNAND(char *buf, page_addr k)
 {
-  int offset = (sizeof (struct nandFeatures)
+  int offset = sizeof (struct nandFeatures)
 		+ (k/BLOCKSIZE)*(sizeof (struct block))
-		+ (k%BLOCKSIZE)*PAGESIZE);
+		+ (k%BLOCKSIZE)*(sizeof (struct fullPage));
   if (offset >= features.memSize) {
     printf("PAGE OFFSET OUTSIDE OF BIG FILE");
     return -1;
   }
   lseek(fd, offset, SEEK_SET);
 
-  int res = read(fd, buf, PAGESIZE);
-  if (res != PAGESIZE)
+  int res = read(fd, buf, sizeof (struct fullPage));
+  if (res != (sizeof (struct fullPage)))
     perror("FAIL TO READ PAGE IN NAND");
 
   return res;
@@ -60,16 +56,17 @@ int writeNAND(char *buf, page_addr k, int random_access)
   lseek(fd, offset, SEEK_SET);
   read(fd, &curBlock, (sizeof (struct block)));
   
-  //position of page k in the block
-  int kInBlock = k%BLOCKSIZE; 
+  //index of page k in the block
+  int kInBlock = k%BLOCKSIZE;
   if (random_access == 0 && kInBlock != curBlock.nextPage) {
     printf("DOES NOT WRITE TO NEXT FREE PAGE OF BLOCK IN NAND");
     return -1;
   }
   
   //write from buffer to block; increase nextPage counter
-  memcpy((curBlock.contents + PAGESIZE*kInBlock), buf, PAGESIZE);
-  curBlock.nextPage++;
+  memcpy((curBlock.contents + kInBlock), buf, sizeof (struct fullPage));
+  if (random_access == 0)
+    curBlock.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)
 	     + (k/BLOCKSIZE)*(sizeof (struct block))), SEEK_SET);
   int res = write(fd, &curBlock, (sizeof (struct block))); 
@@ -89,14 +86,12 @@ int eraseNAND(block_addr b)
   }
   lseek(fd, offset, SEEK_SET);
 
-  //lseek and read in the block
+  //lseek and read in the block's eraseCount
   struct block curBlock;
   read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
 
-  //clear block, set nextPage to 0, increment eraseCount
+  //increment eraseCount; paste the empty block into offset
   int eraseCount = ++(curBlock.eraseCount);
-
-  //paste the empty block into offset
   lseek(fd, offset, SEEK_SET);
   write(fd, &curBlock, (sizeof (struct block)));
 

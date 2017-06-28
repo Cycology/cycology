@@ -1,4 +1,3 @@
-#define PAGESIZE 1024
 #define BLOCKSIZE 16
 
 /****************************************************************
@@ -18,7 +17,7 @@ typedef struct nandFeatures{
  *
  ****************************************************************/
 typedef struct block{
-  char contents[PAGESIZE*BLOCKSIZE];   //actual space to store data
+  struct fullPage contents[BLOCKSIZE];   //actual space to store data
   int nextPage;                        //next available empty page after last erasure
   int eraseCount;                      //times this particular block has been erased
 } *block;
@@ -41,6 +40,14 @@ int readNAND(char *buf, page_addr k);
   returns number of bytes written; -1 if error
  */
 int writeNAND(char *buf, page_addr k, int random_access);
+
+/*PRE:
+  int count - new eraseCount of a (first) page
+  page_addr k - absolute page address to update
+  POST:
+  update eraseCount of this page and nextBlockErases in last & 2nd last pages
+ */
+int updateEraseCount(int count, page_addr k);
 
 /*PRE:
   block_addr b - absolute block address to erase

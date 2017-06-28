@@ -18,18 +18,19 @@ int main (int argc, char *argv[])
   }
 
   //hold size of page, block and #blocks
-  //features = (nandFeatures) malloc( sizeof (struct nandFeatures));
   features.numBlocks = atoi(*++argv);
   features.memSize = (sizeof (struct nandFeatures)) + (sizeof (struct block))*(features.numBlocks);
 
+  //create the big NAND file
   int fd;
   char *filename = "NANDexample";
-  fd = open(filename, O_CREAT | O_RDWR, S_IRWXU);    //create the file
+  fd = open(filename, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING FILE");
     return NULL;
   }
 
+  //write the features in the big file
   int res = write(fd, &features, sizeof(struct nandFeatures));
   if (res == -1) {
     perror("ERROR IN WRITING METADATA TO BIG FILE");

@@ -18,7 +18,6 @@ int main (int argc, char *argv[])
   writeNAND(array, 48, 0);
   
   memset(array, 0, PAGESIZE);
-  //bu = malloc(PAGESIZE);
   readNAND(array, 48);
   printf("%s\n", array);
 
@@ -30,7 +29,6 @@ int main (int argc, char *argv[])
   memset(array, 0, PAGESIZE);
   readNAND(array, 48);
   printf("%s", array);
-  //free(buffer);
   
   stopNAND();
 }
