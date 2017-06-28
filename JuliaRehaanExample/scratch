@@ -1,0 +1,178 @@
+Unlink
+
+/*		index i = isOpen(vAddr);
+		struct inode *inode;
+		if (i){
+			inode = state->openFileTable[i]->inode;
+		}
+		else{
+			//We need to creare an active file descriptor (but maybe not if we're removing the file, so wait for the next if statement
+			inode = getInode(vAddr); //This should all be a function, but access to i..
+		}
+		if (inode->i_links_count > 1){
+			res = unlink(path); //Is this how we do this still?
+			if (res == -1)
+				return -errno;
+			inode->i_links_count--;
+			//write inode to log (and all that entails) (but probably only if closed?)
+			if (i){
+				state->openFileTable[i]->inode = inode; //probably better way of doing that
+			}
+			else{
+				//Write inode to log- so we need to do the whole creating an activeLog descriptor thing....
+				fullPage page = getFullPage(inode->i_log_no);
+				activeLog aLog = newActiveLog(page);
+				//Now the writing part...
+			}
+		}
+		/*if (stbuff.st_nlink > 1){
+			res = unlink(path);
+			if (res == -1)
+				return -errno;
+			return 0;
+			}*/
+/*		else{
+
+			//remove real file
+			/*
+			  Removing a file:
+			  free up address*/
+/*			if (!i){
+				res = unlink(path);
+				if (res == -1)
+					return -errno;
+				state->addrMap->map[inode->i_file_no] = 0;
+				//If log's empty, we also have to free up its address
+				//also, the whole file has to get marked as garbage
+			}
+			else{
+				inode->i_links_count--; //write inode to memory
+				activeLog aLog = state->openFileTable[i]->mainExtentLog;
+
+				//get log, then create full page, then write (again the full page problem)
+				//at least we have an activeLog descriptor
+				//We could mod the nextPage address to figure out if the page we're writing to is a special page.
+				//If it's not special, just create a full page that's PTYPE_INODE, with everything else null
+				//We should probably have a fullPage constructor
+
+			}
+			/*Increase block's garbage count
+			  Log might go away- unless it has multiple things in it
+			  get logHeader(i_log_no)- check of active pages vs filesize- if more active pages than filesize, keep log, if not, don't- but account for the inode! (1 active inode per file)
+			  Cannot remove if open! So how do we schedule removal?
+
+			 */
+chmod
+	/*Old version, without always opening file:
+
+	int res;
+	struct stat stBuf;
+
+	int statRes = fstat( fi->fh, &stBuf );
+	if (! S_ISREG(stBuf.st_mode) ){
+		res = chmod(path, mode);
+		if (res == -1)
+			return -errno;
+
+		return 0;
+	}
+
+	page_vaddr vAddr = getVirtualAddress(path);
+	index i = isOpen(vAddr);
+	struct inode *inode;
+	if (i){
+		inode = state->openFileTable[i];
+	}
+	else{
+		inode = getInode(vAddr); //This should all be a function, but access to i..
+	}
+
+
+	//Check permissions- something to do w/ uid? gid?
+	if ("has permission"){
+		inode->i_mode = mode;
+		activeLog activeLog;
+		if (i){
+			activeLog = state->openFileTable[i]->mainExtentLog;
+		}
+		else{
+			fullPage page = getFullPage(vAddr);
+			activeLog = newActiveLog(page); //or we open the file- in which case we always open the file
+			//Let's try the opening thing on chown first
+		}
+		//char *buf = (char*) log;
+		//xmp_write(state->storePath, buf, PAGESIZE, "offset for first free page in log", state->storePathDescriptor)
+
+		//Write altered inode to memory...
+		//Update address table
+		state->vaddrMap->map[vAddr] = activeLog->nextPage;
+		state->vaddrMap->map[activeLog->logHeader->logId] = activeLog->nextPage;
+		logHeader log = activeLog->logHeader;
+		log->contents.file = inode;
+		//Now put into a new fullPage and do the write
+		//But we don't neccesarily have the old fullPage (not that we neccesarilly need it)- Hmmm...
+		fullPage newPage = newFullPage(PTYPE_INODE);
+		newPage->contents = (char*) log;
+		//Then nested if statements to fill in fields (maybe look at Active log? Or similar if statements)
+		int overflow = activeLog->nextPage%BLOCKSIZE;
+		//First Page
+		if (overflow == 0){
+			newPage->eraseCount = "This should be carried over from somewhere";
+		}
+		//Last and next to last page
+		else if (overflow == BLOCKSIZE - 1 || overflow == BLOCKSIZE - 2){
+			block_addr nextLogBlock = "When do we allocate? How do we find the next available block?";
+			int nextBlockErases = "so this is part of the metadata for the next block's first page, but if that hasn't been written yet... something complicated";
+		}
+		//Write new page
+		//So, is it actually physAddr or not?
+		xmp_write(state->storePath, (char *) newPage, PAGESIZE, activeLog->nextPage*sizeof(struct fullPage), state->storePathDescriptor);
+		free(activeLog);
+		}*/
+
+close
+
+/*	struct fuse_context *context = fuse_get_context();
+	CYCstate state  = context->private_data;
+
+	openFile file = state->openFileTable[fi->fh];
+	//We should check if the file is actually open and give an error message if it isn't
+	if (file->inode->i_links_count = 0){
+		res = unlink(path); //hmmm
+		if (res == -1)
+			return -errno;
+		state->addrMap->map[file->inode->i_file_no] = 0;
+		//If no other files in log, we should free up the log's virtual address too.
+	}
+	else{
+		//Write inode to memory (We know the file is open, so we have an active file descriptor)
+		//update address table
+	}
+	//removeOpenFile(inode->i_file_no);
+	state->openFileTable[fi->fh] = 0;
+*/
+	//We should actually close the shadow file, but we don't really have the file descriptor anymore, do we? Close it after we read it (in get virtual address)
+
+//Actually probably unecessary, since we store the index of the open file?
+void removeOpenFile(page_vaddr vaddr) {
+	//Code for getting table from private_info goes here
+	//let's call the table openTable (an array of openFiles) for the moment
+	//Also get openFileMapSize from private_info
+	struct fuse_context *context = fuse_get_context();
+	CYCstate state = context->private_data;
+	for (int i = 1, i < state->openFileMapSize, i++){
+		int found = -1;
+		if (state->openFileTable[i]  != NULL && state->openFileTable[i]->inode->i_file_no == vaddr){
+			(state->openFileTable[i]->currentOpens)--;
+			if (state->openFileTable[i]->currentOpens == 0){
+				free(state->openFileTable[i]);
+				state->openFileTable[i] = NULL;
+				//should remove the file from RAM
+			}
+			found = 1;
+		}
+	}
+	if ((found) = -1){
+		printf("File is not open\n");
+	}
+}

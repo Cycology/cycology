@@ -1,0 +1,77 @@
+//Module for mapping logical to physical addresses
+#define PAGESIZE 1024
+#define BLOCKSIZE 64
+#define SMFILESIZE 128
+#define FUSE_USE_VERSION 30
+
+//These should set to whatever paths we decide on
+#define ROOT_PATH //root path
+#define STORE_PATH //store path
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#define _GNU_SOURCE
+
+#include <fuse.h>
+
+#ifdef HAVE_LIBULOCKMGR
+#include <ulockmgr.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/time.h>
+#ifdef HAVE_SETXATTR
+#include <sys/xattr.h>
+#endif
+#include <sys/file.h> /* flock(2) */
+#include "helper.h"
+
+//data structure to hold map
+addrMap initAddrMap(){
+	addrMap addressMap = (addrMap)malloc(4+4*ADDRMAPSIZE); //Need to do a #define
+	addressMap->size = ADDRMAPSIZE;
+	addressMap->map = page_addr[1024];
+	for (int i = 0, i < addressMap->size, i++){
+		addressMap->map[i] = 0;
+	}
+	return addrMap;
+}
+
+//function to get an available address
+//Returns the index of an available address
+page_addr getAvailableAddress(){
+	//Go through private data to access addressMap
+	struct fuse_context *context = fuse_get_context();
+	CYCstate state = context->private_data;
+	for (int i = 1, i < state->addrMap->size, i++){
+		if (state->addrMap->map[i] == 0){
+			state->addrMap->map[i] = -1; //sketchy, fix (meant to keep log and file from having same logical address before map is properly filled in)
+			return i;
+		}
+	}
+	//extend the array
+	page_addr temp[] = (page_addr*)malloc(2*state->addrMap->size*4);
+	for (int i = 0, i < state->addrMap->size, i++){
+		temp[i] = state->addrMap->map[i];
+	}
+	for (int j = state->addrMap->size, j < 2*state->addrMap->size){
+		temp[j] = 0;
+	}
+	state->addrMap->size = 2*state->addrMap->size;
+	state->addrMap->map = temp;
+	return j + 1;
+
+}
+
+void freeAddress(page_vaddr vaddr, CYCstate state){
+	state->addrMap->[vaddr] = 0;
+}

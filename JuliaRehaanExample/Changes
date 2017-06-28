@@ -1,0 +1,27 @@
+Changed Functions:
+
+xmp_getattr
+
+xmp_fgetattr
+
+xmp_unlink
+
+xmp_link
+
+xmp_chmod
+
+xmp_chown
+
+xmp_utimens (but ultimately ended up confused)
+
+xmp_create
+
+xmp_open
+
+xmp_release
+
+Notes:
+xmp_access didn't change, but has to in the future, since we can't actually keep mode the same for the mini files
+xmp_mknod is the same, except it now checks if the file is regular, and prints an error message if it is
+I pasted our read into xmp_read, along with your read, but din't do much else. A similar situation with xmp_write. I didn't touch the truncates.
+I was confused about what xmp_flush should do.

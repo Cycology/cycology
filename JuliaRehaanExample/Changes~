@@ -1,0 +1,7 @@
+xmp_getattr
+
+xmp_fgetattr
+
+
+Notes:
+xmp_access didn't change, but has to, since we can't actually keep mode the same

@@ -11,6 +11,7 @@ int main (int argc, char *argv[])
 {
   printf("SIZE OF NANDFEATURES: %lu\n", (sizeof (struct nandFeatures)));
   printf("SIZE OF BLOCK: %lu\n", (sizeof (struct block)));
+    printf("SIZE OF PAGE: %lu\n", (sizeof (struct fullPage)));
   initNAND();
   
   char array[PAGESIZE];

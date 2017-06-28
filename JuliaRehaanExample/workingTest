@@ -1,0 +1,323 @@
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
+		    struct fuse_file_info *fi)
+{
+	char *bufRead;
+
+	int res = 0;
+
+	(void) path;
+
+	int deviation  = offset%PAGESIZE;
+	int numPages = (deviation+PAGESIZE+size-1)/PAGESIZE;
+
+	bufRead = (char*)malloc(numPages*PAGESIZE);
+	char *bufStart = bufRead;
+	fprintf(stderr, "We're here!\n");
+	for (int i = 0; i < numPages; i++){
+		res += pread(fi->fh, bufRead, PAGESIZE, i*PAGESIZE);
+		bufRead += PAGESIZE;
+	}
+	memcpy(buf, deviation + bufStart, size);
+	free(bufStart);
+	if (res == -1){
+		res = -errno;
+	}
+	return res;
+}
+
+	printf("READ\n");
+	char *bufRead;
+
+	int res = 0;
+
+	(void) path;
+
+	int deviation  = offset%PAGESIZE;
+	int numPages = (deviation+PAGESIZE+size-1)/PAGESIZE;
+
+	for (int i = 0; i < numPages; i++){
+		bufRead = (char*)malloc(PAGESIZE);
+		res += pread(fi->fh, bufRead, PAGESIZE, i*PAGESIZE);
+		if (numPages == 1) {
+			memcpy(buf, bufRead + deviation, size);
+		} else if (i == 0) {
+			memcpy(buf, bufRead + deviation, PAGESIZE - deviation);
+			buf += PAGESIZE - deviation;
+		} else if (i == numPages - 1 && deviation != 0) {
+			memcpy(buf, bufRead, deviation);
+		} else {
+			memcpy(buf, bufRead, PAGESIZE);
+			buf += PAGESIZE;
+		}
+		free(bufRead);
+	}
+
+	if (res == -1){
+		res = -errno;
+	}
+	return res;
+
+ struct stat *stbuf,
+			struct fuse_file_info *fi)
+{
+	int res;
+
+	(void) path;
+
+	res = fstat(fi->fh, stbuf);
+
+
+/*
+static int xmp_write(const char *path, const char *buf, size_t size,
+		     off_t offset, struct fuse_file_info *fi)
+{
+	printf("\nWRITE %d bytes at %d\n", size, offset);
+
+	char* bufWrite;
+	struct stat  *st;
+	st = (struct stat*)malloc(sizeof(struct stat));
+	int res=0;
+
+	(void) path;
+
+	int startDeviation  = offset%PAGESIZE;
+	fprintf(stderr, "startDeviation: %d ", startDeviation);
+	int endDeviation = (offset + size)%PAGESIZE;
+	fprintf(stderr, "endDeviation: %d ", endDeviation);
+	int numPages = (startDeviation+PAGESIZE+size-1)/PAGESIZE;
+	fprintf(stderr, "numPages: %d ", numPages);
+	fstat(fi->fh, st);
+	int fileSize = st->st_size;
+	fprintf(stderr, "fileSize: %d \n", fileSize);
+
+	fprintf(stderr, "endDeviation: %d, startDeviation: %d, numPages: %d, filesize: %d, offset: %d\n", endDeviation, startDeviation, numPages, fileSize, offset);
+
+	for (int i = 0; i < numPages; i++){
+		bufWrite = (char*)malloc(PAGESIZE);
+
+		if (numPages == 1) {
+
+			if (fileSize > offset - startDeviation){ //Does the file extend onto the current page
+				pread(fi->fh, bufWrite, PAGESIZE, offset - startDeviation);
+				if (fileSize - offset + startDeviation >= PAGESIZE) { //Does said file fill/extend beyond  the current page?
+					fprintf(stderr, "1 HAHAHAH\n");
+					memcpy(bufWrite + startDeviation, buf, size);
+					pwrite(fi->fh, bufWrite, PAGESIZE, offset);
+					res += size;
+
+				} else {
+
+					if (startDeviation > (fileSize - offset + startDeviation)) { //Is there a gap?
+						fprintf(stderr, "2 HAHAHAHHA\n");
+						memset(bufWrite + fileSize - offset + startDeviation, 0, 2*offset-fileSize-startDeviation);
+						memcpy(bufWrite + startDeviation, buf, size);
+						//res += 2*offset - fileSize  - startDeviation + size;
+						res += size;
+
+					} else {
+						fprintf(stderr, "3 HAHAHAHHA\n");
+						memcpy(bufWrite + startDeviation, buf, size);
+						res += size;
+					}
+					pwrite(fi->fh, bufWrite, size + startDeviation, offset - startDeviation);
+				}
+			}//This weirdnesss we never sorted out! There should be an else?
+			else{
+				fprintf(stderr, "X HAHAHAHHA\n");
+				memcpy(bufWrite, buf, size);
+				res += pwrite(fi->fh, bufWrite, size, offset);
+			}
+		} else if (i == 0) {
+			if (startDeviation == 0){
+				fprintf(stderr, "4 HAHAHAH\n");
+				memcpy(bufWrite, buf, PAGESIZE);
+				buf += PAGESIZE;
+				res += pwrite(fi->fh, bufWrite, PAGESIZE, offset);
+			}
+			else{
+				pread(fi->fh, bufWrite, PAGESIZE, offset - startDeviation);
+				if (startDeviation > (fileSize - offset + startDeviation)) {
+					fprintf(stderr, "5 HAHAHAH\n");
+					memset(bufWrite + fileSize - offset + startDeviation, 0, 2*offset-fileSize-startDeviation);
+					memcpy(bufWrite + startDeviation, buf, PAGESIZE - startDeviation);
+					pwrite(fi->fh, bufWrite, PAGESIZE, offset-startDeviation); //the pwrite is  probably wrong
+					//res += PAGESIZE - 2*(startDeviation - offset) - fileSize;
+					res += PAGESIZE - startDeviation;
+				} else {
+					fprintf(stderr, "6 HAHAHAH\n");
+					memcpy(bufWrite + startDeviation, buf, PAGESIZE - startDeviation);
+					pwrite(fi->fh, bufWrite, PAGESIZE, offset - startDeviation);
+					res += PAGESIZE - startDeviation;
+				}
+				buf += PAGESIZE - startDeviation;
+
+			}
+		} else if (i == numPages - 1 && endDeviation > 0 ) {
+
+			if (fileSize - (offset - startDeviation + i*PAGESIZE) >= endDeviation){
+				fprintf(stderr, "7 HAHAHAH\n");
+				pread(fi->fh, bufWrite, PAGESIZE, offset - startDeviation + i*PAGESIZE);
+				memcpy(bufWrite, buf, endDeviation);
+				pwrite(fi->fh, bufWrite, fileSize - (offset - startDeviation + i*PAGESIZE), i*PAGESIZE + offset - startDeviation);
+				res += endDeviation;
+			}
+			else{
+				fprintf(stderr, "8 HAHAHAH\n");
+				memcpy(bufWrite, buf, endDeviation);
+				fprintf(stderr, "8 test: i: %d, PAGESIZE: %d, off: %d, sD: %d\n", i, PAGESIZE, offset, startDeviation);
+				res += pwrite(fi->fh, bufWrite, endDeviation, i*PAGESIZE + offset - startDeviation);
+			}
+
+		} else {
+			fprintf(stderr, "9 HAHAHAH\n");
+			memcpy(bufWrite, buf, PAGESIZE);
+			buf += PAGESIZE;
+			res += pwrite(fi->fh, bufWrite, PAGESIZE, i*PAGESIZE + offset);
+		}
+		free(bufWrite);
+	}
+	free(st);
+	if (res == -1)
+		res = -errno;
+
+	return res;
+	}*/
+
+
+
+/*static int getPage(const char *path, struct fuse_file_info *fi, char *bufRead, int readSize, int relativePageNum, int pageNum){
+	struct fuse_context *context = fuse_get_context();
+	struct log_sys_con *logCon = context->private_data;
+	logCon->head = checkRead(path, fi, bufRead, relativePageNum, pageNum, logCon->head, readSize);
+	//If not in cache:
+	//pread(fi->fh, bufRead, PAGESIZE, i*PAGESIZE);
+	//put in cache
+	//If in cache, return?
+	return readSize;
+	}*/
+
+
+//original if statements from read
+if (numPages == 1) {
+			startWithinPage = startDeviation;
+			toRead = size;
+			//memcpy(buf, bufRead + startDeviation, size);
+			//res += size;
+		} else if (i == 0) {
+			startWithinPage = startDeviation;
+			toRead = PAGESIZE - startDeviation;
+			//memcpy(buf, bufRead + startDeviation, PAGESIZE - startDeviation);
+			//buf += PAGESIZE - startDeviation;
+			//res += PAGESIZE - startDeviation;
+		} else if (i == numPages - 1 && endDeviation != 0) {
+			startWithinPage = 0;
+			toRead = endDeviation;
+			//memcpy(buf, bufRead, endDeviation);
+			//res += endDeviation;
+		} else {
+			startWithinPage = 0;
+			toRead = PAGESIZE;
+			//memcpy(buf, bufRead, PAGESIZE);
+			//buf += PAGESIZE;
+			//res += PAGESIZE;
+		}
+
+
+/*
+//return buffer- return page with data
+static struct node* checkCache(const char *path, struct fuse_file_info *fi, char *bufPtr, struct node *head, int pageNum){
+
+	if (head == NULL){
+		head = (struct node*)malloc(sizeof(struct node));
+		head->next = NULL;
+		head->path = (char*)malloc(strlen(path)+1);
+		strcpy(head->path, path);
+		head->pageNum = pageNum;
+		head->page = bufPtr;
+	}
+	else{
+		if ( strcmp(path, head->path) == 0 && pageNum == head->pageNum){
+			head->page = bufPtr;
+		}
+		else{
+			head->next = checkCache(path, fi, bufPtr, head->next, pageNum);
+		}
+	}
+	return head;
+	}*/
+
+/*
+static int putPage(const char *path, struct fuse_file_info *fi, char *bufPtr, int toWrite, int relativePageNum, int startPage, int fileSizeInPages){
+
+
+	int written = pwrite( fi->fh, bufPtr, toWrite, (relativePageNum + startPage)*PAGESIZE );
+	cacheLoop(path, fi, relativePageNum+startPage, fileSizeInPages);
+	return written;
+	}*/
+
+/*
+static char * prepBuffer( char * buffer, struct fuse_file_info *fi,
+		       int pageNum, int startWithinPage, int endWithinPage,
+			  int fileSizeInPages, int fileSize, int relativePageNum, const char *path) {
+
+	if ( pageNum >= fileSizeInPages ) {
+
+		// If new page, make sure unused portions of buffer are zeroes
+		memset( buffer, 0, startWithinPage );
+		memset( buffer + endWithinPage, 0, PAGESIZE - endWithinPage );
+		//add to cache, without doing write
+
+	} else {
+
+		// If existing page not completely overwritten, read it in
+		if ( startWithinPage > 0 || endWithinPage < PAGESIZE ) {
+
+			int toRead;
+			if ( pageNum == fileSizeInPages-1 ) {
+				toRead = fileSize - pageNum*PAGESIZE;
+			} else {
+				toRead = PAGESIZE;
+			}
+
+			int read = getPage(path, fi, buffer, toRead, relativePageNum, pageNum);
+			//int read = pread( fi->fh, buffer, toRead, pageNum*PAGESIZE );
+
+
+			if ( read != toRead ) {
+				fprintf( stderr, "Unexpected short read in prepBuffer\n" );
+				return NULL;
+			}
+
+			memset( buffer + toRead, 0, PAGESIZE - toRead );
+		}
+	}
+
+	return buffer;   // Silly return of buffer passed in preparation for later
+		   // version where buffer will probably be part of cache.
+
+		   }*/
+
+/*static struct node* checkRead(const char *path, struct fuse_file_info *fi, char *bufRead, int i, int pageNum, struct node *head, int readSize){
+	if (head == NULL){
+		pread(fi->fh, bufRead, readSize, i*PAGESIZE);
+		head = (struct node*)malloc(sizeof(struct node));
+		head->next = NULL;
+		head->path = (char*)malloc(strlen(path)+1);
+		strcpy(head->path, path);
+		head->pageNum = pageNum;
+		head->page = bufRead;
+		/*head->page = (char*)malloc(strlen(bufRead)+1);
+		  strcpy(head->page, bufRead);
+	}
+	else{
+		if ( strcmp(path, head->path) == 0 && pageNum == head->pageNum){
+			//strcpy(bufRead, head->page);
+			head->page = bufRead;
+		}
+		else{
+			head->next = checkRead(path, fi, bufRead, i, pageNum, head->next, readSize);
+		}
+	}
+	return head;
+}*/
+

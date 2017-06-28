@@ -1,0 +1,1068 @@
+%!PS-Adobe-3.0
+%%BoundingBox: 18 36 594 756
+%%Title: Enscript Output
+%%Creator: GNU Enscript 1.6.5.90
+%%CreationDate: Wed Jun 21 10:58:32 2017
+%%Orientation: Portrait
+%%Pages: (atend)
+%%DocumentMedia: Letter 612 792 0 () ()
+%%DocumentNeededResources: (atend)
+%%EndComments
+%%BeginProlog
+%%BeginResource: procset Enscript-Prolog 1.6.5 90
+%
+% Procedures.
+%
+
+/_S {	% save current state
+  /_s save def
+} def
+/_R {	% restore from saved state
+  _s restore
+} def
+
+/S {	% showpage protecting gstate
+  gsave
+  showpage
+  grestore
+} bind def
+
+/MF {	% fontname newfontname -> -	make a new encoded font
+  /newfontname exch def
+  /fontname exch def
+
+  /fontdict fontname findfont def
+  /newfont fontdict maxlength dict def
+
+  fontdict {
+    exch
+    dup /FID eq {
+      % skip FID pair
+      pop pop
+    } {
+      % copy to the new font dictionary
+      exch newfont 3 1 roll put
+    } ifelse
+  } forall
+
+  newfont /FontName newfontname put
+
+  % insert only valid encoding vectors
+  encoding_vector length 256 eq {
+    newfont /Encoding encoding_vector put
+  } if
+
+  newfontname newfont definefont pop
+} def
+
+/MF_PS { % fontname newfontname -> -	make a new font preserving its enc
+  /newfontname exch def
+  /fontname exch def
+
+  /fontdict fontname findfont def
+  /newfont fontdict maxlength dict def
+
+  fontdict {
+    exch
+    dup /FID eq {
+      % skip FID pair
+      pop pop
+    } {
+      % copy to the new font dictionary
+      exch newfont 3 1 roll put
+    } ifelse
+  } forall
+
+  newfont /FontName newfontname put
+
+  newfontname newfont definefont pop
+} def
+
+/SF { % fontname width height -> -	set a new font
+  /height exch def
+  /width exch def
+
+  findfont
+  [width 0 0 height 0 0] makefont setfont
+} def
+
+/SUF { % fontname width height -> -	set a new user font
+  /height exch def
+  /width exch def
+
+  /F-gs-user-font MF
+  /F-gs-user-font width height SF
+} def
+
+/SUF_PS { % fontname width height -> -	set a new user font preserving its enc
+  /height exch def
+  /width exch def
+
+  /F-gs-user-font MF_PS
+  /F-gs-user-font width height SF
+} def
+
+/M {moveto} bind def
+/s {show} bind def
+
+/Box {	% x y w h -> -			define box path
+  /d_h exch def /d_w exch def /d_y exch def /d_x exch def
+  d_x d_y  moveto
+  d_w 0 rlineto
+  0 d_h rlineto
+  d_w neg 0 rlineto
+  closepath
+} def
+
+/bgs {	% x y height blskip gray str -> -	show string with bg color
+  /str exch def
+  /gray exch def
+  /blskip exch def
+  /height exch def
+  /y exch def
+  /x exch def
+
+  gsave
+    x y blskip sub str stringwidth pop height Box
+    gray setgray
+    fill
+  grestore
+  x y M str s
+} def
+
+/bgcs { % x y height blskip red green blue str -> -  show string with bg color
+  /str exch def
+  /blue exch def
+  /green exch def
+  /red exch def
+  /blskip exch def
+  /height exch def
+  /y exch def
+  /x exch def
+
+  gsave
+    x y blskip sub str stringwidth pop height Box
+    red green blue setrgbcolor
+    fill
+  grestore
+  x y M str s
+} def
+
+% Highlight bars.
+/highlight_bars {	% nlines lineheight output_y_margin gray -> -
+  gsave
+    setgray
+    /ymarg exch def
+    /lineheight exch def
+    /nlines exch def
+
+    % This 2 is just a magic number to sync highlight lines to text.
+    0 d_header_y ymarg sub 2 sub translate
+
+    /cw d_output_w cols div def
+    /nrows d_output_h ymarg 2 mul sub lineheight div cvi def
+
+    % for each column
+    0 1 cols 1 sub {
+      cw mul /xp exch def
+
+      % for each rows
+      0 1 nrows 1 sub {
+        /rn exch def
+        rn lineheight mul neg /yp exch def
+        rn nlines idiv 2 mod 0 eq {
+	  % Draw highlight bar.  4 is just a magic indentation.
+	  xp 4 add yp cw 8 sub lineheight neg Box fill
+	} if
+      } for
+    } for
+
+  grestore
+} def
+
+% Line highlight bar.
+/line_highlight {	% x y width height gray -> -
+  gsave
+    /gray exch def
+    Box gray setgray fill
+  grestore
+} def
+
+% Column separator lines.
+/column_lines {
+  gsave
+    .1 setlinewidth
+    0 d_footer_h translate
+    /cw d_output_w cols div def
+    1 1 cols 1 sub {
+      cw mul 0 moveto
+      0 d_output_h rlineto stroke
+    } for
+  grestore
+} def
+
+% Column borders.
+/column_borders {
+  gsave
+    .1 setlinewidth
+    0 d_footer_h moveto
+    0 d_output_h rlineto
+    d_output_w 0 rlineto
+    0 d_output_h neg rlineto
+    closepath stroke
+  grestore
+} def
+
+% Do the actual underlay drawing
+/draw_underlay {
+  ul_style 0 eq {
+    ul_str true charpath stroke
+  } {
+    ul_str show
+  } ifelse
+} def
+
+% Underlay
+/underlay {	% - -> -
+  gsave
+    0 d_page_h translate
+    d_page_h neg d_page_w atan rotate
+
+    ul_gray setgray
+    ul_font setfont
+    /dw d_page_h dup mul d_page_w dup mul add sqrt def
+    ul_str stringwidth pop dw exch sub 2 div ul_h_ptsize -2 div moveto
+    draw_underlay
+  grestore
+} def
+
+/user_underlay {	% - -> -
+  gsave
+    ul_x ul_y translate
+    ul_angle rotate
+    ul_gray setgray
+    ul_font setfont
+    0 0 ul_h_ptsize 2 div sub moveto
+    draw_underlay
+  grestore
+} def
+
+% Page prefeed
+/page_prefeed {		% bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} def
+
+% Wrapped line markers
+/wrapped_line_mark {	% x y charwith charheight type -> -
+  /type exch def
+  /h exch def
+  /w exch def
+  /y exch def
+  /x exch def
+
+  type 2 eq {
+    % Black boxes (like TeX does)
+    gsave
+      0 setlinewidth
+      x w 4 div add y M
+      0 h rlineto w 2 div 0 rlineto 0 h neg rlineto
+      closepath fill
+    grestore
+  } {
+    type 3 eq {
+      % Small arrows
+      gsave
+        .2 setlinewidth
+        x w 2 div add y h 2 div add M
+        w 4 div 0 rlineto
+        x w 4 div add y lineto stroke
+
+        x w 4 div add w 8 div add y h 4 div add M
+        x w 4 div add y lineto
+	w 4 div h 8 div rlineto stroke
+      grestore
+    } {
+      % do nothing
+    } ifelse
+  } ifelse
+} def
+
+% EPSF import.
+
+/BeginEPSF {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack
+  userdict begin
+  /showpage { } def
+  0 setgray 0 setlinecap
+  1 setlinewidth 0 setlinejoin
+  10 setmiterlimit [ ] 0 setdash newpath
+  /languagelevel where {
+    pop languagelevel
+    1 ne {
+      false setstrokeadjust false setoverprint
+    } if
+  } if
+} bind def
+
+/EndEPSF {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+%%EndResource
+%%BeginResource: procset Enscript-Encoding-88591 1.6.5 90
+/encoding_vector [
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/space        	/exclam       	/quotedbl     	/numbersign   	
+/dollar       	/percent      	/ampersand    	/quoteright   	
+/parenleft    	/parenright   	/asterisk     	/plus         	
+/comma        	/hyphen       	/period       	/slash        	
+/zero         	/one          	/two          	/three        	
+/four         	/five         	/six          	/seven        	
+/eight        	/nine         	/colon        	/semicolon    	
+/less         	/equal        	/greater      	/question     	
+/at           	/A            	/B            	/C            	
+/D            	/E            	/F            	/G            	
+/H            	/I            	/J            	/K            	
+/L            	/M            	/N            	/O            	
+/P            	/Q            	/R            	/S            	
+/T            	/U            	/V            	/W            	
+/X            	/Y            	/Z            	/bracketleft  	
+/backslash    	/bracketright 	/asciicircum  	/underscore   	
+/quoteleft    	/a            	/b            	/c            	
+/d            	/e            	/f            	/g            	
+/h            	/i            	/j            	/k            	
+/l            	/m            	/n            	/o            	
+/p            	/q            	/r            	/s            	
+/t            	/u            	/v            	/w            	
+/x            	/y            	/z            	/braceleft    	
+/bar          	/braceright   	/tilde        	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/.notdef      	/.notdef      	/.notdef      	/.notdef      	
+/space        	/exclamdown   	/cent         	/sterling     	
+/currency     	/yen          	/brokenbar    	/section      	
+/dieresis     	/copyright    	/ordfeminine  	/guillemotleft	
+/logicalnot   	/hyphen       	/registered   	/macron       	
+/degree       	/plusminus    	/twosuperior  	/threesuperior	
+/acute        	/mu           	/paragraph    	/bullet       	
+/cedilla      	/onesuperior  	/ordmasculine 	/guillemotright	
+/onequarter   	/onehalf      	/threequarters	/questiondown 	
+/Agrave       	/Aacute       	/Acircumflex  	/Atilde       	
+/Adieresis    	/Aring        	/AE           	/Ccedilla     	
+/Egrave       	/Eacute       	/Ecircumflex  	/Edieresis    	
+/Igrave       	/Iacute       	/Icircumflex  	/Idieresis    	
+/Eth          	/Ntilde       	/Ograve       	/Oacute       	
+/Ocircumflex  	/Otilde       	/Odieresis    	/multiply     	
+/Oslash       	/Ugrave       	/Uacute       	/Ucircumflex  	
+/Udieresis    	/Yacute       	/Thorn        	/germandbls   	
+/agrave       	/aacute       	/acircumflex  	/atilde       	
+/adieresis    	/aring        	/ae           	/ccedilla     	
+/egrave       	/eacute       	/ecircumflex  	/edieresis    	
+/igrave       	/iacute       	/icircumflex  	/idieresis    	
+/eth          	/ntilde       	/ograve       	/oacute       	
+/ocircumflex  	/otilde       	/odieresis    	/divide       	
+/oslash       	/ugrave       	/uacute       	/ucircumflex  	
+/udieresis    	/yacute       	/thorn        	/ydieresis    	
+] def
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Courier
+/HFpt_w 10 def
+/HFpt_h 10 def
+/Courier-Bold /HF-gs-font MF
+/HF /HF-gs-font findfont [HFpt_w 0 0 HFpt_h 0 0] makefont def
+/Courier /F-gs-font MF
+/F-gs-font 10 10 SF
+/#copies 1 def
+% Pagedevice definitions:
+gs_languagelevel 1 gt {
+  <<
+    /PageSize [612 792] 
+  >> setpagedevice
+} if
+%%BeginResource: procset Enscript-Header-simple 1.6.5 90
+
+/do_header {	% print default simple header
+  gsave
+    d_header_x d_header_y HFpt_h 3 div add translate
+
+    HF setfont
+    user_header_p {
+      5 0 moveto user_header_left_str show
+
+      d_header_w user_header_center_str stringwidth pop sub 2 div
+      0 moveto user_header_center_str show
+
+      d_header_w user_header_right_str stringwidth pop sub 5 sub
+      0 moveto user_header_right_str show
+    } {
+      5 0 moveto fname show
+      45 0 rmoveto fmodstr show
+      45 0 rmoveto pagenumstr show
+    } ifelse
+
+  grestore
+} def
+%%EndResource
+/d_page_w 576 def
+/d_page_h 720 def
+/d_header_x 0 def
+/d_header_y 705 def
+/d_header_w 576 def
+/d_header_h 15 def
+/d_footer_x 0 def
+/d_footer_y 0 def
+/d_footer_w 576 def
+/d_footer_h 0 def
+/d_output_w 576 def
+/d_output_h 705 def
+/cols 1 def
+%%EndSetup
+%%Page: (1) 1
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 1 def
+/fname (fuseLogging.h) def
+/fdir (.) def
+/ftail (fuseLogging.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:33:22 2017) def
+/pagenumstr (1) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(#include "loggingDiskFormats.h") s
+5 670 M
+(/*************************************************************) s
+5 659 M
+( *) s
+5 648 M
+( * Descriptions of run time structures used by FUSE implementation) s
+5 637 M
+( * of multi-log log structured file system "CYCOLOGY".) s
+5 626 M
+( *) s
+5 615 M
+( **************************************************************/) s
+5 582 M
+(/***************************************************************) s
+5 571 M
+( *) s
+5 560 M
+( * Mapping from logical to physical page addresses. An entry of) s
+5 549 M
+( * 0 indicates an unused logical address.) s
+5 538 M
+( *) s
+5 527 M
+( **************************************************************/) s
+5 516 M
+(typedef struct addrMap {) s
+5 505 M
+(        int size;         /* Number of usable virtual addresses  */) s
+5 494 M
+(        page_addr map[];  /* The mapping */) s
+5 483 M
+(} * addrMap;) s
+5 428 M
+(/**************************************************************) s
+5 417 M
+( *) s
+5 406 M
+( * Used to maintain a cache of active pages from the store) s
+5 395 M
+( *) s
+5 384 M
+( *************************************************************/) s
+5 373 M
+(typedef struct pageBuffer {) s
+5 362 M
+(        page_addr address;) s
+5 351 M
+(        struct pageBuffer * nextLRU, * prevLRU;) s
+5 340 M
+(        struct pageBuffer * nextHash, * prevHash;) s
+5 329 M
+(        char page[PAGESIZE];) s
+5 318 M
+(} * pageBuffer;) s
+5 285 M
+(typedef struct pageCache {) s
+5 274 M
+(        int size;           /* Number of active pages */) s
+5 263 M
+(        pageBuffer     headLRU, tailLRU;) s
+5 252 M
+(        pageBuffer     headHash;) s
+5 241 M
+(} * pageCache;) s
+5 208 M
+(/*************************************************************) s
+5 197 M
+( *) s
+5 186 M
+( * Descriptors for active logs) s
+5 175 M
+( *) s
+5 164 M
+( ************************************************************/) s
+5 153 M
+(typedef struct activeLog {) s
+5 142 M
+(        page_addr nextPage;    /* Address of next free page */) s
+5 131 M
+(        block_addr last;       /* Address of the last block allocated) s
+5 120 M
+(                                  to this log */) s
+5 109 M
+(        struct logHeader log;  /* Mirror of log header from store */) s
+5 98 M
+(} * activeLog;) s
+5 65 M
+(/************************************************************) s
+5 54 M
+( *) s
+5 43 M
+( * Descriptor kept for each open file) s
+5 32 M
+( *) s
+5 21 M
+( ***********************************************************/) s
+5 10 M
+(typedef struct openFile {) s
+_R
+S
+%%Page: (2) 2
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 2 def
+/fname (fuseLogging.h) def
+/fdir (.) def
+/ftail (fuseLogging.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:33:22 2017) def
+/pagenumstr (2) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(        int currentOpens;   /* Count of number of active opens */) s
+5 670 M
+(        /* descriptor for log holding first/main extent of file */) s
+5 659 M
+(        activeLog mainExtentLog;) s
+5 637 M
+(        /* Pointer to array of descriptor for active extents) s
+5 626 M
+(           reference through the file's triple indirect page) s
+5 615 M
+(           \(or NULL\). If used, entries in the array will be) s
+5 604 M
+(           NULL until an extent is referenced.) s
+5 593 M
+(        */) s
+5 582 M
+(        activeLog *\(tripleExtents[EXTENT_PAGES]\);) s
+5 560 M
+(        /* Current inode for the associated file */) s
+5 549 M
+(        struct inode inode;) s
+5 538 M
+(} * openFile;) s
+5 494 M
+(/*************************************************************) s
+5 483 M
+( *) s
+5 472 M
+( * Root of static state for file system) s
+5 461 M
+( *) s
+5 450 M
+( *************************************************************/) s
+5 428 M
+(typedef struct CYCstate {) s
+5 417 M
+(        char * rootPath;    /* Path to the root of the file system used) s
+5 406 M
+(                               to hold the directory structure) s
+5 395 M
+(                            */) s
+5 384 M
+(        char * storePath;   /* Path to the file used as a virtual NAND) s
+5 373 M
+(                               memory holding data and meta-data pages) s
+5 362 M
+(                               for the file system.) s
+5 351 M
+(                            */) s
+5 329 M
+(        /* The current version of the virtual address mapping table */) s
+5 318 M
+(        struct addrMap * vaddrMap;) s
+5 296 M
+(        /* The cache of pages from the store */) s
+5 285 M
+(        struct pageCache cache;) s
+5 263 M
+(        /* The size and location of the list of pointers to open file) s
+5 252 M
+(           descriptors */) s
+5 241 M
+(        int openFileMapSize;) s
+5 230 M
+(        openFile *\(openFileTable[]\);) s
+5 208 M
+(} * CYCstate;) s
+_R
+S
+%%Page: (1) 3
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 1 def
+/fname (loggingDiskFormats.h) def
+/fdir (.) def
+/ftail (loggingDiskFormats.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:27:45 2017) def
+/pagenumstr (1) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(#include <sys/types.h>) s
+5 670 M
+(/* Size of data are in a page */) s
+5 659 M
+(#define PAGESIZE 1024) s
+5 637 M
+(/* The number of pointers to indirect pages that can fit into an extend descriptor page */) s
+5 626 M
+(/*            This must leave room for log and extent headers.                          */) s
+5 615 M
+(#define EXTENT_PAGES 128) s
+5 593 M
+(/* The number of pointers directly to data pages that can fit into an inode.            */) s
+5 582 M
+(#define DIRECT_PAGES 16) s
+5 560 M
+(/* The maximum number of files that can be merged into a single log.                    */) s
+5 549 M
+(#define MAX_FILES_IN_LOG 8) s
+5 527 M
+(/* Type used to hold logical page addresses \(i.e., pages that must be interpreted) s
+5 516 M
+(   relative to the logical page map\).  */) s
+5 505 M
+(typedef int page_vaddr;) s
+5 483 M
+(/* Type used to hold physical page addresses.    */) s
+5 472 M
+(typedef int page_addr;) s
+5 450 M
+(/* Type used to distinguish physical block addresses from page addresses */) s
+5 439 M
+(typedef int block_addr;) s
+5 417 M
+(/* Type used to store count of pages in a file */) s
+5 406 M
+(typedef int pagecnt_t;) s
+5 384 M
+(/* Type used to hold physical block addresses \(could use page address and divide) s
+5 373 M
+(   by block size, but distinguishing needed resolution seems more logical\). */) s
+5 340 M
+(/* Because it would be painful to garbage collect a very large log, the maximum) s
+5 329 M
+(   size of a log must be less than the maximum size of a file. So, large files will) s
+5 318 M
+(   be allocated using pages from several logs. Each log associated with a file will) s
+5 307 M
+(   hold data from a contiguous range of file pointer offsets. The boundaries between) s
+5 296 M
+(   these ranges will correspond to boundaries between regions that can be described) s
+5 285 M
+(   by a double-indirect page and its children. We call such regions extents.) s
+5 263 M
+(   The file's inode, its direct data pages and all pages accessed using its single) s
+5 252 M
+(   indirect page and double indirect page will form its first extent. Each of the) s
+5 241 M
+(   pointers in the file's triple indirect page \(which will be allocated within the) s
+5 230 M
+(   file's primary log\) will point to a double indirect page describing a separate extent.) s
+5 219 M
+(   The double indirect pages pointed to by a triple indirect page will therefore not only) s
+5 208 M
+(   hold an array of single indirect page pointres. Each double indirect page \(except) s
+5 197 M
+(   the file's first one\) will hold a small structure identifying the) s
+5 186 M
+(   file and log with which it is associated.) s
+5 175 M
+(*/) s
+5 164 M
+(struct extentHeader {) s
+5 153 M
+(        page_vaddr       inode;      /* inode of file owning this extent */) s
+5 142 M
+(        page_vaddr       lnode;      /* lnode of log holding this extent */) s
+5 131 M
+(        page_vaddr       self;       /* virtual address of this extent   */) s
+5 120 M
+(        page_addr        indirect[EXTENT_PAGES];  /* addresess of single indirect pages */) s
+5 109 M
+(};) s
+5 76 M
+(struct inode {) s
+5 65 M
+(        mode_t             i_mode;     /* See STAT command man page for) s
+5 54 M
+(                                                      bit functions  */) s
+5 32 M
+(        uid_t               i_uid;      /* User and group id numbers for  */) s
+5 21 M
+(        gid_t               i_gid;      /* this file.  */) s
+_R
+S
+%%Page: (2) 4
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 2 def
+/fname (loggingDiskFormats.h) def
+/fdir (.) def
+/ftail (loggingDiskFormats.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:27:45 2017) def
+/pagenumstr (2) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(        unsigned int        i_flags;    /* Probably unnecessary   */) s
+5 670 M
+(        page_vaddr          i_file_no;   /* Unique file number */) s
+5 659 M
+(        page_vaddr          i_log_no;    /* Number of log associated with 1st extent */) s
+5 637 M
+(        unsigned int        i_links_count;         /* Number of hard links to file */) s
+5 615 M
+(        struct timespec     i_atime;    /* Access, modification and     */) s
+5 604 M
+(        struct timespec     i_mtime;    /* modification times for the file  */) s
+5 593 M
+(        struct timespec     i_ctime;) s
+5 571 M
+(    pagecnt_t           i_pages;    /* Number of active/allocated pages ? */) s
+5 560 M
+(    loff_t              i_size;     /* File size in bytes */) s
+5 527 M
+(    page_addr           indirect;   /* Address of single indirect block */) s
+5 516 M
+(    page_addr           doubleInd;  /* Address of double indirect block */) s
+5 505 M
+(    page_vaddr          tripleInd;  /* Address of triple indirect extent hdr */) s
+5 483 M
+(    /* address of first data pages for file */) s
+5 472 M
+(    page_addr           directPage[DIRECT_PAGES];) s
+5 461 M
+(};) s
+5 428 M
+(/* All the active blocks in the file system are organized into logs. A given log can) s
+5 417 M
+(   be associated with a\) a small collection of files whose data is stored in the log,) s
+5 406 M
+(   b\) a single extent of a large file whose data is stored in the log, c\) a meta-data) s
+5 395 M
+(   structure such as a snapshot of the virtual page number map or the journal of) s
+5 384 M
+(   file system updates.) s
+5 362 M
+(   For each log, we need to keep track of what entity/entities the log is associated) s
+5 351 M
+(   with and statistics on space utilization within the log needed to determine) s
+5 340 M
+(   when to scan logs to recover unused/unusable space.) s
+5 329 M
+(*/) s
+5 318 M
+(struct logHeader {) s
+5 307 M
+(  unsigned long erases; /* Sum of erases of all blocks in log */) s
+5 296 M
+(  page_vaddr logId;     /* Logical page address of the page holding this header  */) s
+5 285 M
+(  block_addr prev;      /* Address of previous block allocated to this log */) s
+5 274 M
+(  block_addr first;     /* Address of first block allocated to this log */) s
+5 263 M
+(  unsigned int active;  /* Total number of active pages */) s
+5 252 M
+(  unsigned int total;   /* Total number of blocks */) s
+5 241 M
+(  short logType;        /* Does this log hold, files, and extent, or meta-data */) s
+5 230 M
+(#define LTYPE_FILES 1) s
+5 219 M
+(#define LTYPE_EXTENT 2) s
+5 208 M
+(#define LTYPE_VADDRMAP 3) s
+5 197 M
+(#define LTYPE_JOURNAL 4) s
+5 186 M
+(        /* The following union depends on logType for discrimination. It holds) s
+5 175 M
+(           the latest version for the descriptor of the entity associated with) s
+5 164 M
+(           this log.) s
+5 153 M
+(        */) s
+5 142 M
+(        union logType {) s
+5 131 M
+(                struct {) s
+5 120 M
+(                     int fileCount;) s
+5 109 M
+(                     page_vaddr fileId[MAX_FILES_IN_LOG];) s
+5 98 M
+(                     struct inode fInode;) s
+5 87 M
+(                } file;) s
+5 76 M
+(                struct extentHeader extent;) s
+5 65 M
+(        } content;) s
+5 43 M
+(} *logHeader;) s
+_R
+S
+%%Page: (3) 5
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 3 def
+/fname (loggingDiskFormats.h) def
+/fdir (.) def
+/ftail (loggingDiskFormats.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:27:45 2017) def
+/pagenumstr (3) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(/* This page will hold information required to restart the system. In) s
+5 681 M
+(   our experimental implementation, it will simply be written on page) s
+5 670 M
+(   0. In a more realistic implementation it would need to migrate around) s
+5 659 M
+(   the memory's address range while a wandering tree rooted at page 0) s
+5 648 M
+(   would be used to record its latest location.) s
+5 637 M
+(*/) s
+5 626 M
+(typedef struct superPage {) s
+5 615 M
+(        /* While running, the system will record information about critical) s
+5 604 M
+(           meta-data updates in a journal whose blocks will form a single) s
+5 593 M
+(           log. This field will hold the address of the latest log descriptor) s
+5 582 M
+(           recorded for this log.) s
+5 571 M
+(        */) s
+5 560 M
+(        page_addr latest_journal;) s
+5 538 M
+(        /* While running, the system will constantly \(but slowly\) write a) s
+5 527 M
+(           copy of the contents of the mapping from logical addresses for) s
+5 516 M
+(           inodes, Lnodes and extent headers to persistent store. This) s
+5 505 M
+(           field will hold the address of the latest log descriptor recorded) s
+5 494 M
+(           for the log holding the latest copy of this map.) s
+5 483 M
+(        */) s
+5 472 M
+(        page_addr latest_vaddr_map;) s
+5 439 M
+(        /* Depending on whether the system is shutdown deliberately or terminates) s
+5 428 M
+(           unexpectedly, the copy of the virtual address map pointed to by) s
+5 417 M
+(           latest_vaddr_map may or may not be complete. If it is incomplete, the) s
+5 406 M
+(           system will need to reconstruct the rest of the map using an older) s
+5 395 M
+(           copy and entries written to the latest and previous journal logs.) s
+5 384 M
+(           The next two fields provide access to these structures.) s
+5 373 M
+(        */) s
+5 362 M
+(        page_addr prev_vaddr_map;) s
+5 351 M
+(        page_addr prev_journal;) s
+5 318 M
+(} *superPage;) s
+5 296 M
+(/* Every page on a NAND memory includes an overhead area used to store information) s
+5 285 M
+(   beyond the data held in the page. This is typically used for error) s
+5 274 M
+(   detecting/correcting codes that help detect when a block wears out.) s
+5 263 M
+(   In this system, we will also use this area to hold meta-data about the) s
+5 252 M
+(   contents of each page and the entire block.) s
+5 241 M
+(*/) s
+5 219 M
+(#define PAGEDATASIZE 1024) s
+5 197 M
+(#define PTYPE_DATA 1               /* Contains file data */) s
+5 186 M
+(#define PTYPE_INODE 2              /* Contains an inode \(and associated Lnode\) */) s
+5 175 M
+(#define PTYPE_INDIRECT 3           /* Contains a single indirect page */) s
+5 164 M
+(#define PTYPE_DOUBIND_PRIMARY 4    /* Contains a file's first double-ind page */) s
+5 153 M
+(#define PTYPE_TRIPIND 5            /* Contains a file's only triple indirect page */) s
+5 142 M
+(#define PTYPE_DOUBIND_EXTENT 6     /* Contains a double-ind page describing an) s
+5 131 M
+(                                      separate extent pointed to by a file's) s
+5 120 M
+(                                      triple indirect page.) s
+5 109 M
+(                                   */) s
+5 76 M
+(typedef struct fullPage {) s
+5 65 M
+(        char contents[PAGEDATASIZE];) s
+5 54 M
+(        int eraseCount;           /* In the first page of a block, this field will) s
+5 43 M
+(                                     hold the erase count for the block */) s
+5 21 M
+(        block_addr nextLogBlock;  /* In last and next to last pages of a block,) s
+5 10 M
+(                                     this field will hold the address of the) s
+_R
+S
+%%Page: (4) 6
+%%BeginPageSetup
+_S
+18 36 translate
+/pagenum 4 def
+/fname (loggingDiskFormats.h) def
+/fdir (.) def
+/ftail (loggingDiskFormats.h) def
+% User defined strings:
+/fmodstr (Fri Jun 16 16:27:45 2017) def
+/pagenumstr (4) def
+/user_header_p false def
+/user_footer_p false def
+%%EndPageSetup
+do_header
+5 692 M
+(                                     next page of the log containing the pages) s
+5 681 M
+(                                  */) s
+5 659 M
+(        int nextBlockErases;     /* The number of times the block pointed to by) s
+5 648 M
+(                                    nextLogBlock has been erased \(this is used) s
+5 637 M
+(                                    to preserve this info against lost between) s
+5 626 M
+(                                    the block's erasure and the writing of its) s
+5 615 M
+(                                    first page\).) s
+5 604 M
+(                                 */) s
+5 593 M
+(        union metaData {) s
+5 582 M
+(                /* the contents of this union are determined by pageType's value */) s
+5 571 M
+(                /* \(At this point, it is not at all clear that it is worth having this union\) ) s
+5 560 M
+(*/) s
+5 538 M
+(                struct dataPosition { /* if PTYPE_DATA or any indirect page */) s
+5 527 M
+(                        page_vaddr inode;) s
+5 516 M
+(                        int offset;   /* if the type is PTYPE_DATA, this will be) s
+5 505 M
+(                                         the offset within the file to the data) s
+5 494 M
+(                                         in contents. If this is an indirect page) s
+5 483 M
+(                                         of any level, this will hold the offset) s
+5 472 M
+(                                         to the first page of data covered by) s
+5 461 M
+(                                         the indirect page.) s
+5 450 M
+(                                      */) s
+5 439 M
+(                } dataPage;) s
+5 384 M
+(        } meta;) s
+5 362 M
+(        char pageType;    /* one of the PTYPE constants define above */) s
+5 340 M
+(} *fullPage;) s
+_R
+S
+%%Trailer
+%%Pages: 6
+%%DocumentNeededResources: font Courier-Bold Courier 
+%%EOF
