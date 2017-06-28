@@ -187,7 +187,7 @@ typedef struct fullPage {
 	int eraseCount;           /* In the first page of a block, this field will
 				     hold the erase count for the block */
 
-	block_addr nextLogBlock;  /* In last and next to last pages of a block,
+	page_addr nextLogBlock;  /* In last and next to last pages of a block,
 				     this field will hold the address of the
 				     next page of the log containing the pages
 				  */

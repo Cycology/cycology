@@ -16,6 +16,7 @@
  **************************************************************/
 typedef struct addrMap {
 	int size;         /* Number of usable virtual addresses  */
+        int freePtr;      /* Points to next avaible slot in map */
 	page_addr map[];  /* The mapping */
 } * addrMap;
 
