@@ -1,0 +1,2 @@
+void closeFile(const char *path, int fd){
+}

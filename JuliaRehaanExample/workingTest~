@@ -1,0 +1,67 @@
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
+		    struct fuse_file_info *fi)
+{
+	char *bufRead;
+
+	int res = 0;
+
+	(void) path;
+
+	int deviation  = offset%PAGESIZE;
+	int numPages = (deviation+PAGESIZE+size-1)/PAGESIZE;
+
+	bufRead = (char*)malloc(numPages*PAGESIZE);
+	char *bufStart = bufRead;
+	fprintf(stderr, "We're here!\n");
+	for (int i = 0; i < numPages; i++){
+		res += pread(fi->fh, bufRead, PAGESIZE, i*PAGESIZE);
+		bufRead += PAGESIZE;
+	}
+	memcpy(buf, deviation + bufStart, size);
+	free(bufStart);
+	if (res == -1){
+		res = -errno;
+	}
+	return res;
+}
+
+	printf("READ\n");
+	char *bufRead;
+
+	int res = 0;
+
+	(void) path;
+
+	int deviation  = offset%PAGESIZE;
+	int numPages = (deviation+PAGESIZE+size-1)/PAGESIZE;
+
+	for (int i = 0; i < numPages; i++){
+		bufRead = (char*)malloc(PAGESIZE);
+		res += pread(fi->fh, bufRead, PAGESIZE, i*PAGESIZE);
+		if (numPages == 1) {
+			memcpy(buf, bufRead + deviation, size);
+		} else if (i == 0) {
+			memcpy(buf, bufRead + deviation, PAGESIZE - deviation);
+			buf += PAGESIZE - deviation;
+		} else if (i == numPages - 1 && deviation != 0) {
+			memcpy(buf, bufRead, deviation);
+		} else {
+			memcpy(buf, bufRead, PAGESIZE);
+			buf += PAGESIZE;
+		}
+		free(bufRead);
+	}
+
+	if (res == -1){
+		res = -errno;
+	}
+	return res;
+
+ struct stat *stbuf,
+			struct fuse_file_info *fi)
+{
+	int res;
+
+	(void) path;
+
+	res = fstat(fi->fh, stbuf);

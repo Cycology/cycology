@@ -1,0 +1,10 @@
+//Defines structs and methods for the cache
+
+struct node{
+	struct node *next;
+	struct node *prev;
+	char *path;
+	int pageNum;
+	char *page;
+
+};

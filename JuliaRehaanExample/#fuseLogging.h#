@@ -1,0 +1,178 @@
+#include "loggingDiskFormats.h"
+
+/*************************************************************
+ *
+ * Descriptions of run time structures used by FUSE implementation
+ * of multi-log log structured file system "CYCOLOGY".
+ *
+ **************************************************************/
+
+
+/***************************************************************
+ *
+ * Mapping from logical to physical page addresses. An entry of
+ * 0 indicates an unused logical address.
+ *
+ **************************************************************/
+typedef struct addrMap {
+	int size;         /* Number of usable virtual addresses  */
+	page_addr map[];  /* The mapping */
+} * addrMap;
+
+
+
+
+/**************************************************************
+ *
+ * Used to maintain a cache of active pages from the store
+ *
+ *************************************************************/
+typedef struct pageBuffer {
+	/* The actual contents of the (possibly updated) page. */
+	struct fullPage page;
+
+		/* The physical address where the page resides in NAND *
+	page_addr address;
+
+	/* Pointers for double linked list of pages ordered by last reference */
+	struct pageBuffer * nextLRU, * prevLRU;
+
+	/* Pointers for double linked list of pages in a given hash bucket */
+	struct pageBuffer * nextHash, * prevHash;
+
+        /* A flag set to indicate contents are a meta-data page that must
+	   be written back to store before being removed from cache        */
+	byte dirty;
+
+} * pageBuffer;
+
+
+typedef struct pageCache {
+	int size;           /* Number of active pages */
+
+	/* Head and tail pointers for list of pages ordered by time
+	   since last reference. */
+	pageBuffer     headLRU, tailLRU;
+
+	/* Head pointers for lists representing has buckets. Only the
+	   head pointer is needed here, but list is doubly-linked. */
+	pageBuffer     headHash[HASHSIZE];
+} * pageCache;
+
+
+/*************************************************************
+ *
+ * Descriptors for active logs
+ *
+ ************************************************************/
+typedef struct activeLog {
+	page_addr nextPage;    /* Address of next free page */
+	block_addr last;       /* Address of the last block allocated
+				  to this log */
+	struct logHeader log;  /* Mirror of log header from store */
+} * activeLog;
+
+
+/************************************************************
+ *
+ * Descriptor kept for each open file
+ *
+ ***********************************************************/
+typedef struct openFile {
+	int currentOpens;   /* Count of number of active opens */
+
+	/* descriptor for log holding first/main extent of file */
+	activeLog mainExtentLog;
+
+	/* Pointer to array of descriptor for active extents
+	   reference through the file's triple indirect page
+	   (or NULL). If used, entries in the array will be
+	   NULL until an extent is referenced.
+	*/
+	activeLog tripleExtents[EXTENT_PAGES];
+
+	/* pointer to cache buffer holding current inode for the 
+	   associated file (say 
+            ((logHeader)inodeBuffer->page->contents)->content.file.fInode
+	   to access the included inode.
+        */
+	pageBuffer inodeBuffer;
+
+	/* Set if this inode must be written to disk before this structure
+	   is discarded. It should be set if any of the files data blocks
+	   (direct or indirect) is modified, if either the address of
+	   the files single or double indirect page has been modified in
+	   the file's cached inode, or if information like permissions
+	   or modification times have changed. */
+	byte modified;
+
+	/* The next two fields will be set if the file's single or double
+	   indirect pages must be written to reflect changes in the
+	   data to which they refer before this structure is discarded.
+	   (Note: If one of these indirect pages have already been written
+	   to reflect all updates, the corresponding boolean should be
+	   false, the pointer for the indirect page should already be
+	   updated in the cached inode, and the modified field of this
+	   inode should be set.   */
+	byte 1IndModified;
+
+	byte 2IndModified;
+
+	/* This field will be set if the contents of the file's triple
+	   indirect page have been modified. Since the triple indirect
+	   page contains virtual extent addresses rather than physical
+	   addresses, it is possible that the contents of some of the
+	   extents referenced by the triple indirect page may have
+	   changed without requiring that the page itself be modified.
+	   The triple indirect page should only require modification
+	   if extents have to be added or removed from the file. */
+	byte 3IndModified;
+} * openFile;
+
+
+typedef struct 3IndDesc {
+	openFile parent;
+        pageBuffer contents;
+} * 3IndDesc;
+
+
+typedef struct 2IndDesc {
+	openFile grandparent;
+	activeExtent parent;
+	pageBuffer contents;
+} * 2IndDesc;
+
+typedef struct 1IndDesc {
+	openFile grandparent;
+	2IndDesc parent;
+	pageBuffer contents;
+} * 1IndDesc;
+
+
+/*************************************************************
+ *
+ * Root of static state for file system
+ *
+ *************************************************************/
+
+typedef struct CYCstate {
+	char * rootPath;    /* Path to the root of the file system used
+			       to hold the directory structure
+			    */
+	char * storePath;   /* Path to the file used as a virtual NAND
+			       memory holding data and meta-data pages
+			       for the file system.
+			    */
+
+	/* The current version of the virtual address mapping table */
+	struct addrMap * vaddrMap;
+
+	/* The cache of pages from the store */
+	struct pageCache cache;
+
+	/* The size and location of the list of pointers to open file
+	   descriptors */
+	int openFileMapSize;
+	openFile *(openFileTable[]);
+
+} * CYCstate;

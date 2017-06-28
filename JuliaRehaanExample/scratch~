@@ -1,0 +1,64 @@
+Unlink
+
+/*		index i = isOpen(vAddr);
+		struct inode *inode;
+		if (i){
+			inode = state->openFileTable[i]->inode;
+		}
+		else{
+			//We need to creare an active file descriptor (but maybe not if we're removing the file, so wait for the next if statement
+			inode = getInode(vAddr); //This should all be a function, but access to i..
+		}
+		if (inode->i_links_count > 1){
+			res = unlink(path); //Is this how we do this still?
+			if (res == -1)
+				return -errno;
+			inode->i_links_count--;
+			//write inode to log (and all that entails) (but probably only if closed?)
+			if (i){
+				state->openFileTable[i]->inode = inode; //probably better way of doing that
+			}
+			else{
+				//Write inode to log- so we need to do the whole creating an activeLog descriptor thing....
+				fullPage page = getFullPage(inode->i_log_no);
+				activeLog aLog = newActiveLog(page);
+				//Now the writing part...
+			}
+		}
+		/*if (stbuff.st_nlink > 1){
+			res = unlink(path);
+			if (res == -1)
+				return -errno;
+			return 0;
+			}*/
+/*		else{
+
+			//remove real file
+			/*
+			  Removing a file:
+			  free up address*/
+/*			if (!i){
+				res = unlink(path);
+				if (res == -1)
+					return -errno;
+				state->addrMap->map[inode->i_file_no] = 0;
+				//If log's empty, we also have to free up its address
+				//also, the whole file has to get marked as garbage
+			}
+			else{
+				inode->i_links_count--; //write inode to memory
+				activeLog aLog = state->openFileTable[i]->mainExtentLog;
+
+				//get log, then create full page, then write (again the full page problem)
+				//at least we have an activeLog descriptor
+				//We could mod the nextPage address to figure out if the page we're writing to is a special page.
+				//If it's not special, just create a full page that's PTYPE_INODE, with everything else null
+				//We should probably have a fullPage constructor
+
+			}
+			/*Increase block's garbage count
+			  Log might go away- unless it has multiple things in it
+			  get logHeader(i_log_no)- check of active pages vs filesize- if more active pages than filesize, keep log, if not, don't- but account for the inode! (1 active inode per file)
+			  Cannot remove if open! So how do we schedule removal?
+
+			 */

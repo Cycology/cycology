@@ -1,0 +1,18 @@
+## Process this file with automake to produce Makefile.in
+
+AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
+noinst_HEADERS = fioc.h
+fusexmp_fh_SOURCES = fusexmp_fh.c pageCache.c
+fuseLogging_SOURCES = fuseLogging.c activeLog.c inode.c fetchInode.c addressMap.c openFile.c log.c closeFile.c
+noinst_PROGRAMS = fusexmp fusexmp_fh null hello hello_ll fioc fioclient \
+		  fsel fselclient cusexmp fuse_lo-plus fuseLogging
+
+LDADD = ../lib/libfuse3.la
+fusexmp_fh_LDADD = ../lib/libfuse3.la @fusexmp_fh_libs@
+
+fioclient_CPPFLAGS =
+fioclient_LDFLAGS =
+fioclient_LDADD =
+fselclient_CPPFLAGS =
+fselclient_LDFLAGS =
+fselclient_LDADD =
