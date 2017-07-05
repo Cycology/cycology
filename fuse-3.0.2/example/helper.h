@@ -1,7 +1,7 @@
 //Helper Functions
 
 //From addressMap.c
-addrMap initAddrMap();
+addrMap initAddrMap(void);
 
 //From openFile.c
-*(openFile[]) initOpenTable(int size);
+//*(openFile[]) initOpenTable(int size);
