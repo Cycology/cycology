@@ -1,0 +1,13 @@
+Build started at 2017-06-13T13:53:48.692040
+Python binary: /usr/bin/python3
+Python system: Linux
+The Meson build system
+Version: 0.29.0
+Source dir: /home/quan/Documents/fuse-3.0.2
+Build dir: /home/quan/Documents/fuse-3.0.2/build
+Build type: native build
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+
+Meson encountered an error in file meson.build, line 4, column 0:
+Meson version is 0.29.0 but project requires >= 0.38.

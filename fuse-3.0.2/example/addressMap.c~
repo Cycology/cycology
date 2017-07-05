@@ -1,0 +1,39 @@
+#define FUSE_USE_VERSION 30
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#define _GNU_SOURCE
+
+#include <fuse.h>
+
+#ifdef HAVE_LIBULOCKMGR
+#include <ulockmgr.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/time.h>
+#ifdef HAVE_SETXATTR
+#include <sys/xattr.h>
+#endif
+#include <sys/file.h> /* flock(2) */
+#include "helper.h"
+
+//data structure to hold map
+addrMap initAddrMap(){
+  addrMap addressMap = (addrMap)malloc(sizeof(struct addrMap)); //Need to do a #define
+	addressMap->size = ADDRMAPSIZE;
+	addressMap->map = page_addr[1024];
+	for (int i = 0, i < addressMap->size, i++){
+		addressMap->map[i] = 0;
+	}
+	return addrMap;
+}

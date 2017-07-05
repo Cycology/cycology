@@ -1,0 +1,4 @@
+//Helper Functions
+
+//From openFile.c
+*(openFile[]) initOpenTable(int size);
