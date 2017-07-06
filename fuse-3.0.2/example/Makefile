@@ -263,7 +263,7 @@ AUTOMAKE = ${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing automake
 AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O2 -fno-strict-aliasing
+CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O0 -fno-strict-aliasing
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
