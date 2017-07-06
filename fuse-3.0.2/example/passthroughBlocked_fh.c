@@ -312,11 +312,17 @@ static int xmp_rmdir(const char *path)
 	return 0;
 }
 
+//Called when making a symlink only from WITHIN our FS
 static int xmp_symlink(const char *from, const char *to)
 {
 	int res;
 
-	res = symlink(from, to);
+	printf("from: %s\n", from);
+	char *fullPath = makePath(to);
+	printf("to: %s\n", fullPath);
+	
+	res = symlink(from, fullPath);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
 
@@ -326,6 +332,9 @@ static int xmp_symlink(const char *from, const char *to)
 static int xmp_rename(const char *from, const char *to, unsigned int flags)
 {
 	int res;
+
+	printf("from: %s\n", from);
+	printf("to: %s\n", to);
 
 	/* When we have renameat2() in libc, then we can implement flags */
 	if (flags)
@@ -341,6 +350,9 @@ static int xmp_rename(const char *from, const char *to, unsigned int flags)
 static int xmp_link(const char *from, const char *to)
 {
 	int res;
+
+	printf("from: %s\n", from);
+	printf("to: %s\n", to);
 
 	res = link(from, to);
 	if (res == -1)
