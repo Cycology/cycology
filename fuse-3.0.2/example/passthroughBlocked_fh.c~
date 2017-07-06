@@ -56,53 +56,59 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
-#include "fuseLogging.h"
-#include "helper.h"
 
 typedef struct blocked_file_info{
   int flag;
   int fd;
 } *blocked_file_info;
 
+static char *makePath(const char *path)
+{
+  char *fullPath = (char*) malloc(strlen(path) + strlen(ROOT_PATH) + 1);
+  strcpy(fullPath, ROOT_PATH);
+  strcat(fullPath, path);
+  return fullPath;
+}
+
 //Initialize the FS, saving the directory being mounted
 static void *xmp_init(struct fuse_conn_info *conn,
 		      struct fuse_config *cfg)
 {
-  CYCstate context = (CYCstate) malloc(sizeof (struct CYCstate));
-  context->rootPath = ROOT_PATH;
-  //context->storePath = STORE_PATH;
-  //int fd = open(path, "w+");
-  //context->storeFileDescriptor = fd; //Julia & Rehaan attempted to save the fd?
-  context->vaddrMap = initAddrMap();
+  /* CYCstate context = (CYCstate) malloc(sizeof (struct CYCstate)); */
+  /* context->rootPath = ROOT_PATH; */
+  /* //context->storePath = STORE_PATH; */
+  /* //int fd = open(path, "w+"); */
+  /* //context->storeFileDescriptor = fd; //Julia & Rehaan attempted to save the fd? */
+  /* context->vaddrMap = initAddrMap(); */
 
-  context->cache = (pageCache)malloc(sizeof(struct pageCache));
-  context->cache->size = 0;
-  context->cache->headLRU = NULL;
-  context->cache->tailLRU = NULL;
-  context->cache->headHash = NULL;
+  /* context->cache = (pageCache)malloc(sizeof(struct pageCache)); */
+  /* context->cache->size = 0; */
+  /* context->cache->headLRU = NULL; */
+  /* context->cache->tailLRU = NULL; */
+  /* context->cache->headHash = NULL; */
 
-  context->openFileMapSize = 1024; //why 1024?
-  context->openFileTable = initOpenTable(context->openFileMapSize);
-  context->blockNumber = 1; //add to CYCstate, will eventually get replaced by the free list. Should be 1 if we have a superblock?
+  /* context->openFileMapSize = 1024; //why 1024? */
+  /* context->openFileTable = initOpenTable(context->openFileMapSize); */
+  /* context->blockNumber = 1; //add to CYCstate, will eventually get replaced by the free list. Should be 1 if we have a superblock? */
 
-  return context;
+  /* return context; */
   
-	/* (void) conn; */
-	/* cfg->use_ino = 1; */
-	/* cfg->nullpath_ok = 1; */
+	(void) conn;
+	cfg->use_ino = 1;
+	cfg->nullpath_ok = 1;
 
-	/* Pick up changes from lower filesystem right away. This is
-	   also necessary for better hardlink support. When the kernel
-	   calls the unlink() handler, it does not know the inode of
-	   the to-be-removed entry and can therefore not invalidate
-	   the cache of the associated inode - resulting in an
-	   incorrect st_nlink value being reported for any remaining
-	   hardlinks to this inode. */
-	/* cfg->entry_timeout = 0; */
-	/* cfg->attr_timeout = 0; */
-	/* cfg->negative_timeout = 0; */
+	/* Pick up changes from lower filesystem right away. This is */
+	/*    also necessary for better hardlink support. When the kernel */
+	/*    calls the unlink() handler, it does not know the inode of */
+	/*    the to-be-removed entry and can therefore not invalidate */
+	/*    the cache of the associated inode - resulting in an */
+	/*    incorrect st_nlink value being reported for any remaining */
+	/*    hardlinks to this inode. */
+	cfg->entry_timeout = 0;
+	cfg->attr_timeout = 0;
+	cfg->negative_timeout = 0;
 
-	/* return NULL; */
+	return NULL;
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,
@@ -111,18 +117,17 @@ static int xmp_getattr(const char *path, struct stat *stbuf,
 	int res;
 
 	(void) path;
-
-	char *fullPath = (char*) malloc(strlen(path) + strlen(ROOT_PATH) + 1);
-	strcpy(fullPath, &ROOT_PATH);
-	strcat(fullPath, path);
 	
 	if(fi)
 		res = fstat(fi->fh, stbuf);
 	else
+	  {
+	  	char *fullPath = makePath(path);
 		res = lstat(fullPath, stbuf);
+		free(fullPath);
+	  }
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -130,10 +135,13 @@ static int xmp_access(const char *path, int mask)
 {
 	int res;
 
-	res = access(path, mask);
+	char *fullPath = makePath(path);
+	
+	res = access(fullPath, mask);
+	free(fullPath);
+
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -141,7 +149,11 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 {
 	int res;
 
-	res = readlink(path, buf, size - 1);
+	char *fullPath = makePath(path);
+	
+	res = readlink(fullPath, buf, size - 1);
+	free(fullPath);
+
 	if (res == -1)
 		return -errno;
 
@@ -162,7 +174,10 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi)
 	if (d == NULL)
 		return -ENOMEM;
 
-	d->dp = opendir(path);
+	char *fullPath = makePath(path);
+
+	d->dp = opendir(fullPath);
+	free(fullPath);
 	if (d->dp == NULL) {
 		res = -errno;
 		free(d);
@@ -240,14 +255,21 @@ static int xmp_releasedir(const char *path, struct fuse_file_info *fi)
 static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 {
 	int res;
-
+		
 	if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
+	  {
+	  char *fullPath = makePath(path);
+	  res = mkfifo(fullPath, mode);
+	  free(fullPath);
+	  }
 	else
-		res = mknod(path, mode, rdev);
+	  {
+	  char *fullPath = makePath(path);
+	  res = mknod(fullPath, mode, rdev);
+	  free(fullPath);
+	  }
 	if (res == -1)
-		return -errno;
-
+	  return -errno;
 	return 0;
 }
 
@@ -255,10 +277,12 @@ static int xmp_mkdir(const char *path, mode_t mode)
 {
 	int res;
 
-	res = mkdir(path, mode);
+	char *fullPath = makePath(path);
+	
+	res = mkdir(fullPath, mode);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -266,10 +290,12 @@ static int xmp_unlink(const char *path)
 {
 	int res;
 
-	res = unlink(path);
+	char *fullPath = makePath(path);
+
+	res = unlink(fullPath);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -277,10 +303,12 @@ static int xmp_rmdir(const char *path)
 {
 	int res;
 
-	res = rmdir(path);
+	char *fullPath = makePath(path);
+	
+	res = rmdir(fullPath);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -326,13 +354,16 @@ static int xmp_chmod(const char *path, mode_t mode,
 {
 	int res;
 
+	char *fullPath = makePath(path);
+
 	if(fi)
 		res = fchmod(fi->fh, mode);
 	else
-		res = chmod(path, mode);
+		res = chmod(fullPath, mode);
 	if (res == -1)
 		return -errno;
 
+	free(fullPath);
 	return 0;
 }
 
@@ -343,9 +374,11 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid,
 
 	if (fi)
 		res = fchown(fi->fh, uid, gid);
-	else
-		res = lchown(path, uid, gid);
-	if (res == -1)
+	else {
+	        char *fullPath = makePath(path);
+	        res = lchown(fullPath, uid, gid);
+		free(fullPath);
+	} if (res == -1)
 		return -errno;
 
 	return 0;
@@ -358,10 +391,11 @@ static int xmp_truncate(const char *path, off_t size,
 
 	if(fi)
 		res = ftruncate(fi->fh, size);
-	else
+	else {
+	  	char *fullPath = makePath(path);
 		res = truncate(path, size);
-
-	if (res == -1)
+		free(fullPath);
+	} if (res == -1)
 		return -errno;
 
 	return 0;
@@ -376,9 +410,11 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 	/* don't use utime/utimes since they follow symlinks */
 	if (fi)
 		res = futimens(fi->fh, ts);
-	else
-		res = utimensat(0, path, ts, AT_SYMLINK_NOFOLLOW);
-	if (res == -1)
+	else {
+	        char *fullPath = makePath(path);
+	        res = utimensat(0, fullPath, ts, AT_SYMLINK_NOFOLLOW);
+		free(fullPath);
+	} if (res == -1)
 		return -errno;
 
 	return 0;
@@ -389,10 +425,13 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
   //int fd;
 
+        char *fullPath = makePath(path);
+  
 	blocked_file_info fptr;
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
-	fptr->fd = open(path, O_RDWR, mode);
+	fptr->fd = open(fullPath, O_RDWR, mode);
+	free(fullPath);
 	//fd = open(path, fi->flags, mode);
 	if (fptr->fd == -1)
 		return -errno;
@@ -405,10 +444,13 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
   //int fd;
 
+	char *fullPath = makePath(path);
+  
 	blocked_file_info fptr;
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
-	fptr->fd = open(path, O_RDWR);
+	fptr->fd = open(fullPath, O_RDWR);
+	free(fullPath);
 	if (fptr->fd == -1)
 		return -errno;
 
@@ -428,8 +470,10 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
         (void) path;
-	
-	fprintf(stderr, "Reading %s at %d for %d\n", path, (int) offset, (int) size);
+
+	char *fullPath = makePath(path);
+	fprintf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
+	free(fullPath);
 	
 	size_t res = 0;//size_t or int?        //return value
 	size_t bytesRead;                      //bytes read in for a single page
@@ -646,10 +690,12 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 {
 	int res;
 
-	res = statvfs(path, stbuf);
+	char *fullPath = makePath(path);
+	
+	res = statvfs(fullPath, stbuf);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
 	return 0;
 }
 
@@ -717,7 +763,10 @@ static int xmp_fallocate(const char *path, int mode,
 static int xmp_setxattr(const char *path, const char *name, const char *value,
 			size_t size, int flags)
 {
+        char *fullPath = makePath(path);
+  
 	int res = lsetxattr(path, name, value, size, flags);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
 	return 0;
@@ -726,7 +775,10 @@ static int xmp_setxattr(const char *path, const char *name, const char *value,
 static int xmp_getxattr(const char *path, const char *name, char *value,
 			size_t size)
 {
-	int res = lgetxattr(path, name, value, size);
+        char *fullPath = makePath(path);
+  
+	int res = lgetxattr(fullPath, name, value, size);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -734,7 +786,10 @@ static int xmp_getxattr(const char *path, const char *name, char *value,
 
 static int xmp_listxattr(const char *path, char *list, size_t size)
 {
-	int res = llistxattr(path, list, size);
+        char *fullPath = makePath(path);
+  
+	int res = llistxattr(fullPath, list, size);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -742,7 +797,10 @@ static int xmp_listxattr(const char *path, char *list, size_t size)
 
 static int xmp_removexattr(const char *path, const char *name)
 {
-	int res = lremovexattr(path, name);
+  	char *fullPath = makePath(path);
+  
+	int res = lremovexattr(fullPath, name);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
 	return 0;

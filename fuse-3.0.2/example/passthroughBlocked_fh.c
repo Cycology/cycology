@@ -27,7 +27,7 @@
 #define FUSE_USE_VERSION 30
 
 //Define root path
-#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example")
+#define ROOT_PATH ((char *)"/home/tiffany/Documents/cycology/fuse-3.0.2/example/rootdir")
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -56,8 +56,6 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
-#include "fuseLogging.h"
-#include "helper.h"
 
 typedef struct blocked_file_info{
   int flag;

@@ -437,7 +437,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/quan/Documents/fuse-3.0.2'
+ac_pwd='/home/tiffany/Documents/cycology/fuse-3.0.2'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
@@ -894,12 +894,12 @@ S["mkdir_p"]="$(MKDIR_P)"
 S["MKDIR_P"]="/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]="strip"
-S["install_sh"]="${SHELL} /home/quan/Documents/fuse-3.0.2/install-sh"
-S["MAKEINFO"]="${SHELL} /home/quan/Documents/fuse-3.0.2/missing makeinfo"
-S["AUTOHEADER"]="${SHELL} /home/quan/Documents/fuse-3.0.2/missing autoheader"
-S["AUTOMAKE"]="${SHELL} /home/quan/Documents/fuse-3.0.2/missing automake-1.15"
-S["AUTOCONF"]="${SHELL} /home/quan/Documents/fuse-3.0.2/missing autoconf"
-S["ACLOCAL"]="${SHELL} /home/quan/Documents/fuse-3.0.2/missing aclocal-1.15"
+S["install_sh"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/install-sh"
+S["MAKEINFO"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing makeinfo"
+S["AUTOHEADER"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing autoheader"
+S["AUTOMAKE"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing automake-1.15"
+S["AUTOCONF"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing autoconf"
+S["ACLOCAL"]="${SHELL} /home/tiffany/Documents/cycology/fuse-3.0.2/missing aclocal-1.15"
 S["VERSION"]="3.0.2"
 S["PACKAGE"]="fuse"
 S["CYGPATH_W"]="echo"

@@ -58,8 +58,7 @@ passthroughBlocked_fh.o: passthroughBlocked_fh.c \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/sys/time.h \
  /usr/include/x86_64-linux-gnu/sys/xattr.h \
- /usr/include/x86_64-linux-gnu/sys/file.h fuseLogging.h \
- loggingDiskFormats.h helper.h
+ /usr/include/x86_64-linux-gnu/sys/file.h
 
 /usr/include/stdc-predef.h:
 
@@ -222,9 +221,3 @@ passthroughBlocked_fh.o: passthroughBlocked_fh.c \
 /usr/include/x86_64-linux-gnu/sys/xattr.h:
 
 /usr/include/x86_64-linux-gnu/sys/file.h:
-
-fuseLogging.h:
-
-loggingDiskFormats.h:
-
-helper.h:
