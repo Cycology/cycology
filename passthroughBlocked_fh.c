@@ -119,17 +119,17 @@ static int xmp_getattr(const char *path, struct stat *stbuf,
 	int res;
 
 	(void) path;
-
-	char *fullPath = makePath(path);
 	
 	if(fi)
 		res = fstat(fi->fh, stbuf);
 	else
+	  {
+	  	char *fullPath = makePath(path);
 		res = lstat(fullPath, stbuf);
+		free(fullPath);
+	  }
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -140,10 +140,10 @@ static int xmp_access(const char *path, int mask)
 	char *fullPath = makePath(path);
 	
 	res = access(fullPath, mask);
+	free(fullPath);
+
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -154,11 +154,12 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 	char *fullPath = makePath(path);
 	
 	res = readlink(fullPath, buf, size - 1);
+	free(fullPath);
+
 	if (res == -1)
 		return -errno;
 
 	buf[res] = '\0';
-	free(fullPath);
 	return 0;
 }
 
@@ -178,6 +179,7 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi)
 	char *fullPath = makePath(path);
 
 	d->dp = opendir(fullPath);
+	free(fullPath);
 	if (d->dp == NULL) {
 		res = -errno;
 		free(d);
@@ -187,7 +189,6 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi)
 	d->entry = NULL;
 
 	fi->fh = (unsigned long) d;
-	free(fullPath);
 	return 0;
 }
 
@@ -256,17 +257,21 @@ static int xmp_releasedir(const char *path, struct fuse_file_info *fi)
 static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 {
 	int res;
-
-	char *fullPath = makePath(path);
-	
+		
 	if (S_ISFIFO(mode))
-		res = mkfifo(fullPath, mode);
+	  {
+	  char *fullPath = makePath(path);
+	  res = mkfifo(fullPath, mode);
+	  free(fullPath);
+	  }
 	else
-		res = mknod(fullPath, mode, rdev);
+	  {
+	  char *fullPath = makePath(path);
+	  res = mknod(fullPath, mode, rdev);
+	  free(fullPath);
+	  }
 	if (res == -1)
-		return -errno;
-
-	free(fullPath);
+	  return -errno;
 	return 0;
 }
 
@@ -277,10 +282,9 @@ static int xmp_mkdir(const char *path, mode_t mode)
 	char *fullPath = makePath(path);
 	
 	res = mkdir(fullPath, mode);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -291,10 +295,9 @@ static int xmp_unlink(const char *path)
 	char *fullPath = makePath(path);
 
 	res = unlink(fullPath);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -305,10 +308,9 @@ static int xmp_rmdir(const char *path)
 	char *fullPath = makePath(path);
 	
 	res = rmdir(fullPath);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -431,12 +433,12 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
 	fptr->fd = open(fullPath, O_RDWR, mode);
+	free(fullPath);
 	//fd = open(path, fi->flags, mode);
 	if (fptr->fd == -1)
 		return -errno;
 
 	fi->fh = (uint64_t) fptr;
-	free(fullPath);
 	return 0;
 }
 
@@ -450,11 +452,11 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
 	fptr->fd = open(fullPath, O_RDWR);
+	free(fullPath);
 	if (fptr->fd == -1)
 		return -errno;
 
 	fi->fh = (uint64_t) fptr;
-	free(fullPath);
 	return 0;
 }
 
@@ -693,10 +695,9 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 	char *fullPath = makePath(path);
 	
 	res = statvfs(fullPath, stbuf);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-	
-	free(fullPath);
 	return 0;
 }
 
@@ -767,10 +768,9 @@ static int xmp_setxattr(const char *path, const char *name, const char *value,
         char *fullPath = makePath(path);
   
 	int res = lsetxattr(path, name, value, size, flags);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 
@@ -780,10 +780,9 @@ static int xmp_getxattr(const char *path, const char *name, char *value,
         char *fullPath = makePath(path);
   
 	int res = lgetxattr(fullPath, name, value, size);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return res;
 }
 
@@ -792,10 +791,9 @@ static int xmp_listxattr(const char *path, char *list, size_t size)
         char *fullPath = makePath(path);
   
 	int res = llistxattr(fullPath, list, size);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return res;
 }
 
@@ -804,10 +802,9 @@ static int xmp_removexattr(const char *path, const char *name)
   	char *fullPath = makePath(path);
   
 	int res = lremovexattr(fullPath, name);
+	free(fullPath);
 	if (res == -1)
 		return -errno;
-
-	free(fullPath);
 	return 0;
 }
 #endif /* HAVE_SETXATTR */
