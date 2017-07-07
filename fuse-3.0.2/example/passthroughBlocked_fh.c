@@ -27,7 +27,7 @@
 #define FUSE_USE_VERSION 30
 
 //Define root path
-#define ROOT_PATH ((char *)"/home/tiffany/Documents/cycology/fuse-3.0.2/example/rootdir")
+#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir")
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -57,6 +57,7 @@
 
 //.h files of our own
 
+//struct holding flag and fd; pointed to by fi->fh
 typedef struct blocked_file_info{
   int flag;
   int fd;
@@ -119,7 +120,7 @@ static int xmp_getattr(const char *path, struct stat *stbuf,
 	(void) path;
 	
 	if(fi)
-		res = fstat(fi->fh, stbuf);
+	  res = fstat(((blocked_file_info) fi->fh)->fd, stbuf);
 	else
 	  {
 	  	char *fullPath = makePath(path);
@@ -161,6 +162,8 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 	return 0;
 }
 
+//it seems like this struct has to be stored in fi->fh, and not in fi->fh->fd
+
 struct xmp_dirp {
 	DIR *dp;
 	struct dirent *entry;
@@ -175,9 +178,9 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi)
 		return -ENOMEM;
 
 	char *fullPath = makePath(path);
-
 	d->dp = opendir(fullPath);
 	free(fullPath);
+	
 	if (d->dp == NULL) {
 		res = -errno;
 		free(d);
@@ -186,13 +189,13 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi)
 	d->offset = 0;
 	d->entry = NULL;
 
-	fi->fh = (unsigned long) d;
+        fi->fh = (unsigned long) d;
 	return 0;
 }
 
 static inline struct xmp_dirp *get_dirp(struct fuse_file_info *fi)
 {
-	return (struct xmp_dirp *) (uintptr_t) fi->fh;
+  return (struct xmp_dirp *) (uintptr_t) fi->fh;
 }
 
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
@@ -369,7 +372,7 @@ static int xmp_chmod(const char *path, mode_t mode,
 	char *fullPath = makePath(path);
 
 	if(fi)
-		res = fchmod(fi->fh, mode);
+		res = fchmod(((blocked_file_info) fi->fh)->fd, mode);
 	else
 		res = chmod(fullPath, mode);
 	if (res == -1)
@@ -385,7 +388,7 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid,
 	int res;
 
 	if (fi)
-		res = fchown(fi->fh, uid, gid);
+		res = fchown(((blocked_file_info) fi->fh)->fd, uid, gid);
 	else {
 	        char *fullPath = makePath(path);
 	        res = lchown(fullPath, uid, gid);
@@ -402,7 +405,7 @@ static int xmp_truncate(const char *path, off_t size,
 	int res;
 
 	if(fi)
-		res = ftruncate(fi->fh, size);
+		res = ftruncate(((blocked_file_info) fi->fh)->fd, size);
 	else {
 	  	char *fullPath = makePath(path);
 		res = truncate(path, size);
@@ -421,7 +424,7 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 
 	/* don't use utime/utimes since they follow symlinks */
 	if (fi)
-		res = futimens(fi->fh, ts);
+		res = futimens(((blocked_file_info) fi->fh)->fd, ts);
 	else {
 	        char *fullPath = makePath(path);
 	        res = utimensat(0, fullPath, ts, AT_SYMLINK_NOFOLLOW);
@@ -435,8 +438,6 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-  //int fd;
-
         char *fullPath = makePath(path);
   
 	blocked_file_info fptr;
@@ -444,7 +445,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	fptr->flag = fi->flags;
 	fptr->fd = open(fullPath, O_RDWR, mode);
 	free(fullPath);
-	//fd = open(path, fi->flags, mode);
 	if (fptr->fd == -1)
 		return -errno;
 
@@ -454,8 +454,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
-  //int fd;
-
 	char *fullPath = makePath(path);
   
 	blocked_file_info fptr;
@@ -498,7 +496,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	}
 	
 	//save file info into stBuf
-	int statRes = fstat(fi->fh, &stBuf);
+	int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
 	if (statRes == -1)
 	  return -errno;
 
@@ -513,7 +511,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in 1st page (containing file prefix)
 	//We use a tempBuf since there are cases to check here
 	char tempBuf[PAGESIZE];
-	bytesRead = pread(fi->fh, tempBuf, PAGESIZE, pageNo*PAGESIZE);
+	bytesRead = pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
 	if (bytesRead == PAGESIZE || bytesRead >= size) {
 	  if (size <= PAGESIZE - offset) {                      //if we only have to read this page
 	    memcpy(buf, tempBuf + offset, size);
@@ -532,7 +530,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in pages in-between
 	while (size >= PAGESIZE) {
 	  pageNo++;
-	  bytesRead = pread(fi->fh, buf, PAGESIZE, pageNo*PAGESIZE);
+	  bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, PAGESIZE, pageNo*PAGESIZE);
 	  if (bytesRead == PAGESIZE) {
 	    res += PAGESIZE;
 	    buf += PAGESIZE;
@@ -546,7 +544,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in last page
 	if (size > 0) {
 	  pageNo++;
-	  bytesRead = pread(fi->fh, buf, size, pageNo*PAGESIZE);
+	  bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, size, pageNo*PAGESIZE);
 	  if (bytesRead == size) {
 	    return res + size;
 	  } else {
@@ -575,7 +573,7 @@ static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
 	*src = FUSE_BUFVEC_INIT(size);
 
 	src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-	src->buf[0].fd = fi->fh;
+	src->buf[0].fd = ((blocked_file_info) fi->fh)->fd;
 	src->buf[0].pos = offset;
 
 	*bufp = src;
@@ -602,7 +600,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
       toRead = PAGESIZE;
 
     //store page in buffer
-    int bytesRead = pread(fi->fh, buf, toRead, pageNo*PAGESIZE);
+    int bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
     if (bytesRead != toRead) {
       perror("ERROR IN PREPARING BUFFER FOR xmp_write");
       return NULL;
@@ -630,7 +628,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	struct stat stBuf;        //space for file info
 	
 	//save file info into stBuf
-	int statRes = fstat(fi->fh, &stBuf);
+	int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
 	if (statRes == -1)
 	  return -errno;
 	fprintf(stderr, "STAT RESULT IN xmp_write:\n %d\n", statRes);
@@ -669,7 +667,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
 	  //Now we can write the page
 	  fprintf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
-	  int written = pwrite(fi->fh, bufPtr, toWrite, (startPage + i)*PAGESIZE);
+	  int written = pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
 	  if (written != toWrite) {
 	    fprintf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
 	    return -errno;
@@ -692,7 +690,7 @@ static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
 	(void) path;
 
 	dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-	dst.buf[0].fd = fi->fh;
+	dst.buf[0].fd = ((blocked_file_info) fi->fh)->fd;
 	dst.buf[0].pos = offset;
 
 	return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
@@ -721,7 +719,7 @@ static int xmp_flush(const char *path, struct fuse_file_info *fi)
 	   called multiple times for an open file, this must not really
 	   close the file.  This is important if used on a network
 	   filesystem like NFS which flush the data/metadata on close() */
-	res = close(dup(fi->fh));
+	res = close(dup(((blocked_file_info) fi->fh)->fd));
 	if (res == -1)
 		return -errno;
 
@@ -747,10 +745,10 @@ static int xmp_fsync(const char *path, int isdatasync,
 	(void) isdatasync;
 #else
 	if (isdatasync)
-		res = fdatasync(fi->fh);
+		res = fdatasync(((blocked_file_info) fi->fh)->fd);
 	else
 #endif
-		res = fsync(fi->fh);
+		res = fsync(((blocked_file_info) fi->fh)->fd);
 	if (res == -1)
 		return -errno;
 
@@ -766,7 +764,7 @@ static int xmp_fallocate(const char *path, int mode,
 	if (mode)
 		return -EOPNOTSUPP;
 
-	return -posix_fallocate(fi->fh, offset, length);
+	return -posix_fallocate(((blocked_file_info) fi->fh)->fd, offset, length);
 }
 #endif
 
@@ -825,7 +823,7 @@ static int xmp_lock(const char *path, struct fuse_file_info *fi, int cmd,
 {
 	(void) path;
 
-	return ulockmgr_op(fi->fh, cmd, lock, &fi->lock_owner,
+	return ulockmgr_op(fi->fh->fd, cmd, lock, &fi->lock_owner,
 			   sizeof(fi->lock_owner));
 }
 #endif
@@ -835,7 +833,7 @@ static int xmp_flock(const char *path, struct fuse_file_info *fi, int op)
 	int res;
 	(void) path;
 
-	res = flock(fi->fh, op);
+	res = flock(((blocked_file_info) fi->fh)->fd, op);
 	if (res == -1)
 		return -errno;
 
