@@ -366,10 +366,14 @@ static int xmp_link(const char *from, const char *to)
 {
 	int res;
 
-	printf("from: %s\n", from);
-	printf("to: %s\n", to);
+	char *fullFrom = makePath(from);
+	char *fullTo = makePath(to);
+	printf("from: %s\n", fullFrom);
+	printf("to: %s\n", fullTo);
 
-	res = link(from, to);
+	res = link(fullFrom, fullTo);
+	free(fullFrom);
+	free(fullTo);
 	if (res == -1)
 		return -errno;
 
