@@ -163,7 +163,6 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 }
 
 //it seems like this struct has to be stored in fi->fh, and not in fi->fh->fd
-
 struct xmp_dirp {
 	DIR *dp;
 	struct dirent *entry;
@@ -315,6 +314,15 @@ static int xmp_rmdir(const char *path)
 	return 0;
 }
 
+/*****************************************
+ *
+ * 3 scenarios for symlink & rename:
+ * - 'from' in our FS, 'to' in other
+ * - 'from' in other, 'to' in our FS
+ * - both in our FS
+ *
+ *****************************************/
+
 //Called when making a symlink only from WITHIN our FS
 static int xmp_symlink(const char *from, const char *to)
 {
@@ -336,14 +344,18 @@ static int xmp_rename(const char *from, const char *to, unsigned int flags)
 {
 	int res;
 
-	printf("from: %s\n", from);
-	printf("to: %s\n", to);
-
 	/* When we have renameat2() in libc, then we can implement flags */
 	if (flags)
 		return -EINVAL;
 
-	res = rename(from, to);
+	char *fullFrom = makePath(from);
+	char *fullTo = makePath(to);
+	printf("from: %s\n", fullFrom);
+	printf("to: %s\n", fullTo);
+	
+	res = rename(fullFrom, fullTo);
+	free(fullFrom);
+	free(fullTo);
 	if (res == -1)
 		return -errno;
 
@@ -443,7 +455,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	blocked_file_info fptr;
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
-	fptr->fd = open(fullPath, O_RDWR, mode);
+	fptr->fd = open(fullPath, O_RDWR | O_CREAT, mode);
 	free(fullPath);
 	if (fptr->fd == -1)
 		return -errno;
@@ -481,9 +493,11 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 {
         (void) path;
 
-	char *fullPath = makePath(path);
-	fprintf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
-	free(fullPath);
+	if (path != NULL) {
+	  char *fullPath = makePath(path);
+	  fprintf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
+	  free(fullPath);
+	}
 	
 	size_t res = 0;//size_t or int?        //return value
 	size_t bytesRead;                      //bytes read in for a single page
@@ -775,7 +789,7 @@ static int xmp_setxattr(const char *path, const char *name, const char *value,
 {
         char *fullPath = makePath(path);
   
-	int res = lsetxattr(path, name, value, size, flags);
+	int res = lsetxattr(fullPath, name, value, size, flags);
 	free(fullPath);
 	if (res == -1)
 		return -errno;
