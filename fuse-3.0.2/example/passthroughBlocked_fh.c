@@ -27,7 +27,8 @@
 #define FUSE_USE_VERSION 30
 
 //Define root path
-#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir")
+#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/root")
+#define STORE_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -56,8 +57,10 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
+#include "vNANDlib.h"
+#include "addressMap.h"
 
-//struct holding flag and fd; pointed to by fi->fh
+//struct holding flag and fd; pocominted to by fi->fh
 typedef struct blocked_file_info{
   int flag;
   int fd;
@@ -75,8 +78,15 @@ static char *makePath(const char *path)
 static void *xmp_init(struct fuse_conn_info *conn,
 		      struct fuse_config *cfg)
 {
+  CYCstate state = (CYCstate) malloc(sizeof (struct CYCstate));
+  state->rootPath = ROOT_PATH;
+  state->storePath = STORE_PATH;
+  state->nFeatures = initNAND();
+  state->vaddrMap = initAddrMap();  //Should we not just keep a struct instead of a ptr?
+  state->cache = 
   
-  
+  stopNAND();
+  return state;
   
 	/* (void) conn; */
 	/* cfg->use_ino = 1; */
@@ -94,6 +104,11 @@ static void *xmp_init(struct fuse_conn_info *conn,
 	/* cfg->negative_timeout = 0; */
 
 	/* return NULL; */
+}
+
+static void *destroy(void *private_data)
+{
+  free(private_data);
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,

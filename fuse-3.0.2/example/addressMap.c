@@ -6,7 +6,7 @@
 
 #define _GNU_SOURCE
 
-#include <fuse.h>
+//#include <fuse.h>
 
 #ifdef HAVE_LIBULOCKMGR
 #include <ulockmgr.h>
@@ -26,16 +26,32 @@
 #endif
 #include <sys/file.h> /* flock(2) */
 
-#include "helper.h"
-#include "fuseLogging.h"
+#include "vNANDlib.h"
+#include "addressMap.h"
 
 //data structure to hold map
-addrMap initAddrMap(){
-  addrMap addressMap = (addrMap)malloc(sizeof(struct addrMap)); //would want to fix the size of pag_addr map[] field later on
-  addressMap->size = PAGESIZE;
-  addressMap->map = page_addr[PAGESIZE];
-  for (int i = 0, i < addressMap->size, i++){
-    addressMap->map[i] = 0;
-  }
-  return addrMap;
+addrMap initAddrMap(void)
+{
+  initNAND();
+  addrMap map = (addrMap) malloc(sizeof( struct addrMap));
+  
+  char page[sizeof (struct fullPage)];
+  readNAND(page, BLOCKSIZE);
+  char buf[sizeof (struct addrMap)];
+  memcpy(buf, page, sizeof (struct addrMap));
+  map = (addrMap) buf;    //do we need malloc?
+
+  stopNAND();
+  return map;
+}
+
+//data structure to hold cache
+pageCache initCache(void)
+{
+  pageCache cache = (pageCache) malloc(sizeof( struct pageCache));
+  cache->size = 0;
+  cache->headLRU = NULL;
+  cache->tailLRU = NULL;
+  //Do we need to initialize openFileTable?
+  return cache;
 }

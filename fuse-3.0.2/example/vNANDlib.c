@@ -103,3 +103,6 @@ void stopNAND(void)
   close(fd);
 }
 
+/* int main(int argc, char *argv[]) */
+/* { */
+/* } */

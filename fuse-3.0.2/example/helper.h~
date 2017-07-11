@@ -1,4 +1,4 @@
-//Helper Functions
+//HELPER FUNCTIONS
 
-//From openFile.c
-*(openFile[]) initOpenTable(int size);
+//From addressMap.c
+addrMap initAddrMap(void);

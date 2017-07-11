@@ -37,9 +37,9 @@ typedef struct pageBuffer {
 
 
 typedef struct pageCache {
-	int size;           /* Number of active pages */
-	pageBuffer     headLRU, tailLRU;
-	pageBuffer     headHash;
+	int size;                                      /* Number of active pages */
+	openFile headLRU, tailLRU;
+        openFile *(openFileTable[PAGEDATASIZE/4 - 2]); //table of ptrs to openFiles
 } * pageCache;
 
 
@@ -76,9 +76,25 @@ typedef struct openFile {
 
 	/* Current inode for the associated file */
 	struct inode inode;
+
+        //virtual address
+        page_addr address;
+
+  //indices of previous & next openFiles
+  int prevOpen, nextOpen;
+  
 } * openFile;
 
-
+/****************************************************************
+ *
+ * Keeps track of variables important for page/block calculations
+ * carried out by NAND library functions.
+ *
+ ****************************************************************/
+typedef struct nandFeatures{
+  int numBlocks;               //Number of blocks in NAND
+  int memSize;                 //Total size of NAND memory
+} *nandFeatures;
 
 /*************************************************************
  *
@@ -96,7 +112,7 @@ typedef struct CYCstate {
 			    */
 
         //Hold features of the virtual NAND
-        struct nandFeatures features;
+        struct nandFeatures nFeatures;
 
 	/* The current version of the virtual address mapping table */
 	struct addrMap * vaddrMap;
@@ -107,17 +123,5 @@ typedef struct CYCstate {
 	/* The size and location of the list of pointers to open file
 	   descriptors */
 	int openFileMapSize;
-	openFile *(openFileTable[]);
 
 } * CYCstate;
-
-/****************************************************************
- *
- * Keeps track of variables important for page/block calculations
- * carried out by NAND library functions.
- *
- ****************************************************************/
-typedef struct nandFeatures{
-  int numBlocks;               //Number of blocks in NAND
-  int memSize;                 //Total size of NAND memory
-} *nandFeatures;

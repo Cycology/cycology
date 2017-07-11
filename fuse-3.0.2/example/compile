@@ -1,0 +1,38 @@
+-*- mode: compilation; default-directory: "~/Documents/cycology/fuse-3.0.2/example/" -*-
+Compilation started at Tue Jul 11 14:55:04
+
+make -k 
+  CC       passthroughBlocked_fh.o
+In file included from vNANDlib.h:1:0,
+                 from passthroughBlocked_fh.c:60:
+fuseLogging.h:99:29: error: field ‘features’ has incomplete type
+         struct nandFeatures features;
+                             ^
+passthroughBlocked_fh.c: In function ‘xmp_init’:
+passthroughBlocked_fh.c:84:8: error: ‘struct CYCstate’ has no member named ‘nFeatures’
+   state.nFeatures = initNAND();
+        ^
+passthroughBlocked_fh.c:81:19: warning: variable ‘state’ set but not used [-Wunused-but-set-variable]
+   struct CYCstate state;
+                   ^
+passthroughBlocked_fh.c:106:1: warning: no return statement in function returning non-void [-Wreturn-type]
+ }
+ ^
+passthroughBlocked_fh.c:78:46: warning: unused parameter ‘conn’ [-Wunused-parameter]
+ static void *xmp_init(struct fuse_conn_info *conn,
+                                              ^
+passthroughBlocked_fh.c:79:29: warning: unused parameter ‘cfg’ [-Wunused-parameter]
+         struct fuse_config *cfg)
+                             ^
+passthroughBlocked_fh.c: At top level:
+passthroughBlocked_fh.c:571:12: warning: ‘xmp_read_buf’ defined but not used [-Wunused-function]
+ static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
+            ^
+passthroughBlocked_fh.c:696:12: warning: ‘xmp_write_buf’ defined but not used [-Wunused-function]
+ static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
+            ^
+Makefile:526: recipe for target 'passthroughBlocked_fh.o' failed
+make: *** [passthroughBlocked_fh.o] Error 1
+make: Target 'all' not remade because of errors.
+
+Compilation exited abnormally with code 2 at Tue Jul 11 14:55:04
