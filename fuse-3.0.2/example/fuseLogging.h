@@ -95,6 +95,9 @@ typedef struct CYCstate {
 			       for the file system.
 			    */
 
+        //Hold features of the virtual NAND
+        struct nandFeatures features;
+
 	/* The current version of the virtual address mapping table */
 	struct addrMap * vaddrMap;
 
@@ -107,3 +110,14 @@ typedef struct CYCstate {
 	openFile *(openFileTable[]);
 
 } * CYCstate;
+
+/****************************************************************
+ *
+ * Keeps track of variables important for page/block calculations
+ * carried out by NAND library functions.
+ *
+ ****************************************************************/
+typedef struct nandFeatures{
+  int numBlocks;               //Number of blocks in NAND
+  int memSize;                 //Total size of NAND memory
+} *nandFeatures;

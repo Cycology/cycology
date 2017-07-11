@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fuseLogging.h"
 #include "vNANDlib.h"
 
 static struct superPage superBlock;

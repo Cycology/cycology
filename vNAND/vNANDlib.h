@@ -1,15 +1,6 @@
-#define BLOCKSIZE 16
+#include "fuseLogging.h"
 
-/****************************************************************
- *
- * Keeps track of variables important for page/block calculations
- * carried out by NAND library functions.
- *
- ****************************************************************/
-typedef struct nandFeatures{
-  int numBlocks;               //Number of blocks in NAND
-  int memSize;                 //Total size of NAND memory
-} *nandFeatures;
+#define BLOCKSIZE 16
 
 /****************************************************************
  *
