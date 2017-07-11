@@ -35,7 +35,7 @@ typedef struct pageBuffer {
 	char page[PAGESIZE];
 } * pageBuffer;
 
-
+//hashtable mapping vaddr to openFile
 typedef struct pageCache {
 	int size;           /* Number of active pages */
 	pageBuffer     headLRU, tailLRU;
@@ -78,7 +78,16 @@ typedef struct openFile {
 	struct inode inode;
 } * openFile;
 
-
+/****************************************************************
+ *
+ * Keeps track of variables important for page/block calculations
+ * carried out by NAND library functions.
+ *
+ ****************************************************************/
+typedef struct nandFeatures{
+  int numBlocks;               //Number of blocks in NAND
+  int memSize;                 //Total size of NAND memory
+} *nandFeatures;
 
 /*************************************************************
  *
@@ -95,6 +104,9 @@ typedef struct CYCstate {
 			       for the file system.
 			    */
 
+        //Hold features of the virtual NAND
+        struct nandFeatures nFeatures;
+  
 	/* The current version of the virtual address mapping table */
 	struct addrMap * vaddrMap;
 

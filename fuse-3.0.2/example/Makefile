@@ -161,8 +161,9 @@ passthrough_SOURCES = passthrough.c
 passthrough_OBJECTS = passthrough.$(OBJEXT)
 passthrough_LDADD = $(LDADD)
 passthrough_DEPENDENCIES = ../lib/libfuse3.la
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c
-passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT)
+am_passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT) \
+	addressMap.$(OBJEXT) vNANDlib.$(OBJEXT)
+passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
 passthrough_fh_SOURCES = passthrough_fh.c
@@ -219,13 +220,13 @@ am__v_CCLD_1 =
 SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
-	passthroughBlocked_fh.c passthrough_fh.c passthrough_ll.c \
-	poll.c poll_client.c
+	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
+	passthrough_ll.c poll.c poll_client.c
 DIST_SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
-	passthroughBlocked_fh.c passthrough_fh.c passthrough_ll.c \
-	poll.c poll_client.c
+	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
+	passthrough_ll.c poll.c poll_client.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -251,7 +252,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
+am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp compile
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} /home/quan/Documents/cycology/fuse-3.0.2/missing aclocal-1.15
 AMTAR = $${TAR-tar}
@@ -263,7 +264,7 @@ AUTOMAKE = ${SHELL} /home/quan/Documents/cycology/fuse-3.0.2/missing automake-1.
 AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O0 -fno-strict-aliasing
+CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O2 -fno-strict-aliasing
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -383,6 +384,7 @@ top_builddir = ..
 top_srcdir = ..
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c addressMap.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la 
 ioctl_client_CPPFLAGS = 
@@ -505,6 +507,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+include ./$(DEPDIR)/addressMap.Po
 include ./$(DEPDIR)/cuse.Po
 include ./$(DEPDIR)/cuse_client.Po
 include ./$(DEPDIR)/hello.Po
@@ -521,6 +524,7 @@ include ./$(DEPDIR)/passthrough_fh.Po
 include ./$(DEPDIR)/passthrough_ll.Po
 include ./$(DEPDIR)/poll.Po
 include ./$(DEPDIR)/poll_client-poll_client.Po
+include ./$(DEPDIR)/vNANDlib.Po
 
 .c.o:
 	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\

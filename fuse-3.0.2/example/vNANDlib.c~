@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "fuseLogging.h"
 #include "vNANDlib.h"
 
 static int fd;
@@ -13,7 +12,7 @@ static struct nandFeatures features;
 //open the big NAND file and save features
 struct nandFeatures initNAND(void)
 {
-  fd = open("NANDexample", O_RDWR);
+  fd = open("/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND", O_RDWR);
   if (fd == -1) {
     perror("ERROR IN OPENING BIG NAND FILE");
     return features;     //Hmm what to return?
@@ -104,3 +103,6 @@ void stopNAND(void)
   close(fd);
 }
 
+int main(int argc, char *argv[])
+{
+}

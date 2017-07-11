@@ -27,7 +27,8 @@
 #define FUSE_USE_VERSION 30
 
 //Define root path
-#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir")
+#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/root")
+#define STORE_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -56,8 +57,10 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
+#include "vNANDlib.h"
+#include "addressMap.h"
 
-//struct holding flag and fd; pointed to by fi->fh
+//struct holding flag and fd; pocominted to by fi->fh
 typedef struct blocked_file_info{
   int flag;
   int fd;
@@ -75,41 +78,37 @@ static char *makePath(const char *path)
 static void *xmp_init(struct fuse_conn_info *conn,
 		      struct fuse_config *cfg)
 {
-  /* CYCstate context = (CYCstate) malloc(sizeof (struct CYCstate)); */
-  /* context->rootPath = ROOT_PATH; */
-  /* //context->storePath = STORE_PATH; */
-  /* //int fd = open(path, "w+"); */
-  /* //context->storeFileDescriptor = fd; //Julia & Rehaan attempted to save the fd? */
-  /* context->vaddrMap = initAddrMap(); */
-
-  /* context->cache = (pageCache)malloc(sizeof(struct pageCache)); */
-  /* context->cache->size = 0; */
-  /* context->cache->headLRU = NULL; */
-  /* context->cache->tailLRU = NULL; */
-  /* context->cache->headHash = NULL; */
-
-  /* context->openFileMapSize = 1024; //why 1024? */
-  /* context->openFileTable = initOpenTable(context->openFileMapSize); */
-  /* context->blockNumber = 1; //add to CYCstate, will eventually get replaced by the free list. Should be 1 if we have a superblock? */
-
-  /* return context; */
+  CYCstate state = (CYCstate) malloc(sizeof (struct CYCstate));
+  state->rootPath = ROOT_PATH;
+  state->storePath = STORE_PATH;
+  state->nFeatures = initNAND();
+  state->vaddrMap = initAddrMap();  //Should we not just keep a struct instead of a ptr?
+  state->cache = 
   
-	(void) conn;
-	cfg->use_ino = 1;
-	cfg->nullpath_ok = 1;
+  stopNAND();
+  return state;
+  
+	/* (void) conn; */
+	/* cfg->use_ino = 1; */
+	/* cfg->nullpath_ok = 1; */
 
-	/* Pick up changes from lower filesystem right away. This is */
-	/*    also necessary for better hardlink support. When the kernel */
-	/*    calls the unlink() handler, it does not know the inode of */
-	/*    the to-be-removed entry and can therefore not invalidate */
-	/*    the cache of the associated inode - resulting in an */
-	/*    incorrect st_nlink value being reported for any remaining */
-	/*    hardlinks to this inode. */
-	cfg->entry_timeout = 0;
-	cfg->attr_timeout = 0;
-	cfg->negative_timeout = 0;
+	/* /\* Pick up changes from lower filesystem right away. This is *\/ */
+	/* /\*    also necessary for better hardlink support. When the kernel *\/ */
+	/* /\*    calls the unlink() handler, it does not know the inode of *\/ */
+	/* /\*    the to-be-removed entry and can therefore not invalidate *\/ */
+	/* /\*    the cache of the associated inode - resulting in an *\/ */
+	/* /\*    incorrect st_nlink value being reported for any remaining *\/ */
+	/* /\*    hardlinks to this inode. *\/ */
+	/* cfg->entry_timeout = 0; */
+	/* cfg->attr_timeout = 0; */
+	/* cfg->negative_timeout = 0; */
 
-	return NULL;
+	/* return NULL; */
+}
+
+static void *destroy(void *private_data)
+{
+  free(private_data);
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,

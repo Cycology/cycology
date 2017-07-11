@@ -161,8 +161,9 @@ passthrough_SOURCES = passthrough.c
 passthrough_OBJECTS = passthrough.$(OBJEXT)
 passthrough_LDADD = $(LDADD)
 passthrough_DEPENDENCIES = ../lib/libfuse3.la
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c
-passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT)
+am_passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT) \
+	addressMap.$(OBJEXT) vNANDlib.$(OBJEXT)
+passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
 passthrough_fh_SOURCES = passthrough_fh.c
@@ -219,13 +220,13 @@ am__v_CCLD_1 =
 SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
-	passthroughBlocked_fh.c passthrough_fh.c passthrough_ll.c \
-	poll.c poll_client.c
+	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
+	passthrough_ll.c poll.c poll_client.c
 DIST_SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
-	passthroughBlocked_fh.c passthrough_fh.c passthrough_ll.c \
-	poll.c poll_client.c
+	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
+	passthrough_ll.c poll.c poll_client.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -251,7 +252,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
+am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp compile
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -383,6 +384,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c addressMap.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la @passthrough_fh_libs@
 ioctl_client_CPPFLAGS = 
@@ -505,6 +507,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/addressMap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cuse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cuse_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hello.Po@am__quote@
@@ -521,6 +524,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/passthrough_ll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poll_client-poll_client.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vNANDlib.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
