@@ -10,7 +10,7 @@
 typedef struct block{
   struct fullPage contents[BLOCKSIZE];   //actual space to store data
   struct blockData {
-    int nextPage;                        //next available empty page after last erasure
+    page_vaddr nextPage;                        //next available empty page after last erasure
     int eraseCount;                      //times this particular block has been erased
   } *blockData;
 } *block;

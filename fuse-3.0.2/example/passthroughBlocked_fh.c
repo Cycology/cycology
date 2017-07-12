@@ -464,10 +464,48 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	ind.i_pages = 0;
 	ind.i_size = 0;
 
+	// if there is nothing in the partially used free list
+	
 	blockData data = nextFreeBlockData(state->freeLists);
 	struct logHeader logH;
+	// initially with one block, erases is the same as erase count, modify in future
 	logH.erases = data->eraseCount;
-	//logH.
+	if (state->lists->partial == 0)
+	  {
+	    logH.logId = 0
+	  }
+	else {
+	  logH.logId = state->lists->complete;
+	}
+
+	logH.first = (log.logId)/BLOCKSIZE;
+	logH.prev = NULL;
+	logH.active = 0; //file is empty initially, logHeader does not count as active page
+	logH.total = 1; // we remove one block from the pfree list first, nt sure abt this
+	logH.logType = LTYPE_FILES;
+
+	logH.content.file.fileCount = 1;
+
+	// assuming this is supposed to hold page_vaddr of the FILE? i changed nextPage of
+	//block to be page_vaddr
+	logH.content.file.fileId[logH.content.file.fileId -1] = data->nextPage + 1; //nextPage stores the logHeader
+	logH.content.file.fInode = ind;
+
+	// still need to finish up bits w logheader, ask tom
+
+	//Putting logHeader in activeLog
+	struct activeLog theLog;
+	theLog.nextPage = data->nextPage + 1; //the same as fileId? supposed to be the one next to logheader
+	theLog.log = logH;
+	
+	//remember to change data->nextPage after the file is written to a page in the block
+
+	//Write the logHeader to virtual NAND 
+	writeNAND(*logH, data->nextPage, 0);
+
+
+
+
 	
         char *fullPath = makePath(path);
   
