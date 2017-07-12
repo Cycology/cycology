@@ -20,29 +20,6 @@ typedef struct addrMap {
 	page_addr map[];  /* The mapping */
 } * addrMap;
 
-
-
-
-/**************************************************************
- *
- * Used to maintain a cache of active pages from the store
- *
- *************************************************************/
-typedef struct pageBuffer {
-	page_addr address;
-	struct pageBuffer * nextLRU, * prevLRU;
-	struct pageBuffer * nextHash, * prevHash;
-	char page[PAGESIZE];
-} * pageBuffer;
-
-
-typedef struct pageCache {
-	int size;                                      /* Number of active pages */
-	openFile headLRU, tailLRU;
-        openFile *(openFileTable[PAGEDATASIZE/4 - 2]); //table of ptrs to openFiles
-} * pageCache;
-
-
 /*************************************************************
  *
  * Descriptors for active logs
@@ -54,7 +31,6 @@ typedef struct activeLog {
 				  to this log */
 	struct logHeader log;  /* Mirror of log header from store */
 } * activeLog;
-
 
 /************************************************************
  *
@@ -80,10 +56,30 @@ typedef struct openFile {
         //virtual address
         page_addr address;
 
-  //indices of previous & next openFiles
-  int prevOpen, nextOpen;
+        //indices of previous & next openFiles
+        int prevOpen, nextOpen;
   
 } * openFile;
+
+
+/**************************************************************
+ *
+ * Used to maintain a cache of active pages from the store
+ *
+ *************************************************************/
+typedef struct pageBuffer {
+	page_addr address;
+	struct pageBuffer * nextLRU, * prevLRU;
+	struct pageBuffer * nextHash, * prevHash;
+	char page[PAGESIZE];
+} * pageBuffer;
+
+
+typedef struct pageCache {
+	int size;                                      /* Number of active pages */
+	openFile headLRU, tailLRU;
+        openFile *(openFileTable[PAGEDATASIZE/4 - 2]); //table of ptrs to openFiles
+} * pageCache;
 
 /****************************************************************
  *
@@ -123,5 +119,8 @@ typedef struct CYCstate {
 	/* The size and location of the list of pointers to open file
 	   descriptors */
 	int openFileMapSize;
+
+        //partiallly and completely free lists
+        freeList freeLists;
 
 } * CYCstate;
