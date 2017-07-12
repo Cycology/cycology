@@ -71,15 +71,11 @@ freeList initFreeLists(void)
 
 blockData nextFreeBlockData(freeList lists)
 {
-  //if there's nothing in the partially used free list
-  if (lists->partial == 0)
-    {
-      initNAND();
+       initNAND();
 
       char buf[sizeof (struct block)];
       readNANDBlock(buf, lists->complete);
       
       stopNAND();
       return (blockData) buf;
-    }
 }

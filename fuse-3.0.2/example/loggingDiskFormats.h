@@ -98,8 +98,8 @@ struct inode {
 struct logHeader {
   unsigned long erases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
-  block_addr prev;      /* Address of previous block allocated to this log */
-  block_addr first;     /* Address of first block allocated to this log */
+  block_vaddr prev;      /* Address of previous block allocated to this log */
+  block_vaddr first;     /* Address of first block allocated to this log */
   unsigned int active;  /* Total number of active pages */
   unsigned int total;   /* Total number of blocks */
   short logType;        /* Does this log hold, files, and extent, or meta-data */
