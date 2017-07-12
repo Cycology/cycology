@@ -58,7 +58,7 @@
 
 //.h files of our own
 #include "vNANDlib.h"
-#include "addressMap.h"
+#include "helper.h"
 
 //struct holding flag and fd; pocominted to by fi->fh
 typedef struct blocked_file_info{
@@ -83,7 +83,8 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
   state->vaddrMap = initAddrMap();  //Should we not just keep a struct instead of a ptr?
-  state->cache = 
+  state->cache = initCache();
+  state->freeLists = initFreeLists();
   
   stopNAND();
   return state;
@@ -106,7 +107,7 @@ static void *xmp_init(struct fuse_conn_info *conn,
 	/* return NULL; */
 }
 
-static void *destroy(void *private_data)
+static void *xmp_destroy(void *private_data)
 {
   free(private_data);
 }
@@ -453,6 +454,21 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+        struct fuse_context *context = fuse_get_context();
+        CYCstate state = context->private_data;
+
+
+	struct inode ind;
+	ind.i_file_no = state->vaddrMap->freePtr; //remember to change state->vaddrMap
+	ind.i_links_count = 0;
+	ind.i_pages = 0;
+	ind.i_size = 0;
+
+	blockData data = nextFreeBlockData(state->freeLists);
+	struct logHeader logH;
+	logH.erases = data->eraseCount;
+	//logH.
+	
         char *fullPath = makePath(path);
   
 	blocked_file_info fptr;
@@ -859,6 +875,7 @@ static int xmp_flock(const char *path, struct fuse_file_info *fi, int op)
 
 static struct fuse_operations xmp_oper = {
 	.init           = xmp_init,
+	.destroy        = xmp_destroy, //take this out if needed
 	.getattr	= xmp_getattr,
 	.access		= xmp_access,
 	.readlink	= xmp_readlink,

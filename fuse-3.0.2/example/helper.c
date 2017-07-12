@@ -27,7 +27,7 @@
 #include <sys/file.h> /* flock(2) */
 
 #include "vNANDlib.h"
-#include "addressMap.h"
+#include "helper.h"
 
 //data structure to hold map
 addrMap initAddrMap(void)
@@ -48,10 +48,38 @@ addrMap initAddrMap(void)
 //data structure to hold cache
 pageCache initCache(void)
 {
-  pageCache cache = (pageCache) malloc(sizeof( struct pageCache));
+  pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
   cache->size = 0;
   cache->headLRU = NULL;
   cache->tailLRU = NULL;
-  //Do we need to initialize openFileTable?
+  memset(cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
   return cache;
+}
+
+freeList initFreeLists(void)
+{
+  initNAND();
+  
+  char buf[sizeof (struct fullPage)];
+  readNAND(buf, 0);
+  freeList lists = (freeList) malloc(sizeof (struct freeList));
+  memcpy(lists, buf, sizeof (struct freeList));
+  
+  stopNAND();
+  return lists;
+}
+
+blockData nextFreeBlockData(freeList lists)
+{
+  //if there's nothing in the partially used free list
+  if (lists->partial == 0)
+    {
+      initNAND();
+
+      char buf[sizeof (struct block)];
+      readNANDBlock(buf, lists->complete);
+      
+      stopNAND();
+      return (blockData) buf;
+    }
 }

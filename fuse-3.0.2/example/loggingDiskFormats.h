@@ -21,7 +21,7 @@ typedef int page_vaddr;
 typedef int page_addr;
 
 /* Type used to distinguish physical block addresses from page addresses */
-typedef int block_addr;
+typedef int block_vaddr;
 
 /* Type used to store count of pages in a file */
 typedef int pagecnt_t;
@@ -63,7 +63,7 @@ struct inode {
 
 	unsigned int	    i_flags;    /* Probably unnecessary   */
 
-	page_vaddr	    i_file_no;   /* Unique file number */
+	int	            i_file_no;   /* Unique file number, originally a page_vaddr */
 	page_vaddr	    i_log_no;    /* Number of log associated with 1st extent */
 
 	unsigned int        i_links_count;         /* Number of hard links to file */
@@ -122,7 +122,11 @@ struct logHeader {
 
 } *logHeader;
 
-
+//points to first page of partially and completely used free lists
+typedef struct freeList {
+  page_vaddr partial;
+  page_vaddr complete;
+} *freeList;
 
 /* This page will hold information required to restart the system. In
    our experimental implementation, it will simply be written on page
@@ -131,7 +135,10 @@ struct logHeader {
    would be used to record its latest location.
 */
 typedef struct superPage {
-	/* While running, the system will record information about critical
+         // free lists
+         struct freeList freeLists;
+ 
+         /* While running, the system will record information about critical
 	   meta-data updates in a journal whose blocks will form a single
 	   log. This field will hold the address of the latest log descriptor
 	   recorded for this log.
@@ -157,9 +164,7 @@ typedef struct superPage {
 	page_addr prev_vaddr_map;
 	page_addr prev_journal;
   
-        page_addr pFreeListPtr;       //Points to partially used free list
-        page_addr cFreeListPtr;       //Points to completely used free list
- 
+
 } *superPage;
 
 /* Every page on a NAND memory includes an overhead area used to store information

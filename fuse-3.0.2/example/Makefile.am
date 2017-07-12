@@ -2,7 +2,7 @@
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c addressMap.c vNANDlib.c
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
 noinst_PROGRAMS = passthroughBlocked_fh passthrough passthrough_fh null hello hello_ll \
 		  ioctl ioctl_client poll poll_client \
 		  passthrough_ll notify_inval_inode \

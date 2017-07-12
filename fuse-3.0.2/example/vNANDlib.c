@@ -23,9 +23,9 @@ struct nandFeatures initNAND(void)
 }
 
 //lseek to position of page and read entire page
-int readNAND(char *buf, page_addr k)
+int readNAND(char *buf, page_vaddr k)
 {
-  int offset = sizeof (struct nandFeatures)
+  page_addr offset = sizeof (struct nandFeatures)
 		+ (k/BLOCKSIZE)*(sizeof (struct block))
 		+ (k%BLOCKSIZE)*(sizeof (struct fullPage));
   if (offset >= features.memSize) {
@@ -42,7 +42,7 @@ int readNAND(char *buf, page_addr k)
 }
 
 
-int writeNAND(char *buf, page_addr k, int random_access)
+int writeNAND(char *buf, page_vaddr k, int random_access)
 {
   //Read in the block containing target page
   struct block curBlock;
@@ -75,12 +75,18 @@ int writeNAND(char *buf, page_addr k, int random_access)
   return res;
 }
 
-int eraseNAND(block_addr b)
+//close the big file
+void stopNAND(void)
+{
+  close(fd);
+}
+
+int eraseNAND(block_vaddr b)
 {
   int offset = (sizeof (struct nandFeatures)
 		+ b*(sizeof (struct block)));
   if (offset >= features.memSize) {
-    printf("OFFSET OUTSIDE OF BIG FILE");
+    printf("BLOCK OFFSET OUTSIDE OF BIG FILE");
     return -1;
   }
   lseek(fd, offset, SEEK_SET);
@@ -97,12 +103,21 @@ int eraseNAND(block_addr b)
   return eraseCount;
 }
 
-//close the big file
-void stopNAND(void)
+//lseek to position of blockData and read it
+int readBlockData(char *buf, page_vaddr b)
 {
-  close(fd);
-}
+  int offset = sizeof (struct nandFeatures)
+               + b*(sizeof (struct block))
+               + BLOCKSIZE*(sizeof (struct fullPage));
+  if (offset >= features.memSize) {
+    printf("BLOCKDATA OFFSET OUTSIDE OF BIG FILE");
+    return -1;
+  }
+  lseek(fd, offset, SEEK_SET);
 
-/* int main(int argc, char *argv[]) */
-/* { */
-/* } */
+  int res = read(fd, buf, 2*(sizeof (int)));
+  if (res != (2*(sizeof (int))))
+    perror("FAIL TO READ BLOCKDATA IN NAND");
+
+  return res;
+}
