@@ -7,17 +7,37 @@
  *
  **************************************************************/
 
+/****************************************************************
+ *
+ * Holds block data
+ *
+ ****************************************************************/
+
+typedef struct blockData {
+    page_vaddr nextPage;     //next available empty page after last erasure
+    int eraseCount;          //times this particular block has been erased
+  } *blockData;
+
+/****************************************************************
+ *
+ * Contains the contents and write/erase info of a single block.
+ *
+ ****************************************************************/
+typedef struct block{
+  struct fullPage contents[BLOCKSIZE];   //actual space to store data
+  struct blockData data;
+} *block;
 
 /***************************************************************
  *
- * Mapping from logical to physical page addresses. An entry of
+ * Mapping from file id number to virtual page addresses. An entry of
  * 0 indicates an unused logical address.
  *
  **************************************************************/
 typedef struct addrMap {
 	int size;         /* Number of usable virtual addresses  */
         int freePtr;      /* Points to next avaible slot in map */
-	page_addr map[];  /* The mapping */
+	page_vaddr map[];  /* The mapping */
 } * addrMap;
 
 /*************************************************************
@@ -27,7 +47,7 @@ typedef struct addrMap {
  ************************************************************/
 typedef struct activeLog {
 	page_addr nextPage;    /* Address of next free page */
-	block_addr last;       /* Address of the last block allocated
+	block_vaddr last;       /* Address of the last block allocated
 				  to this log */
 	struct logHeader log;  /* Mirror of log header from store */
 } * activeLog;
@@ -53,11 +73,11 @@ typedef struct openFile {
 	/* Current inode for the associated file */
 	struct inode inode;
 
-        //virtual address
-        page_addr address;
+        //virtual address of first page of file
+        page_vaddr address;
 
         //indices of previous & next openFiles
-        int prevOpen, nextOpen;
+        //int prevOpen, nextOpen;
   
 } * openFile;
 
@@ -77,8 +97,8 @@ typedef struct pageBuffer {
 
 typedef struct pageCache {
 	int size;                                      /* Number of active pages */
-	openFile headLRU, tailLRU;
-        openFile *(openFileTable[PAGEDATASIZE/4 - 2]); //table of ptrs to openFiles
+	int headLRU, tailLRU;
+        openFile openFileTable[PAGEDATASIZE/4 - 2]; //table of ptrs to struct openFiles
 } * pageCache;
 
 /****************************************************************
@@ -116,11 +136,7 @@ typedef struct CYCstate {
 	/* The cache of pages from the store */
 	struct pageCache * cache;
 
-	/* The size and location of the list of pointers to open file
-	   descriptors */
-	int openFileMapSize;
-
         //partiallly and completely free lists
-        freeList freeLists;
+        freeList lists;
 
 } * CYCstate;

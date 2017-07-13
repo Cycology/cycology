@@ -30,52 +30,43 @@
 #include "helper.h"
 
 //data structure to hold map
-addrMap initAddrMap(void)
+void initAddrMap(addrMap map)
 {
   initNAND();
-  addrMap map = (addrMap) malloc(sizeof( struct addrMap));
   
   char page[sizeof (struct fullPage)];
   readNAND(page, BLOCKSIZE);
-  char buf[sizeof (struct addrMap)];
-  memcpy(buf, page, sizeof (struct addrMap));
-  map = (addrMap) buf;    //do we need malloc?
+  memcpy(map, page, sizeof (struct addrMap));
 
   stopNAND();
-  return map;
 }
 
 //data structure to hold cache
-pageCache initCache(void)
+void initCache(pageCache cache)
 {
-  pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
   cache->size = 0;
-  cache->headLRU = NULL;
-  cache->tailLRU = NULL;
+  cache->headLRU = -1;
+  cache->tailLRU = 0;
   memset(cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
-  return cache;
 }
 
-freeList initFreeLists(void)
+void initFreeLists(freeList lists)
 {
   initNAND();
   
   char buf[sizeof (struct fullPage)];
   readNAND(buf, 0);
-  freeList lists = (freeList) malloc(sizeof (struct freeList));
   memcpy(lists, buf, sizeof (struct freeList));
   
   stopNAND();
-  return lists;
 }
 
-blockData nextFreeBlockData(freeList lists)
+int getBlockData(blockData data, page_vaddr page)
 {
-       initNAND();
+      initNAND();
 
-      char buf[sizeof (struct block)];
-      readNANDBlock(buf, lists->complete);
+      int res = readBlockData((char *)data, page);
       
       stopNAND();
-      return (blockData) buf;
+      return res;
 }

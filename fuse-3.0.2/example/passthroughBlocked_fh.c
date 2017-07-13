@@ -26,10 +26,6 @@
 #define PAGESIZE 1024
 #define FUSE_USE_VERSION 30
 
-//Define root path
-#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/root")
-#define STORE_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -82,9 +78,18 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->rootPath = ROOT_PATH;
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
-  state->vaddrMap = initAddrMap();  //Should we not just keep a struct instead of a ptr?
-  state->cache = initCache();
-  state->freeLists = initFreeLists();
+  
+  addrMap map = (addrMap) malloc(sizeof (struct addrMap));
+  initAddrMap(map);
+  state->vaddrMap = map;
+
+  pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
+  initCache(cache);
+  state->cache = cache;
+
+  freeList lists = (freeList) malloc(sizeof (struct freeList));
+  initFreeLists(lists);
+  state->lists = lists;
   
   stopNAND();
   return state;
@@ -107,7 +112,7 @@ static void *xmp_init(struct fuse_conn_info *conn,
 	/* return NULL; */
 }
 
-static void *xmp_destroy(void *private_data)
+static void xmp_destroy(void *private_data)
 {
   free(private_data);
 }
@@ -452,63 +457,64 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 }
 #endif
 
+/************************************************************
+ *
+ * RIGHT NOW WE'RE ASSIGNING 1 FILE PER LOG, BUT WE MAY WANT
+ * TO DO MULTIPLE FILES PER LOG
+ * ALSO TRY TO WRITE LOGHEADER AFTER THE FILE
+ *
+ ***********************************************************/
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+        //retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
 
-
+	//create inode for new file
 	struct inode ind;
 	ind.i_file_no = state->vaddrMap->freePtr; //remember to change state->vaddrMap
 	ind.i_links_count = 0;
 	ind.i_pages = 0;
 	ind.i_size = 0;
 
-	// if there is nothing in the partially used free list
-	
-	blockData data = nextFreeBlockData(state->freeLists);
-	struct logHeader logH;
-	// initially with one block, erases is the same as erase count, modify in future
-	logH.erases = data->eraseCount;
+	// if there is nothing in the partially used free list, use the complete list
+	blockData data = (blockData) malloc(sizeof (struct blockData));
 	if (state->lists->partial == 0)
-	  {
-	    logH.logId = 0
-	  }
-	else {
-	  logH.logId = state->lists->complete;
-	}
+	  getBlockData(data, state->lists->complete);                    	
+	else
+	  getBlockData(data, state->lists->partial);
 
-	logH.first = (log.logId)/BLOCKSIZE;
-	logH.prev = NULL;
+	//create the logHeader of the log containing this file
+	struct logHeader logH;
+	logH.erases = data->eraseCount;      //erase = that of 1 block
+	logH.logId = state->lists->complete;
+
+	logH.first = (logH.logId)/BLOCKSIZE;
+	logH.prev = -1; //since we can't put NULL
 	logH.active = 0; //file is empty initially, logHeader does not count as active page
-	logH.total = 1; // we remove one block from the pfree list first, nt sure abt this
+	logH.total = 1; // we remove one block from the pfree list
 	logH.logType = LTYPE_FILES;
 
 	logH.content.file.fileCount = 1;
-
-	// assuming this is supposed to hold page_vaddr of the FILE? i changed nextPage of
-	//block to be page_vaddr
-	logH.content.file.fileId[logH.content.file.fileId -1] = data->nextPage + 1; //nextPage stores the logHeader
+	logH.content.file.fileId[logH.content.file.fileCount - 1] = data->nextPage + 1; //nextPage stores the logHeader
 	logH.content.file.fInode = ind;
-
-	// still need to finish up bits w logheader, ask tom
 
 	//Putting logHeader in activeLog
 	struct activeLog theLog;
 	theLog.nextPage = data->nextPage + 1; //the same as fileId? supposed to be the one next to logheader
+	theLog.last = logH.first;
 	theLog.log = logH;
+
+	//Put activeLog in openFile and store it in cache
+	struct openFile oFile;
+	oFile.currentOpens = 1;
+	oFile.mainExtentLog = &theLog;
+	oFile.inode = ind;
+	oFile.address = data->nextPage + 1;
+	state->cache->openFileTable[++(state->cache->headLRU)] = &oFile;
 	
-	//remember to change data->nextPage after the file is written to a page in the block
-
-	//Write the logHeader to virtual NAND 
-	writeNAND(*logH, data->nextPage, 0);
-
-
-
-
-	
+	//create stub file
         char *fullPath = makePath(path);
-  
 	blocked_file_info fptr;
 	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
 	fptr->flag = fi->flags;
@@ -516,8 +522,22 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	free(fullPath);
 	if (fptr->fd == -1)
 		return -errno;
-
 	fi->fh = (uint64_t) fptr;
+
+	//write the file id number in stub file
+	int res = write(fptr->fd, &(state->vaddrMap->freePtr), sizeof (int));
+	if ( res == -1)
+	  perror("FAIL TO WRITE STUB FILE");
+	int curPtr = state->vaddrMap->freePtr;
+	state->vaddrMap->freePtr = abs(state->vaddrMap->map[curPtr]);
+	state->vaddrMap->map[curPtr] = data->nextPage + 1;
+
+	//Write the logHeader to virtual NAND
+	char buf[sizeof (struct fullPage)];
+	memset(buf, 0, sizeof (struct fullPage));
+	memcpy(buf, &logH, sizeof (struct logHeader));
+	writeNAND(buf, data->nextPage, 0);
+	      
 	return 0;
 }
 

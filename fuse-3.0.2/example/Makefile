@@ -162,7 +162,7 @@ passthrough_OBJECTS = passthrough.$(OBJEXT)
 passthrough_LDADD = $(LDADD)
 passthrough_DEPENDENCIES = ../lib/libfuse3.la
 am_passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT) \
-	addressMap.$(OBJEXT) vNANDlib.$(OBJEXT)
+	helper.$(OBJEXT) vNANDlib.$(OBJEXT)
 passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
@@ -384,7 +384,7 @@ top_builddir = ..
 top_srcdir = ..
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c addressMap.c vNANDlib.c
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la 
 ioctl_client_CPPFLAGS = 
@@ -507,11 +507,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/addressMap.Po
 include ./$(DEPDIR)/cuse.Po
 include ./$(DEPDIR)/cuse_client.Po
 include ./$(DEPDIR)/hello.Po
 include ./$(DEPDIR)/hello_ll.Po
+include ./$(DEPDIR)/helper.Po
 include ./$(DEPDIR)/ioctl.Po
 include ./$(DEPDIR)/ioctl_client-ioctl_client.Po
 include ./$(DEPDIR)/notify_inval_entry.Po

@@ -2,18 +2,9 @@
 
 #define BLOCKSIZE 16
 
-/****************************************************************
- *
- * Contains the contents and write/erase info of a single block.
- *
- ****************************************************************/
-typedef struct block{
-  struct fullPage contents[BLOCKSIZE];   //actual space to store data
-  struct blockData {
-    page_vaddr nextPage;                        //next available empty page after last erasure
-    int eraseCount;                      //times this particular block has been erased
-  } *blockData;
-} *block;
+//Define root path
+#define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/root")
+#define STORE_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
 
 //POST: open big NAND file; save its nandFeatures field
 struct nandFeatures initNAND(void);
@@ -45,4 +36,4 @@ int eraseNAND(block_vaddr b);
 void stopNAND(void);
 
 //POST: return block
-int readNANDBlock(char *buf, page_vaddr b);
+int readBlockData(char *buf, page_vaddr b);
