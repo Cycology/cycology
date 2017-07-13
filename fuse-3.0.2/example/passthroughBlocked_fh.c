@@ -78,9 +78,18 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->rootPath = ROOT_PATH;
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
-  state->vaddrMap = initAddrMap();  //Should we not just keep a struct instead of a ptr?
-  state->cache = initCache();
-  state->lists = initFreeLists();
+  
+  addrMap map = (addrMap) malloc(sizeof (struct addrMap));
+  initAddrMap(map);
+  state->vaddrMap = map;
+
+  pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
+  initCache(cache);
+  state->cache = cache;
+
+  freeList lists = (freeList) malloc(sizeof (struct freeList));
+  initFreeLists(lists);
+  state->lists = lists;
   
   stopNAND();
   return state;
@@ -103,7 +112,7 @@ static void *xmp_init(struct fuse_conn_info *conn,
 	/* return NULL; */
 }
 
-static void *xmp_destroy(void *private_data)
+static void xmp_destroy(void *private_data)
 {
   free(private_data);
 }
@@ -469,11 +478,11 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	ind.i_size = 0;
 
 	// if there is nothing in the partially used free list, use the complete list
-	blockData data;
+	blockData data = (blockData) malloc(sizeof (struct blockData));
 	if (state->lists->partial == 0)
-	  data = getBlockData(state->lists->complete);                    	  
+	  getBlockData(data, state->lists->complete);                    	
 	else
-	  data = getBlockData(state->lists->partial);
+	  getBlockData(data, state->lists->partial);
 
 	//create the logHeader of the log containing this file
 	struct logHeader logH;
@@ -481,7 +490,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	logH.logId = state->lists->complete;
 
 	logH.first = (logH.logId)/BLOCKSIZE;
-	logH.prev = NULL;
+	logH.prev = -1; //since we can't put NULL
 	logH.active = 0; //file is empty initially, logHeader does not count as active page
 	logH.total = 1; // we remove one block from the pfree list
 	logH.logType = LTYPE_FILES;

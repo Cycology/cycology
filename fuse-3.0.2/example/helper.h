@@ -1,7 +1,7 @@
-addrMap initAddrMap(void);
+void initAddrMap(addrMap map);
 
-pageCache initCache(void);
+void initCache(pageCache cache);
 
-freeList initFreeLists(void);
+void initFreeLists(freeList lists);
 
-blockData getBlockData(page_vaddr page);
+int getBlockData(blockData data, page_vaddr page);

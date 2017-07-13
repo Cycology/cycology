@@ -98,7 +98,7 @@ typedef struct pageBuffer {
 typedef struct pageCache {
 	int size;                                      /* Number of active pages */
 	int headLRU, tailLRU;
-        openFile *(openFileTable[PAGEDATASIZE/4 - 2]); //table of ptrs to openFiles
+        openFile openFileTable[PAGEDATASIZE/4 - 2]; //table of ptrs to struct openFiles
 } * pageCache;
 
 /****************************************************************
