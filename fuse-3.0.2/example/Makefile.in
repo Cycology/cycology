@@ -162,7 +162,7 @@ passthrough_OBJECTS = passthrough.$(OBJEXT)
 passthrough_LDADD = $(LDADD)
 passthrough_DEPENDENCIES = ../lib/libfuse3.la
 am_passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT) \
-	addressMap.$(OBJEXT) vNANDlib.$(OBJEXT)
+	helper.$(OBJEXT) vNANDlib.$(OBJEXT)
 passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
@@ -384,7 +384,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c addressMap.c vNANDlib.c
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la @passthrough_fh_libs@
 ioctl_client_CPPFLAGS = 
@@ -507,11 +507,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/addressMap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cuse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cuse_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hello.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hello_ll.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl_client-ioctl_client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/notify_inval_entry.Po@am__quote@

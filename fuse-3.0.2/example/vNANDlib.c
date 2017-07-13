@@ -12,7 +12,7 @@ static struct nandFeatures features;
 //open the big NAND file and save features
 struct nandFeatures initNAND(void)
 {
-  fd = open("/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND", O_RDWR);
+  fd = open(STORE_PATH, O_RDWR);
   if (fd == -1) {
     perror("ERROR IN OPENING BIG NAND FILE");
     return features;     //Hmm what to return?
@@ -41,7 +41,6 @@ int readNAND(char *buf, page_vaddr k)
   return res;
 }
 
-
 int writeNAND(char *buf, page_vaddr k, int random_access)
 {
   //Read in the block containing target page
@@ -57,7 +56,7 @@ int writeNAND(char *buf, page_vaddr k, int random_access)
   
   //index of page k in the block
   int kInBlock = k%BLOCKSIZE;
-  if (random_access == 0 && kInBlock != curBlock.nextPage) {
+  if (random_access == 0 && kInBlock != curBlock.data.nextPage) {
     printf("DOES NOT WRITE TO NEXT FREE PAGE OF BLOCK IN NAND");
     return -1;
   }
@@ -65,7 +64,7 @@ int writeNAND(char *buf, page_vaddr k, int random_access)
   //write from buffer to block; increase nextPage counter
   memcpy((curBlock.contents + kInBlock), buf, sizeof (struct fullPage));
   if (random_access == 0)
-    curBlock.nextPage++;
+    curBlock.data.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)
 	     + (k/BLOCKSIZE)*(sizeof (struct block))), SEEK_SET);
   int res = write(fd, &curBlock, (sizeof (struct block))); 
@@ -96,7 +95,7 @@ int eraseNAND(block_vaddr b)
   read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
 
   //increment eraseCount; paste the empty block into offset
-  int eraseCount = ++(curBlock.eraseCount);
+  int eraseCount = ++(curBlock.data.eraseCount);
   lseek(fd, offset, SEEK_SET);
   write(fd, &curBlock, (sizeof (struct block)));
 

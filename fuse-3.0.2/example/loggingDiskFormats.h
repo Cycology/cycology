@@ -2,6 +2,7 @@
 
 /* Size of data are in a page */
 #define PAGESIZE 1024
+#define BLOCKSIZE 16
 
 /* The number of pointers to indirect pages that can fit into an extend descriptor page */
 /*            This must leave room for log and extent headers.                          */
@@ -113,7 +114,7 @@ struct logHeader {
 	*/
 	union logType {
 		struct {
-		     int fileCount;
+		  int fileCount;                 //#files in this log
 		     page_vaddr fileId[MAX_FILES_IN_LOG];
 		     struct inode fInode;
 		} file;

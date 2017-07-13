@@ -39,7 +39,7 @@ addrMap initAddrMap(void)
   readNAND(page, BLOCKSIZE);
   char buf[sizeof (struct addrMap)];
   memcpy(buf, page, sizeof (struct addrMap));
-  map = (addrMap) buf;    //do we need malloc?
+  map = (addrMap) buf;
 
   stopNAND();
   return map;
@@ -50,8 +50,8 @@ pageCache initCache(void)
 {
   pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
   cache->size = 0;
-  cache->headLRU = NULL;
-  cache->tailLRU = NULL;
+  cache->headLRU = -1;
+  cache->tailLRU = 0;
   memset(cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
   return cache;
 }
@@ -69,12 +69,12 @@ freeList initFreeLists(void)
   return lists;
 }
 
-blockData nextFreeBlockData(freeList lists)
+blockData getBlockData(page_vaddr page)
 {
-       initNAND();
+      initNAND();
 
       char buf[sizeof (struct block)];
-      readNANDBlock(buf, lists->complete);
+      readBlockData(buf, page);
       
       stopNAND();
       return (blockData) buf;
