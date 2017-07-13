@@ -78,19 +78,23 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->rootPath = ROOT_PATH;
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
-  
+
+  //initialize addrMap
   addrMap map = (addrMap) malloc(sizeof (struct addrMap));
   initAddrMap(map);
   state->vaddrMap = map;
 
+  //initialize pageCache
   pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
   initCache(cache);
   state->cache = cache;
 
+  //initialize freeList
   freeList lists = (freeList) malloc(sizeof (struct freeList));
   initFreeLists(lists);
   state->lists = lists;
-  
+
+  //keep CYCstate
   stopNAND();
   return state;
   
@@ -461,7 +465,7 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
  *
  * RIGHT NOW WE'RE ASSIGNING 1 FILE PER LOG, BUT WE MAY WANT
  * TO DO MULTIPLE FILES PER LOG
- * ALSO TRY TO WRITE LOGHEADER AFTER THE FILE
+ * ALSO TRY TO WRITE LOGHEADER AFTER THE FILE, INSTEAD OF BEFORE
  *
  ***********************************************************/
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
@@ -486,7 +490,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//create the logHeader of the log containing this file
 	struct logHeader logH;
-	logH.erases = data->eraseCount;      //erase = that of 1 block
+	logH.erases = data->eraseCount;      //eraseCount = that of 1 block
 	logH.logId = state->lists->complete;
 
 	logH.first = (logH.logId)/BLOCKSIZE;
