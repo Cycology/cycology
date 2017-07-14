@@ -70,19 +70,19 @@ struct inode {
 	unsigned int        i_links_count;         /* Number of hard links to file */
 
 	struct timespec	    i_atime;    /* Access, modification and     */
-	struct timespec	    i_mtime;    /* modification times for the file  */
+	struct timespec	    i_mtime;    /* status change times for the file  */
 	struct timespec	    i_ctime;
 
     pagecnt_t           i_pages;    /* Number of active/allocated pages ? */
     loff_t              i_size;     /* File size in bytes */
 
 
-    page_addr           indirect;   /* Address of single indirect block */
-    page_addr           doubleInd;  /* Address of double indirect block */
+    page_vaddr          indirect;   /* Address of single indirect block */
+    page_vaddr          doubleInd;  /* Address of double indirect block */
     page_vaddr          tripleInd;  /* Address of triple indirect extent hdr */
 
     /* address of first data pages for file */
-    page_addr           directPage[DIRECT_PAGES];
+    page_vaddr          directPage[DIRECT_PAGES];
 };
 
 

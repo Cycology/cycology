@@ -3,7 +3,9 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
 passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
-noinst_PROGRAMS = passthroughBlocked_fh passthrough passthrough_fh null hello hello_ll \
+makefs_SOURCES = makefs.c vNANDlib.c
+makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
+noinst_PROGRAMS = makefs makeVirtualNAND passthroughBlocked_fh passthrough passthrough_fh null hello hello_ll \
 		  ioctl ioctl_client poll poll_client \
 		  passthrough_ll notify_inval_inode \
 		  notify_store_retrieve notify_inval_entry \
