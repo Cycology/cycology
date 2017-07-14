@@ -56,11 +56,18 @@
 #include "vNANDlib.h"
 #include "helper.h"
 
-//struct holding flag and fd; pocominted to by fi->fh
+//struct holding flag and fd; used in Blocked version
 typedef struct blocked_file_info{
   int flag;
   int fd;
 } *blocked_file_info;
+
+//struct holding flag and openFile; used in Logging version
+typedef struct log_file_info{
+  int flag;
+  int fd;
+  openFile oFile;
+} *log_file_info;
 
 static char *makePath(const char *path)
 {
@@ -476,6 +483,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//create inode for new file
 	struct inode ind;
+	ind.i_mode = mode;
 	ind.i_file_no = state->vaddrMap->freePtr; //remember to change state->vaddrMap
 	ind.i_links_count = 0;
 	ind.i_pages = 0;
@@ -510,23 +518,26 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	theLog.log = logH;
 
 	//Put activeLog in openFile and store it in cache
-	struct openFile oFile;
-	oFile.currentOpens = 1;
-	oFile.mainExtentLog = &theLog;
-	oFile.inode = ind;
-	oFile.address = data->nextPage + 1;
-	state->cache->openFileTable[++(state->cache->headLRU)] = &oFile;
+	openFile oFile = (openFile) malloc(sizeof (struct openFile));
+	oFile->currentOpens = 1;
+	oFile->mainExtentLog = &theLog;
+	oFile->inode = ind;
+	oFile->address = data->nextPage + 1;
+	state->cache->openFileTable[state->vaddrMap->freePtr] = oFile;
 	
-	//create stub file
+	//create stub file (WITHOUT KEEPING TRACK OF FD)
         char *fullPath = makePath(path);
-	blocked_file_info fptr;
-	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
-	fptr->flag = fi->flags;
+	log_file_info fptr;
+	fptr = (log_file_info) malloc(sizeof (struct log_file_info));
 	fptr->fd = open(fullPath, O_RDWR | O_CREAT, mode);
+	//int fd = open(fullPath, O_RDWR | O_CREAT, mode);
 	free(fullPath);
 	if (fptr->fd == -1)
 		return -errno;
+	fptr->flag = fi->flags;
+	fptr->oFile = oFile;
 	fi->fh = (uint64_t) fptr;
+	//close(fd);
 
 	//write the file id number in stub file
 	int res = write(fptr->fd, &(state->vaddrMap->freePtr), sizeof (int));
@@ -534,7 +545,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	  perror("FAIL TO WRITE STUB FILE");
 	int curPtr = state->vaddrMap->freePtr;
 	state->vaddrMap->freePtr = abs(state->vaddrMap->map[curPtr]);
-	state->vaddrMap->map[curPtr] = data->nextPage + 1;
+	state->vaddrMap->map[curPtr] = data->nextPage;
 
 	//Write the logHeader to virtual NAND
 	char buf[sizeof (struct fullPage)];
@@ -823,10 +834,26 @@ static int xmp_flush(const char *path, struct fuse_file_info *fi)
 
 static int xmp_release(const char *path, struct fuse_file_info *fi)
 {
+
 	(void) path;
-	close(((blocked_file_info) fi->fh)->fd);
-	free((blocked_file_info) fi->fh);
-	
+
+	//retrieve CYCstate
+        struct fuse_context *context = fuse_get_context();
+        CYCstate state = context->private_data;
+
+	//close the stub file ONCE
+	close(((log_file_info) fi->fh)->fd);
+
+	if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
+	  /*a function to make sure all metadata is written to NAND
+	   will be here, after we figure out what change in metadata
+	   can occur during read/write*/
+
+	  //remove openFile from cache since it's not referenced anymore
+	  state->cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no] = NULL;
+	}
+
+	free((log_file_info) fi->fh);
 	return 0;
 }
 

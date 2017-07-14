@@ -45,8 +45,8 @@ void initAddrMap(addrMap map)
 void initCache(pageCache cache)
 {
   cache->size = 0;
-  cache->headLRU = -1;
-  cache->tailLRU = 0;
+  cache->headLRU = NULL;
+  cache->tailLRU = NULL;
   memset(cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
 }
 

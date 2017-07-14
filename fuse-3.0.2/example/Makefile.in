@@ -90,7 +90,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-noinst_PROGRAMS = passthroughBlocked_fh$(EXEEXT) passthrough$(EXEEXT) \
+noinst_PROGRAMS = makefs$(EXEEXT) makeVirtualNAND$(EXEEXT) \
+	passthroughBlocked_fh$(EXEEXT) passthrough$(EXEEXT) \
 	passthrough_fh$(EXEEXT) null$(EXEEXT) hello$(EXEEXT) \
 	hello_ll$(EXEEXT) ioctl$(EXEEXT) ioctl_client$(EXEEXT) \
 	poll$(EXEEXT) poll_client$(EXEEXT) passthrough_ll$(EXEEXT) \
@@ -141,6 +142,15 @@ ioctl_client_DEPENDENCIES =
 ioctl_client_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(ioctl_client_LDFLAGS) $(LDFLAGS) -o $@
+am_makeVirtualNAND_OBJECTS = makeVirtualNAND.$(OBJEXT) \
+	vNANDlib.$(OBJEXT)
+makeVirtualNAND_OBJECTS = $(am_makeVirtualNAND_OBJECTS)
+makeVirtualNAND_LDADD = $(LDADD)
+makeVirtualNAND_DEPENDENCIES = ../lib/libfuse3.la
+am_makefs_OBJECTS = makefs.$(OBJEXT) vNANDlib.$(OBJEXT)
+makefs_OBJECTS = $(am_makefs_OBJECTS)
+makefs_LDADD = $(LDADD)
+makefs_DEPENDENCIES = ../lib/libfuse3.la
 notify_inval_entry_SOURCES = notify_inval_entry.c
 notify_inval_entry_OBJECTS = notify_inval_entry.$(OBJEXT)
 notify_inval_entry_LDADD = $(LDADD)
@@ -218,12 +228,14 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
-	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
+	ioctl_client.c $(makeVirtualNAND_SOURCES) $(makefs_SOURCES) \
+	notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
 	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
 	passthrough_ll.c poll.c poll_client.c
 DIST_SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
-	ioctl_client.c notify_inval_entry.c notify_inval_inode.c \
+	ioctl_client.c $(makeVirtualNAND_SOURCES) $(makefs_SOURCES) \
+	notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
 	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
 	passthrough_ll.c poll.c poll_client.c
@@ -385,6 +397,8 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
 passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
+makefs_SOURCES = makefs.c vNANDlib.c
+makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la @passthrough_fh_libs@
 ioctl_client_CPPFLAGS = 
@@ -461,6 +475,14 @@ ioctl_client$(EXEEXT): $(ioctl_client_OBJECTS) $(ioctl_client_DEPENDENCIES) $(EX
 	@rm -f ioctl_client$(EXEEXT)
 	$(AM_V_CCLD)$(ioctl_client_LINK) $(ioctl_client_OBJECTS) $(ioctl_client_LDADD) $(LIBS)
 
+makeVirtualNAND$(EXEEXT): $(makeVirtualNAND_OBJECTS) $(makeVirtualNAND_DEPENDENCIES) $(EXTRA_makeVirtualNAND_DEPENDENCIES) 
+	@rm -f makeVirtualNAND$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(makeVirtualNAND_OBJECTS) $(makeVirtualNAND_LDADD) $(LIBS)
+
+makefs$(EXEEXT): $(makefs_OBJECTS) $(makefs_DEPENDENCIES) $(EXTRA_makefs_DEPENDENCIES) 
+	@rm -f makefs$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(makefs_OBJECTS) $(makefs_LDADD) $(LIBS)
+
 notify_inval_entry$(EXEEXT): $(notify_inval_entry_OBJECTS) $(notify_inval_entry_DEPENDENCIES) $(EXTRA_notify_inval_entry_DEPENDENCIES) 
 	@rm -f notify_inval_entry$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(notify_inval_entry_OBJECTS) $(notify_inval_entry_LDADD) $(LIBS)
@@ -514,6 +536,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helper.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl_client-ioctl_client.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeVirtualNAND.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makefs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/notify_inval_entry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/notify_inval_inode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/notify_store_retrieve.Po@am__quote@

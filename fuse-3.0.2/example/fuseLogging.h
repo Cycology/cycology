@@ -30,13 +30,14 @@ typedef struct block{
 
 /***************************************************************
  *
- * Mapping from file id number to virtual page addresses. An entry of
+ * Mapping from file id number to virtual addresses of logHeader
+ * containing that specific file's inode.. An entry of
  * 0 indicates an unused logical address.
  *
  **************************************************************/
 typedef struct addrMap {
-	int size;         /* Number of usable virtual addresses  */
-        int freePtr;      /* Points to next avaible slot in map */
+	int size;          /* Number of usable virtual addresses */
+        int freePtr;       /* Points to next avaible slot in map */
 	page_vaddr map[];  /* The mapping */
 } * addrMap;
 
@@ -97,7 +98,7 @@ typedef struct pageBuffer {
 
 typedef struct pageCache {
 	int size;                                      /* Number of active pages */
-	int headLRU, tailLRU;
+	pageBuffer headLRU, tailLRU;
         openFile openFileTable[PAGEDATASIZE/4 - 2]; //table of ptrs to struct openFiles
 } * pageCache;
 
