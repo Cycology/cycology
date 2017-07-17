@@ -21,15 +21,12 @@ typedef int page_vaddr;
 /* Type used to hold physical page addresses.    */
 typedef int page_addr;
 
-/* Type used to distinguish physical block addresses from page addresses */
-typedef int block_vaddr;
+/* Type used to hold physical block addresses (could use page address and divide
+   by block size, but distinguishing needed resolution seems more logical). */
+typedef int block_addr;
 
 /* Type used to store count of pages in a file */
 typedef int pagecnt_t;
-
-/* Type used to hold physical block addresses (could use page address and divide
-   by block size, but distinguishing needed resolution seems more logical). */
-
 
 /* Because it would be painful to garbage collect a very large log, the maximum
    size of a log must be less than the maximum size of a file. So, large files will
@@ -137,7 +134,7 @@ typedef struct freeList {
 */
 typedef struct superPage {
          // free lists
-         struct freeList freeLists;
+         freeList freeLists;
  
          /* While running, the system will record information about critical
 	   meta-data updates in a journal whose blocks will form a single

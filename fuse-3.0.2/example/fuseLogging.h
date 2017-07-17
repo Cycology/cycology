@@ -7,27 +7,6 @@
  *
  **************************************************************/
 
-/****************************************************************
- *
- * Holds block data
- *
- ****************************************************************/
-
-typedef struct blockData {
-    page_vaddr nextPage;     //next available empty page after last erasure
-    int eraseCount;          //times this particular block has been erased
-  } *blockData;
-
-/****************************************************************
- *
- * Contains the contents and write/erase info of a single block.
- *
- ****************************************************************/
-typedef struct block{
-  struct fullPage contents[BLOCKSIZE];   //actual space to store data
-  struct blockData data;
-} *block;
-
 /***************************************************************
  *
  * Mapping from file id number to virtual addresses of logHeader
@@ -91,7 +70,6 @@ typedef struct openFile {
 typedef struct pageBuffer {
 	page_addr address;
 	struct pageBuffer * nextLRU, * prevLRU;
-	struct pageBuffer * nextHash, * prevHash;
 	char page[PAGESIZE];
 } * pageBuffer;
 
@@ -137,7 +115,7 @@ typedef struct CYCstate {
 	/* The cache of pages from the store */
 	struct pageCache * cache;
 
-        //partiallly and completely free lists
+        //partially and completely free lists
         freeList lists;
 
 } * CYCstate;

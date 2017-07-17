@@ -6,6 +6,27 @@
 #define ROOT_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/root")
 #define STORE_PATH ((char *)"/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
 
+/****************************************************************
+ *
+ * Holds block data
+ *
+ ****************************************************************/
+
+typedef struct blockData {
+    page_vaddr nextPage;     //next available empty page after last erasure
+    int eraseCount;          //times this particular block has been erased
+  } *blockData;
+
+/****************************************************************
+ *
+ * Contains the contents and write/erase info of a single block.
+ *
+ ****************************************************************/
+typedef struct block{
+  struct fullPage contents[BLOCKSIZE];   //actual space to store data
+  struct blockData data;
+} *block;
+
 //POST: open big NAND file; save its nandFeatures field
 struct nandFeatures initNAND(void);
 
