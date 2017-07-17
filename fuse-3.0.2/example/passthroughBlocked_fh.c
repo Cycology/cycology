@@ -86,23 +86,25 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
 
-  //initialize addrMap
-  addrMap map = (addrMap) malloc(sizeof (struct addrMap));
-  initAddrMap(map);
-  state->vaddrMap = map;
+  //initialize other fields in state
+  initCYCstate(state);
 
-  //initialize pageCache
-  pageCache cache = (pageCache) malloc(sizeof (struct pageCache));
-  initCache(cache);
-  state->cache = cache;
+  /* //initialize addrMap */
+  /* addrMap map = (addrMap) malloc(sizeof (struct addrMap)); */
+  /* initAddrMap(map); */
+  /* state->vaddrMap = map; */
 
-  //initialize freeList
-  freeList lists = (freeList) malloc(sizeof (struct freeList));
-  initFreeLists(lists);
-  state->lists = lists;
+  /* //initialize pageCache */
+  /* pageCache cache = (pageCache) malloc(sizeof (struct pageCache)); */
+  /* initCache(cache); */
+  /* state->cache = cache; */
+
+  /* //initialize freeList */
+  /* freeList lists = (freeList) malloc(sizeof (struct freeList)); */
+  /* initFreeLists(lists); */
+  /* state->lists = lists; */
 
   //keep CYCstate
-  stopNAND();
   return state;
   
 	/* (void) conn; */
@@ -125,7 +127,12 @@ static void *xmp_init(struct fuse_conn_info *conn,
 
 static void xmp_destroy(void *private_data)
 {
+  /*write the updated vaddr map to NAND*/
+
+  /*save and update the superBlock*/
+  
   free(private_data);
+  stopNAND();
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,
@@ -273,19 +280,16 @@ static int xmp_releasedir(const char *path, struct fuse_file_info *fi)
 static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 {
 	int res;
-		
+
+	char *fullPath = makePath(path);
+	
 	if (S_ISFIFO(mode))
-	  {
-	  char *fullPath = makePath(path);
 	  res = mkfifo(fullPath, mode);
-	  free(fullPath);
-	  }
 	else
-	  {
-	  char *fullPath = makePath(path);
 	  res = mknod(fullPath, mode, rdev);
-	  free(fullPath);
-	  }
+	
+	free(fullPath);
+	
 	if (res == -1)
 	  return -errno;
 	return 0;
@@ -401,16 +405,19 @@ static int xmp_chmod(const char *path, mode_t mode,
 {
 	int res;
 
-	char *fullPath = makePath(path);
+
 
 	if(fi)
 		res = fchmod(((blocked_file_info) fi->fh)->fd, mode);
-	else
+	else {
+	  	char *fullPath = makePath(path);
 		res = chmod(fullPath, mode);
+		free(fullPath);
+	}
+
 	if (res == -1)
 		return -errno;
 
-	free(fullPath);
 	return 0;
 }
 
@@ -480,11 +487,12 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         //retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
+	page_vaddr fileID = getFreePtr(state->vaddrMap);
 
 	//create inode for new file
 	struct inode ind;
 	ind.i_mode = mode;
-	ind.i_file_no = state->vaddrMap->freePtr; //remember to change state->vaddrMap
+	ind.i_file_no = fileID; //next free slot in vaddrMap
 	ind.i_links_count = 0;
 	ind.i_pages = 0;
 	ind.i_size = 0;
@@ -509,7 +517,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	logH.content.file.fileCount = 1;
 	logH.content.file.fileId[logH.content.file.fileCount - 1] = data->nextPage + 1; //nextPage stores the logHeader
-	logH.content.file.fInode = ind;
+	memcpy(&(logH.content.file.fInode), &ind, sizeof (struct inode));
 
 	//Putting logHeader in activeLog
 	struct activeLog theLog;
@@ -521,9 +529,9 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
 	oFile->currentOpens = 1;
 	oFile->mainExtentLog = &theLog;
-	oFile->inode = ind;
+	memcpy(&(oFile->inode), &ind, sizeof (struct inode));
 	oFile->address = data->nextPage + 1;
-	state->cache->openFileTable[state->vaddrMap->freePtr] = oFile;
+	state->cache->openFileTable[fileID] = oFile;
 	
 	//create stub file (WITHOUT KEEPING TRACK OF FD)
         char *fullPath = makePath(path);
@@ -540,12 +548,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	//close(fd);
 
 	//write the file id number in stub file
-	int res = write(fptr->fd, &(state->vaddrMap->freePtr), sizeof (int));
+	int res = write(fptr->fd, &fileID, sizeof (int));
 	if ( res == -1)
 	  perror("FAIL TO WRITE STUB FILE");
-	int curPtr = state->vaddrMap->freePtr;
-	state->vaddrMap->freePtr = abs(state->vaddrMap->map[curPtr]);
-	state->vaddrMap->map[curPtr] = data->nextPage;
+	state->vaddrMap->map[fileID] = data->nextPage;
 
 	//Write the logHeader to virtual NAND
 	char buf[sizeof (struct fullPage)];
