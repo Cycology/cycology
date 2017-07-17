@@ -74,12 +74,12 @@ struct inode {
     loff_t              i_size;     /* File size in bytes */
 
 
-    page_vaddr          indirect;   /* Address of single indirect block */
-    page_vaddr          doubleInd;  /* Address of double indirect block */
+    page_addr          indirect;   /* Address of single indirect block */
+    page_addr          doubleInd;  /* Address of double indirect block */
     page_vaddr          tripleInd;  /* Address of triple indirect extent hdr */
 
     /* address of first data pages for file */
-    page_vaddr          directPage[DIRECT_PAGES];
+    page_addr          directPage[DIRECT_PAGES];
 };
 
 
@@ -96,8 +96,8 @@ struct inode {
 struct logHeader {
   unsigned long erases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
-  block_vaddr prev;      /* Address of previous block allocated to this log */
-  block_vaddr first;     /* Address of first block allocated to this log */
+  block_addr prev;      /* Address of previous block allocated to this log */
+  block_addr first;     /* Address of first block allocated to this log */
   unsigned int active;  /* Total number of active pages */
   unsigned int total;   /* Total number of blocks */
   short logType;        /* Does this log hold, files, and extent, or meta-data */
@@ -122,8 +122,8 @@ struct logHeader {
 
 //points to first page of partially and completely used free lists
 typedef struct freeList {
-  page_vaddr partial;
-  page_vaddr complete;
+  page_addr partial;
+  page_addr complete;
 } *freeList;
 
 /* This page will hold information required to restart the system. In
@@ -134,7 +134,7 @@ typedef struct freeList {
 */
 typedef struct superPage {
          // free lists
-         freeList freeLists;
+         struct freeList freeLists;
  
          /* While running, the system will record information about critical
 	   meta-data updates in a journal whose blocks will form a single

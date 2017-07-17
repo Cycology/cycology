@@ -39,7 +39,7 @@ void initCYCstate(CYCstate state)
   memcpy(superBlock, page, sizeof (struct superPage));
 
   //init freeLists
-  state->lists = superBlock->freeLists;
+  state->lists = &(superBlock.freeLists);
   
   //init vaddrMap
   readNAND(page, superBlock->latest_vaddr_map);
@@ -52,6 +52,38 @@ void initCYCstate(CYCstate state)
   memset(state->cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
 }
 
+//Create an inode for a new file
+void initInode(struct inode ind, mode_t mode, int fileID)
+{
+	ind.i_mode = mode;
+	ind.i_file_no = fileID; //next free slot in vaddrMap
+	ind.i_links_count = 0;
+	ind.i_pages = 0;
+	ind.i_size = 0;
+}
+
+void initLogHeader(struct logHeader logH, unsigned long erases,
+		   page_vaddr logId, block_addr first,
+		   short logType)
+{
+  logH.erases = erases;      //eraseCount = that of 1 block for now
+  logH.logId = logId;
+  logH.first = first;
+  logH.prev = -1; //since we can't put NULL
+  logH.active = 0; //file is empty initially, logHeader does not count as active page
+  logH.total = 1; // we remove one block from the pfree list
+  logH.logType = logType;
+}
+
+void initOpenFile(openFile oFile, struct activeLog log,
+		  struct inode ind, page_vaddr fileID)
+{
+  oFile->currentOpens = 1;
+  oFile->mainExtentLog = &log;
+  oFile->inode = ind;
+  oFile->address = fileID;
+}
+
 //return the next free slot in the virtual address map
 //if there's only 1 free slot left, freePtr = 0
 int getFreePtr(addrMap map)
@@ -61,36 +93,10 @@ int getFreePtr(addrMap map)
   return ptr;
 }
 
-//data structure to hold map
-/* void initAddrMap(addrMap map) */
-/* { */
-/*   char page[sizeof (struct fullPage)]; */
-/*   readNAND(page, 0); */
-/*   superPage superBlock; */
-/*   memcpy(superBlock, page, sizeof (struct superPage)); */
-/*   readNAND(page, superBlock->latest_vaddr_map); */
-/*   memcpy(map, page, sizeof (struct addrMap)); */
-/* } */
-
-//data structure to hold cache
-/* void initCache(pageCache cache) */
-/* { */
-/*   cache->size = 0; */
-/*   cache->headLRU = NULL; */
-/*   cache->tailLRU = NULL; */
-/*   memset(cache->openFileTable, 0, (PAGEDATASIZE/4 - 2)); */
-/* } */
-
-/* void initFreeLists(freeList lists) */
-/* { */
-/*   char buf[sizeof (struct fullPage)]; */
-/*   readNAND(buf, 0); */
-/*   memcpy(lists, buf, sizeof (struct freeList)); */
-/* } */
-
-int getBlockData(blockData data, page_vaddr page)
+//get eraseCount stored at this fullPage
+int getEraseCount(page_addr k)
 {
-      int res = readBlockData((char *)data, page);
-      
-      return res;
+  struct fullPage page;
+  readNAND(&page, k);
+  return page.eraseCount;
 }

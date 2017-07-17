@@ -89,21 +89,6 @@ static void *xmp_init(struct fuse_conn_info *conn,
   //initialize other fields in state
   initCYCstate(state);
 
-  /* //initialize addrMap */
-  /* addrMap map = (addrMap) malloc(sizeof (struct addrMap)); */
-  /* initAddrMap(map); */
-  /* state->vaddrMap = map; */
-
-  /* //initialize pageCache */
-  /* pageCache cache = (pageCache) malloc(sizeof (struct pageCache)); */
-  /* initCache(cache); */
-  /* state->cache = cache; */
-
-  /* //initialize freeList */
-  /* freeList lists = (freeList) malloc(sizeof (struct freeList)); */
-  /* initFreeLists(lists); */
-  /* state->lists = lists; */
-
   //keep CYCstate
   return state;
   
@@ -489,75 +474,65 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         CYCstate state = context->private_data;
 	page_vaddr fileID = getFreePtr(state->vaddrMap);
 
-	//create inode for new file
 	struct inode ind;
-	ind.i_mode = mode;
-	ind.i_file_no = fileID; //next free slot in vaddrMap
-	ind.i_links_count = 0;
-	ind.i_pages = 0;
-	ind.i_size = 0;
+	initInode(ind, mode, fileID);
 
 	// if there is nothing in the partially used free list, use the complete list
-	blockData data = (blockData) malloc(sizeof (struct blockData));
-	if (state->lists->partial == 0)
-	  getBlockData(data, state->lists->complete);                    	
-	else
-	  getBlockData(data, state->lists->partial);
+	page_addr logHeaderPage;
+	int erases;
+	if (state->lists->partial == 0) {
+	  logHeaderPage = state->lists->complete;
+	  erases = getEraseCount(headerPage);
+	} else {
+	  logHeaderPage = state->lists->partial;
+	  erases = getEraseCount((logHeaderPage/BLOCKSIZE)*BLOCKSIZE);
+	}
 
 	//create the logHeader of the log containing this file
 	struct logHeader logH;
-	logH.erases = data->eraseCount;      //eraseCount = that of 1 block
-	logH.logId = state->lists->complete;
-
-	logH.first = (logH.logId)/BLOCKSIZE;
-	logH.prev = -1; //since we can't put NULL
-	logH.active = 0; //file is empty initially, logHeader does not count as active page
-	logH.total = 1; // we remove one block from the pfree list
-	logH.logType = LTYPE_FILES;
+	initLogHeader(logH, erases, fileID,
+		      (block_addr) logHeaderPage/BLOCKSIZE, LTYPE_FILES);
 
 	logH.content.file.fileCount = 1;
-	logH.content.file.fileId[logH.content.file.fileCount - 1] = data->nextPage + 1; //nextPage stores the logHeader
-	memcpy(&(logH.content.file.fInode), &ind, sizeof (struct inode));
+	logH.content.file.fileId[0] = fileID;
+	logH.content.file.fInode = ind;
 
 	//Putting logHeader in activeLog
 	struct activeLog theLog;
-	theLog.nextPage = data->nextPage + 1; //the same as fileId? supposed to be the one next to logheader
+	theLog.nextPage = logHeaderPage + 1; //the same as fileId? supposed to be the one next to logheader
 	theLog.last = logH.first;
 	theLog.log = logH;
 
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
-	oFile->currentOpens = 1;
-	oFile->mainExtentLog = &theLog;
-	memcpy(&(oFile->inode), &ind, sizeof (struct inode));
-	oFile->address = data->nextPage + 1;
+	initOpenFile(oFile, theLog, ind, fileID);
 	state->cache->openFileTable[fileID] = oFile;
 	
 	//create stub file (WITHOUT KEEPING TRACK OF FD)
         char *fullPath = makePath(path);
 	log_file_info fptr;
 	fptr = (log_file_info) malloc(sizeof (struct log_file_info));
-	fptr->fd = open(fullPath, O_RDWR | O_CREAT, mode);
-	//int fd = open(fullPath, O_RDWR | O_CREAT, mode);
+	int stubfd = open(fullPath, O_RDWR | O_CREAT, mode);
 	free(fullPath);
-	if (fptr->fd == -1)
+	if (stubfd == -1)
 		return -errno;
 	fptr->flag = fi->flags;
 	fptr->oFile = oFile;
 	fi->fh = (uint64_t) fptr;
-	//close(fd);
 
 	//write the file id number in stub file
-	int res = write(fptr->fd, &fileID, sizeof (int));
+	int res = write(stubfd, &fileID, sizeof (int));
 	if ( res == -1)
 	  perror("FAIL TO WRITE STUB FILE");
-	state->vaddrMap->map[fileID] = data->nextPage;
+	close(stubfd);
+	
+	state->vaddrMap->map[fileID] = logHeaderPage;
 
 	//Write the logHeader to virtual NAND
 	char buf[sizeof (struct fullPage)];
 	memset(buf, 0, sizeof (struct fullPage));
 	memcpy(buf, &logH, sizeof (struct logHeader));
-	writeNAND(buf, data->nextPage, 0);
+	writeNAND(buf, logHeaderPage, 0);
 	      
 	return 0;
 }
@@ -846,9 +821,6 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	//retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
-
-	//close the stub file ONCE
-	close(((log_file_info) fi->fh)->fd);
 
 	if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
 	  /*a function to make sure all metadata is written to NAND

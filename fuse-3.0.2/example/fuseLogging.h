@@ -17,7 +17,7 @@
 typedef struct addrMap {
 	int size;          /* Number of usable virtual addresses */
         int freePtr;       /* Points to next avaible slot in map */
-	page_vaddr map[];  /* The mapping */
+	page_addr map[];  /* The mapping */
 } * addrMap;
 
 /*************************************************************
@@ -27,7 +27,7 @@ typedef struct addrMap {
  ************************************************************/
 typedef struct activeLog {
 	page_addr nextPage;    /* Address of next free page */
-	block_vaddr last;       /* Address of the last block allocated
+	block_addr last;       /* Address of the last block allocated
 				  to this log */
 	struct logHeader log;  /* Mirror of log header from store */
 } * activeLog;
@@ -53,11 +53,8 @@ typedef struct openFile {
 	/* Current inode for the associated file */
 	struct inode inode;
 
-        //virtual address of first page of file
+        //virtual addr of inode, ie. file ID number
         page_vaddr address;
-
-        //indices of previous & next openFiles
-        //int prevOpen, nextOpen;
   
 } * openFile;
 
