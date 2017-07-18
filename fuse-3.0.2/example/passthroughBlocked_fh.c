@@ -540,16 +540,34 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
 	char *fullPath = makePath(path);
-  
-	blocked_file_info fptr;
-	fptr = (blocked_file_info) malloc(sizeof (struct blocked_file_info));
-	fptr->flag = fi->flags;
-	fptr->fd = open(fullPath, O_RDWR);
-	free(fullPath);
-	if (fptr->fd == -1)
-		return -errno;
+	page_vaddr fileID;
+	
+	//retrieve CYCstate
+        struct fuse_context *context = fuse_get_context();
+        CYCstate state = context->private_data;
 
+	//open stub file
+	log_file_info fptr;
+	fptr = (log_file_info) malloc(sizeof (struct log_file_info));
+	int stubfd = open(fullPath, O_RDWR, mode);
+	free(fullPath);
+	if (stubfd == -1)
+		return -errno;
+	fptr->flag = fi->flags;
+	fptr->oFile = oFile;
 	fi->fh = (uint64_t) fptr;
+
+	//read the file id number from stub file
+	int res = read(stubfd, &fileID, sizeof (int));
+	if ( res == -1)
+	  perror("FAIL TO READ STUB FILE");
+	close(stubfd);
+
+	//plug in file id no into vaddr map
+	//retrieve inode and verify access rights
+	//check if there is an existing openFile for the file
+	//update vaddr map
+	
 	return 0;
 }
 
