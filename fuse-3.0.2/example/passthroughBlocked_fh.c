@@ -482,7 +482,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	int erases;
 	if (state->lists->partial == 0) {
 	  logHeaderPage = state->lists->complete;
-	  erases = getEraseCount(headerPage);
+	  erases = getEraseCount(logHeaderPage);
 	} else {
 	  logHeaderPage = state->lists->partial;
 	  erases = getEraseCount((logHeaderPage/BLOCKSIZE)*BLOCKSIZE);
@@ -821,14 +821,19 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	//retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
+	openFile releasedFile = state->cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no];
 
 	if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
-	  /*a function to make sure all metadata is written to NAND
-	   will be here, after we figure out what change in metadata
-	   can occur during read/write*/
+	  /*a function to make sure all metadata (eg. the logheader) is written to NAND
+	    will be here, after we figure out what change in metadata
+	    can occur during read/write*/
 
+	  //For now, write the most current logHeader from cache to the NAND memory
+	  writeCurrLogHeader(releasedFile);
+	  
 	  //remove openFile from cache since it's not referenced anymore
-	  state->cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no] = NULL;
+	  releasedFile = NULL;
+
 	}
 
 	free((log_file_info) fi->fh);

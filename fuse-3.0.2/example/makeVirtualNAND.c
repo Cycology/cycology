@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
   fd = open(filename, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING BIG FILE");
-    return NULL;
+    return -1;
   }
 
   //write the features in the big file

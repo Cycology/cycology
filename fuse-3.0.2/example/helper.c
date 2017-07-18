@@ -39,7 +39,7 @@ void initCYCstate(CYCstate state)
   memcpy(superBlock, page, sizeof (struct superPage));
 
   //init freeLists
-  state->lists = &(superBlock.freeLists);
+  state->lists = &(superBlock->freeLists);
   
   //init vaddrMap
   readNAND(page, superBlock->latest_vaddr_map);
@@ -96,7 +96,18 @@ int getFreePtr(addrMap map)
 //get eraseCount stored at this fullPage
 int getEraseCount(page_addr k)
 {
+  char buf[sizeof(struct fullPage)];
+  readNAND(buf,k);
   struct fullPage page;
-  readNAND(&page, k);
+  memcpy(&page,buf, sizeof(struct superPage));
   return page.eraseCount;
+}
+
+void writeCurrLogHeader(openFile oFile)
+{
+  page_addr page = oFile->mainExtentLog->nextPage;
+  struct logHeader logH = oFile->mainExtentLog->log;
+  char *buf;
+  memcpy(buf, &logH, sizeof (struct logHeader));
+  writeNAND(buf,page,0);
 }

@@ -6,7 +6,7 @@
 
 void initCYCstate(CYCstate state);
 
-void initInode(struct inode ind);
+void initInode(struct inode ind, mode_t mode, int fileID);
 
 void initLogHeader(struct logHeader logH, unsigned long erases,
 		   page_vaddr logId, block_addr first,
@@ -18,3 +18,5 @@ void initOpenFile(openFile oFile, struct activeLog log,
 int getFreePtr(addrMap map);
 
 int getEraseCount(page_addr k);
+
+void writeCurrLogHeader(openFile oFile);
