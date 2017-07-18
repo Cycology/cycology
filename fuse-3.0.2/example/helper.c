@@ -36,16 +36,22 @@ void initCYCstate(CYCstate state)
   char page[sizeof (struct fullPage)];
   readNAND(page, 0);
   superPage superBlock;
-  memcpy(superBlock, page, sizeof (struct superPage));
+  superBlock = page;
+    
 
   //init freeLists
   state->lists = &(superBlock->freeLists);
   
   //init vaddrMap
   readNAND(page, superBlock->latest_vaddr_map);
-  memcpy(state->vaddrMap, page, sizeof (struct addrMap));
+  vaddrMap map = (vaddrMap)page;
+  state->vaddrMap = (vaddrMap)malloc(sizeof (struct addrMap) + state->vAddrMap->size*sizeof(page_addr));
+  memcpy(state->vaddrMap, page, sizeof (struct addrMap) + state->vAddrMap->size*sizeof(page_addr));
 
+  //someday, we need to consider the vaddrmap occupying multiple pages so we'd need a loop to copy stuff
+  
   //init cache
+  state->cache = (pageCache)malloc(sizeof (struct pageCache));
   state->cache->size = 0;
   state->cache->headLRU = NULL;
   state->cache->tailLRU = NULL;
@@ -96,18 +102,14 @@ int getFreePtr(addrMap map)
 //get eraseCount stored at this fullPage
 int getEraseCount(page_addr k)
 {
-  char buf[sizeof(struct fullPage)];
-  readNAND(buf,k);
   struct fullPage page;
-  memcpy(&page,buf, sizeof(struct superPage));
+  readNAND(&page, k);
   return page.eraseCount;
 }
 
 void writeCurrLogHeader(openFile oFile)
 {
   page_addr page = oFile->mainExtentLog->nextPage;
-  struct logHeader logH = oFile->mainExtentLog->log;
-  char *buf;
-  memcpy(buf, &logH, sizeof (struct logHeader));
-  writeNAND(buf,page,0);
+  logHeader logH = &(oFile->mainExtentLog->log);
+  writeNAND(logH, nextPage, 0);
 }

@@ -113,6 +113,6 @@ typedef struct CYCstate {
 	struct pageCache * cache;
 
         //partially and completely free lists
-        freeList lists;
+        struct freeList lists;
 
 } * CYCstate;
