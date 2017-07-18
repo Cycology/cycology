@@ -13,7 +13,7 @@
  ****************************************************************/
 
 typedef struct blockData {
-    page_vaddr nextPage;     //next available empty page after last erasure
+    page_addr nextPage;     //next available empty page after last erasure
     int eraseCount;          //times this particular block has been erased
   } *blockData;
 
@@ -36,7 +36,7 @@ struct nandFeatures initNAND(void);
   POST:
   returns number of bytes read; -1 if error
  */
-int readNAND(char *buf, page_vaddr k);
+int readNAND(char *buf, page_addr k);
 
 /*PRE:
   char *buf - buffer of data to be written
@@ -44,17 +44,14 @@ int readNAND(char *buf, page_vaddr k);
   POST:
   returns number of bytes written; -1 if error
  */
-int writeNAND(char *buf, page_vaddr k, int random_access);
+int writeNAND(char *buf, page_addr k, int random_access);
 
 /*PRE:
   block_addr b - absolute block address to erase
   POST:
   returns eraseCount; erases block
  */
-int eraseNAND(block_vaddr b);
+int eraseNAND(block_addr b);
 
 //POST: close NAND file; free nandFeatures field
 void stopNAND(void);
-
-//POST: return block
-int readBlockData(char *buf, page_vaddr b);

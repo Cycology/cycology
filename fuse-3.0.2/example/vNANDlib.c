@@ -23,9 +23,9 @@ struct nandFeatures initNAND(void)
 }
 
 //lseek to position of page and read entire page
-int readNAND(char *buf, page_vaddr k)
+int readNAND(char *buf, page_addr k)
 {
-  page_addr offset = sizeof (struct nandFeatures)
+  int offset = sizeof (struct nandFeatures)
 		+ (k/BLOCKSIZE)*(sizeof (struct block))
 		+ (k%BLOCKSIZE)*(sizeof (struct fullPage));
   if (offset >= features.memSize) {
@@ -41,7 +41,7 @@ int readNAND(char *buf, page_vaddr k)
   return res;
 }
 
-int writeNAND(char *buf, page_vaddr k, int random_access)
+int writeNAND(char *buf, page_addr k, int random_access)
 {
   //Read in the block containing target page
   struct block curBlock;
@@ -62,7 +62,7 @@ int writeNAND(char *buf, page_vaddr k, int random_access)
   }
   
   //write from buffer to block; increase nextPage counter
-  memcpy((curBlock.contents + kInBlock), buf, sizeof (struct fullPage));
+  memcpy((curBlock.contents[kInBlock]), buf, sizeof (struct fullPage));
   if (random_access == 0)
     curBlock.data.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)
@@ -80,7 +80,7 @@ void stopNAND(void)
   close(fd);
 }
 
-int eraseNAND(block_vaddr b)
+int eraseNAND(block_addr b)
 {
   int offset = (sizeof (struct nandFeatures)
 		+ b*(sizeof (struct block)));
@@ -100,23 +100,4 @@ int eraseNAND(block_vaddr b)
   write(fd, &curBlock, (sizeof (struct block)));
 
   return eraseCount;
-}
-
-//lseek to position of blockData and read it
-int readBlockData(char *buf, page_vaddr b)
-{
-  int offset = sizeof (struct nandFeatures)
-               + b*(sizeof (struct block))
-               + BLOCKSIZE*(sizeof (struct fullPage));
-  if (offset >= features.memSize) {
-    printf("BLOCKDATA OFFSET OUTSIDE OF BIG FILE");
-    return -1;
-  }
-  lseek(fd, offset, SEEK_SET);
-
-  int res = read(fd, buf, 2*(sizeof (int)));
-  if (res != (2*(sizeof (int))))
-    perror("FAIL TO READ BLOCKDATA IN NAND");
-
-  return res;
 }
