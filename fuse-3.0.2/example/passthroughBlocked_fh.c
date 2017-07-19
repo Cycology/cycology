@@ -499,7 +499,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//Putting logHeader in activeLog
 	struct activeLog theLog;
-	theLog.nextPage = logHeaderPage + 1; //the same as fileId? supposed to be the one next to logheader
+	theLog.nextPage = logHeaderPage + 1; //supposed to be the one next to logheader
 	theLog.last = logH.first;
 	theLog.log = logH;
 
@@ -539,7 +539,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
-	char *fullPath = makePath(path);
 	page_vaddr fileID;
 	
 	//retrieve CYCstate
@@ -547,15 +546,13 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
         CYCstate state = context->private_data;
 
 	//open stub file
-	log_file_info fptr;
-	fptr = (log_file_info) malloc(sizeof (struct log_file_info));
-	int stubfd = open(fullPath, O_RDWR, mode);
+	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
+	char *fullPath = makePath(path);
+	int stubfd = open(fullPath, O_RDWR);
 	free(fullPath);
 	if (stubfd == -1)
 		return -errno;
 	fptr->flag = fi->flags;
-	fptr->oFile = oFile;
-	fi->fh = (uint64_t) fptr;
 
 	//read the file id number from stub file
 	int res = read(stubfd, &fileID, sizeof (int));
@@ -563,11 +560,32 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	  perror("FAIL TO READ STUB FILE");
 	close(stubfd);
 
-	//plug in file id no into vaddr map
-	//retrieve inode and verify access rights
+	//plug in file id no into vaddr map; retrieve logHeader then inode
+	page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+	char page[sizeof (struct fullPage)];
+	readNAND(page, logHeaderAddr);
+	logHeader logH;
+	logH = page;
+	struct inode ind = logH->content->file->fInode;
+	
+	//verify access rights
+	
+	
 	//check if there is an existing openFile for the file
+	openFile oFile = state->cache->openFileTable[fileID];
+	if (oFile == NULL) {
+	  oFile = (openFile) malloc(sizeof (struct openFile));
+	  oFile->inode = ind;
+	  oFile->address = fileID;
+	  state->cache->openFileTable[fileID] = oFile;
+	}
+	oFile->currentOpens++;
+	fptr->oFile = oFile;
+	
 	//update vaddr map
 	
+
+	fi->fh = (uint64_t) fptr;
 	return 0;
 }
 
