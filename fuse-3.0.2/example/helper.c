@@ -44,9 +44,9 @@ void initCYCstate(CYCstate state)
   
   //init vaddrMap
   readNAND(page, superBlock->latest_vaddr_map);
-  vaddrMap map = (vaddrMap)page;
-  state->vaddrMap = (vaddrMap)malloc(sizeof (struct addrMap) + state->vAddrMap->size*sizeof(page_addr));
-  memcpy(state->vaddrMap, page, sizeof (struct addrMap) + state->vAddrMap->size*sizeof(page_addr));
+  addrMap map = (addrMap) page;
+  state->vaddrMap = (vaddrMap)malloc(sizeof (struct addrMap) + map->size*sizeof(page_addr));
+  memcpy(state->vaddrMap, page, sizeof (struct addrMap) + map->size*sizeof(page_addr));
 
   //someday, we need to consider the vaddrmap occupying multiple pages so we'd need a loop to copy stuff
   
@@ -110,6 +110,9 @@ int getEraseCount(page_addr k)
 void writeCurrLogHeader(openFile oFile)
 {
   page_addr page = oFile->mainExtentLog->nextPage;
-  logHeader logH = &(oFile->mainExtentLog->log);
-  writeNAND(logH, nextPage, 0);
+  struct logHeader logH = oFile->mainExtentLog->log;
+  char buf[sizeof (struct fullPage)];
+  readNAND(buf, page);
+  memcpy(buf, &log, sizeof (struct logHeader));
+  writeNAND(buf, page, 0);
 }
