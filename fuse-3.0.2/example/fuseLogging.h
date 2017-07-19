@@ -10,7 +10,7 @@
 /***************************************************************
  *
  * Mapping from file id number to virtual addresses of logHeader
- * containing that specific file's inode.. An entry of
+ * containing that specific file's inode. An entry of
  * 0 indicates an unused logical address.
  *
  **************************************************************/
