@@ -473,9 +473,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
 	page_vaddr fileID = getFreePtr(state->vaddrMap);
+	page_vaddr logID = getFreePtr(state->vaddrMap);
 
 	struct inode ind;
-	initInode(ind, mode, fileID);
+	initInode(ind, mode, fileID, logID);
 
 	// if there is nothing in the partially used free list, use the complete list
 	page_addr logHeaderPage;
@@ -490,7 +491,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//create the logHeader of the log containing this file
 	struct logHeader logH;
-	initLogHeader(logH, erases, fileID,
+	initLogHeader(logH, erases, logID,
 		      (block_addr) logHeaderPage/BLOCKSIZE, LTYPE_FILES);
 
 	logH.content.file.fileCount = 1;
@@ -502,6 +503,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	theLog.nextPage = logHeaderPage + 1; //supposed to be the one next to logheader
 	theLog.last = logH.first;
 	theLog.log = logH;
+	state->cache->openFileTable[logID] = theLog;
 
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
@@ -527,6 +529,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	close(stubfd);
 	
 	state->vaddrMap->map[fileID] = logHeaderPage;
+	state->vaddrMap->map[logID] = logHeaderPage;
 
 	//Write the logHeader to virtual NAND
 	char buf[sizeof (struct fullPage)];

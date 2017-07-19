@@ -59,10 +59,12 @@ void initCYCstate(CYCstate state)
 }
 
 //Create an inode for a new file
-void initInode(struct inode ind, mode_t mode, int fileID)
+void initInode(struct inode ind, mode_t mode,
+	       page_vaddr fileID, page_vaddr logID)
 {
 	ind.i_mode = mode;
 	ind.i_file_no = fileID; //next free slot in vaddrMap
+	ind.i_log_no = logID;
 	ind.i_links_count = 0;
 	ind.i_pages = 0;
 	ind.i_size = 0;
