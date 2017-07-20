@@ -499,11 +499,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	logH.content.file.fInode = ind;
 
 	//Putting logHeader in activeLog
+	//nextPage field in activeLog is supposed to be the one next to logheader
 	struct activeLog theLog;
-	theLog.nextPage = logHeaderPage + 1; //supposed to be the one next to logheader
-	theLog.last = logH.first;
-	theLog.log = logH;
-	state->cache->openFileTable[logID] = theLog;
+	initActiveLog(theLog, logHeaderPage + 1, logH.first, logH);  
+	state->cache->openFileTable[logID] = &theLog;
 
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
@@ -575,18 +574,23 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	
 	
 	//check if there is an existing openFile for the file
+	//if not, create new activeLog and openFile
 	openFile oFile = state->cache->openFileTable[fileID];
 	if (oFile == NULL) {
+	  struct activeLog log;
+	  initActiveLog(log, logHeaderAddr + 1, logHeaderAddr/BLOCKSIZE, *logH);
+	  //assuming 1 file per log, next free page of log is after logHeaderAddr
 	  oFile = (openFile) malloc(sizeof (struct openFile));
-	  oFile->inode = ind;
-	  oFile->address = fileID;
+	  initOpenFile(oFile, log, ind, fileID);
+
+	  //update vaddrMap and openFileTable
+	  page_vaddr logID = getFreePtr(state->vaddrMap);
+	  state->vaddrMap->map[logID] = logHeaderAddr;
 	  state->cache->openFileTable[fileID] = oFile;
+	  state->cache->openFileTable[logID] = &log;
 	}
 	oFile->currentOpens++;
 	fptr->oFile = oFile;
-	
-	//update vaddr map
-	
 
 	fi->fh = (uint64_t) fptr;
 	return 0;
