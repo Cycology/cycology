@@ -83,6 +83,14 @@ void initLogHeader(struct logHeader logH, unsigned long erases,
   logH.logType = logType;
 }
 
+void initActiveLog(struct activeLog theLog, page_addr page,
+		   block_addr block, struct logHeader logH)
+{
+	theLog.nextPage = page;
+	theLog.last = block;
+	theLog.log = logH;
+}
+
 void initOpenFile(openFile oFile, struct activeLog log,
 		  struct inode ind, page_vaddr fileID)
 {
