@@ -382,6 +382,8 @@ static int xmp_unlink(const char *path)
 	  if (lastLogH->content->fileCount == 0) {
 	    if (lastLogH->total == 1) {  //only 1 block in this log
 	      
+	      if (lastLogH->active <= BLOCKSIZE - 3)
+		
 	    }
 	  }
 	}

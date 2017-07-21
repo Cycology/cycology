@@ -120,10 +120,14 @@ struct logHeader {
 
 } *logHeader;
 
-//points to first page of partially and completely used free lists
+/*points to first page of partially and completely used free lists.
+ *
+ */
 typedef struct freeList {
-  page_addr partial;
-  page_addr complete;
+  page_addr partialHead;
+  page_addr partialTail;
+  page_addr completeHead;
+  page_addr completeTail;
 } *freeList;
 
 /* This page will hold information required to restart the system. In
@@ -184,7 +188,6 @@ typedef struct superPage {
 				      triple indirect page.
 				   */
 
-
 typedef struct fullPage {
 	char contents[PAGEDATASIZE];
 	int eraseCount;           /* In the first page of a block, this field will
@@ -192,7 +195,13 @@ typedef struct fullPage {
 
 	page_addr nextLogBlock;  /* In last and next to last pages of a block,
 				     this field will hold the address of the
-				     next page of the log containing the pages
+				     next page of the log containing the pages.
+				     
+				     In next to last page (2nd last page),
+				     this points to next block of the log.
+				     In last page,
+				     this either points to next block of log,
+				     or next block of free list.
 				  */
 
 	int nextBlockErases;     /* The number of times the block pointed to by
