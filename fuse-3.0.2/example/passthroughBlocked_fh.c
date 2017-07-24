@@ -65,7 +65,6 @@ typedef struct blocked_file_info{
 //struct holding flag and openFile; used in Logging version
 typedef struct log_file_info{
   int flag;
-  int fd;
   openFile oFile;
 } *log_file_info;
 
@@ -700,14 +699,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-/*PRE:
-  path - file's pathname
-  buf - target buffer where read bytes go
-  size - #bytes to read
-  offset - starting offset in file
-  fi - file info
-
-  POST: #bytes read (should this be #pages instead?) */
+/* */
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
@@ -719,25 +711,27 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	  free(fullPath);
 	}
 	
-	size_t res = 0;//size_t or int?        //return value
+	size_t res = 0;                        //return value
 	size_t bytesRead;                      //bytes read in for a single page
-	struct stat stBuf;                     //space for file info
+	//struct stat stBuf;                     //space for file info
 
-	printf("FLAG IN xmp_read: %x\n", fi->flags);
-	if ((fi->flags & O_WRONLY) != 0) {
+	//verify if the file has read permission
+	int flag = ((log_file_info) fi->fh)->flag;
+	printf("FLAG IN xmp_read: %x\n", flag);
+	if ((flag & O_WRONLY) != 0) {
 	  perror("FILE IS NOT READABLE");
 	  return -1;
 	}
 	
-	//save file info into stBuf
-	int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
-	if (statRes == -1)
-	  return -errno;
+	/* save file info into stBuf */
+	/* int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf); */
+	/* if (statRes == -1) */
+	/*   return -errno; */
 
-	if (offset > stBuf.st_size)              //offset > file size, no byte read
-	  return 0;
-	else if (offset + size > stBuf.st_size)  //make sure only reading within file size
-	  size = stBuf.st_size - offset;
+	/* if (offset > stBuf.st_size)              //offset > file size, no byte read */
+	/*   return 0; */
+	/* else if (offset + size > stBuf.st_size)  //make sure only reading within file size */
+	/*   size = stBuf.st_size - offset; */
 
 	int pageNo = offset / PAGESIZE;          //starting page
 	offset = offset % PAGESIZE;              //location of offset in that page
@@ -753,7 +747,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	  } else {                                              //if there are more pages to read
 	    memcpy(buf, tempBuf + offset, PAGESIZE - offset);
 	    res = PAGESIZE - offset;
-	    buf += res;                                         //Do we need to update buf pointer for other case?
+	    buf += res;                  
 	  }
 	  size -= res;                           
 	} else {
