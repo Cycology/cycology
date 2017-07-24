@@ -18,7 +18,9 @@ struct nandFeatures initNAND(void)
     return features;     //Hmm what to return?
   }
   
-  read(fd, &features, (sizeof (struct nandFeatures)));
+  int res = read(fd, &features, (sizeof (struct nandFeatures)));
+  if (res == -1)
+    perror("ERROR IN READING BIG NAND FILE FOR NAND FEATURES");
   return features;
 }
 
@@ -62,7 +64,7 @@ int writeNAND(char *buf, page_addr k, int random_access)
   }
   
   //write from buffer to block; increase nextPage counter
-  memcpy((curBlock.contents[kInBlock]), buf, sizeof (struct fullPage));
+  memcpy(&(curBlock.contents[kInBlock]), buf, sizeof (struct fullPage));
   if (random_access == 0)
     curBlock.data.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)

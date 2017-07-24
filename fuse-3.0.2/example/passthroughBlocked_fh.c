@@ -380,20 +380,39 @@ static int xmp_unlink(const char *path)
 
 	  //if there's no more file in the log, recycle!
 	  if (lastLogH->content->fileCount == 0) {
+	    struct freeList freeList = state->lists;
 	    if (lastLogH->total == 1) {  //only 1 block in this log
 	      
-	      if (lastLogH->active <= BLOCKSIZE - 3)
+	      if (lastLogH->active <= BLOCKSIZE - 3) {
+		if (freeList.partialTail == 0) { //pList is empty
+		  freeList.partialHead = lastHeaderAddr + 1;
+		  
+		} else {                         //pList is not empty
+		  //make current last block points to new last block
+		  char buf[sizeof (struct fullPage)];
+		  readNAND(buf, freeList.partialTail);
+		  fullPage fPage = buf;
+		  fPage.nextLogBlock = lastHeaderAddr + 1;
+		  writeNAND(buf, freeList.partialTail, 1);
+		}
+		//change tail pointer
+		freeList.partialTail = lastHeaderAddr + 1; 
 		
+	      } else {  //put in cList
+		if (freeList.completeTail == 0) { //cList is empty
+		  //freeList.completeHead = 
+		}
+	      }
+	      
 	    }
 	  }
-	}
-	  
+	} 
 	
 	res = unlink(fullPath);
 	free(fullPath);
 	if (res == -1)
 	  return -errno;
-	return 0;
+	return 0;	
 }
 
 static int xmp_rmdir(const char *path)
@@ -571,11 +590,11 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	// if there is nothing in the partially used free list, use the complete list
 	page_addr logHeaderPage;
 	int erases;
-	if (state->lists->partial == 0) {
-	  logHeaderPage = state->lists->complete;
+	if (state->lists->partialHead == 0) {
+	  logHeaderPage = state->lists->completeHead;
 	  erases = getEraseCount(logHeaderPage);
 	} else {
-	  logHeaderPage = state->lists->partial;
+	  logHeaderPage = state->lists->partialHead;
 	  erases = getEraseCount((logHeaderPage/BLOCKSIZE)*BLOCKSIZE);
 	}
 
@@ -911,16 +930,30 @@ static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
 	return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
 }
 
+/*
+ *refer back to our "Function Design" document as well as the info we put in "statfstest.c"
+ */
+
 static int xmp_statfs(const char *path, struct statvfs *stbuf)
 {
-	int res;
-
-	char *fullPath = makePath(path);
+        //int res;
+	//char *fullPath = makePath(path);	
+	//res = statvfs(fullPath, stbuf);
+	//free(fullPath);
+	//if (res == -1)
+	//	return -errno;
+        struct fuse_context *context = fuse_get_context();
+        CYCstate state = context->private_data;
 	
-	res = statvfs(fullPath, stbuf);
-	free(fullPath);
-	if (res == -1)
-		return -errno;
+        stbuf.f_bsize = PAGESIZE;
+	stbuf.f_blocks = BLOCKSIZE*(state->nFeatures->numBlocks);
+	//what do they mean by free pages in f_bfree?
+	stbuf.f_bavail = BLOCKSIZE*(state->nFeatures->numBlocks - 2); //minus superBlock and addrMap block
+	//we're not sure about file nodes in f_files and f_ffree either
+	//f_fsid too?
+	stbuf.f_namemax = 255;   //matches that of underlying fs
+	//f_frsize and f_flag?
+	
 	return 0;
 }
 

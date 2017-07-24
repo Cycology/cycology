@@ -202,6 +202,10 @@ typedef struct fullPage {
 				     In last page,
 				     this either points to next block of log,
 				     or next block of free list.
+
+				     For partially used free list, this field
+				     will be available in the first unused page
+				     of each block.
 				  */
 
 	int nextBlockErases;     /* The number of times the block pointed to by

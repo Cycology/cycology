@@ -3,21 +3,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 /*
- *Running this on the file "test1" gives:
- f_type: ef53      hexadecimal id of fs type
- f_bsize: 4096     equivalent to our PAGESIZE (different from our block)
- f_blocks: 3442816 how many pages are there 
- f_bfree: 1774666  how many free pages are there
- f_bavail: 1594020 pages available to unprivileged users
+ *Retrieving “struct statvfs” for "test1" gives:
+ f_bsize: 4096     (equivalent to our PAGESIZE, different from our block)
+ f_blocks: 3442816     (how many pages are there)
+ f_bfree: 1671474       (how many free pages are there)
+ f_bavail: 1490828     (pages available to unprivileged users)
  f_files: 883008   total file nodes (do we have file nodes?)
- f_ffree: 558447   free file nodes
- f_fsid            we skipped this because it' struct <anonymous>
- f_namelen: 255    max length of file names
- f_frsize: 4096    fragment size
- f_flags: 4128     mount flags of filesystem
+ f_ffree: 524207   free file nodes
+ F_fsid: 5998731228084866749
+ f_namemax: 255    max length of file names
+ f_frsize: 4096    fragment size (also not sure how this corresponds w our file system)
+ f_flag: 4096     mount flags of filesystem (what is this?)
  */
 
 int main(int argc, char *argv[])
@@ -27,17 +26,18 @@ int main(int argc, char *argv[])
     return 1;
   }
   
-  struct statfs stat;
+  struct statvfs stat;
 
-  int res = statfs(*++argv, &stat);
+  int res = statvfs(*++argv, &stat);
   if (res == -1) {
     perror("CAN'T GET STATFS");
     return 1;
   }
 
-  printf("f_type: %lx\n f_bsize: %lu\n f_blocks: %lu\n f_bfree: %lu\n f_bavail: %lu\n f_files: %lu\n f_ffree: %lu\n f_namelen: %ld\n f_frsize: %ld\n f_flags: %ld\n", stat.f_type, stat.f_bsize, stat.f_blocks, stat.f_bfree,
-	 stat.f_bavail, stat.f_files, stat.f_ffree,
-	 stat.f_namelen, stat.f_frsize, stat.f_flags);
+  printf("f_bsize: %lu\n f_frsize: %lu\n f_blocks: %lu\n f_bfree: %lu\n f_bavail: %lu\n f_files: %lu\n f_ffree: %lu\n f_favail: %lu\n f_fsid: %lu\n f_flag: %lu\n f_namemax: %lu\n",
+	 stat.f_bsize, stat.f_frsize, stat.f_blocks, stat.f_bfree,
+	 stat.f_bavail, stat.f_files, stat.f_ffree, stat.f_favail,
+	 stat.f_fsid, stat.f_flag, stat.f_namemax);
     
   //close(fd);
     
