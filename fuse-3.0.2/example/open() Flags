@@ -1,0 +1,24 @@
+O_RDWR = 2                   0010
+O_RDONLY = 0                 0000
+O_WRONLY = 1                 0001
+O_CREAT = 40
+O_APPEND = 400
+O_ASYNC = 2000
+O_CLOEXEC = 80000
+O_DIRECTORY = 10000
+O_DSYNC = 1000
+O_EXCL = 80
+O_NOCTTY = 100
+O_NOFOLLOW = 20000
+O_NONBLOCK = 800
+O_SYNC = 101000
+O_TRUNC = 200
+
+In xmp_write with flag O_WRONLY: 8001
+
+
+if ( fi->flags & ( O_RDWR | O_WRONLY ) != 0 ) {
+   /* file is writeable */
+  }
+
+if (fi->flags & O_WRONLY == 0)
