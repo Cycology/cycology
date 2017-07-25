@@ -849,8 +849,10 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 {
 	(void) path;
 
-	printf("FLAG IN xmp_write: %x\n", fi->flags);
-	if ((fi->flags & (O_RDWR | O_WRONLY)) == 0) {
+	//verify if the file has read permission
+	int flag = ((log_file_info) fi->fh)->flag;
+	printf("FLAG IN xmp_write: %x\n", flag);
+	if (flag & (O_RDWR | O_WRONLY)) == 0) {
 	  perror("FILE IS NOT WRITEABLE\n");
 	  return -1;
 	}
