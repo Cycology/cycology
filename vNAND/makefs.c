@@ -21,7 +21,8 @@ int main (int argc, char *argv[])
   char array[sizeof (struct fullPage)];
   memset(array, 0, sizeof (struct fullPage));
   superBlock.latest_vaddr_map = BLOCKSIZE;  //first vaddr map is in block 1
-  superBlock.freeList.complete = BLOCKSIZE*2;    //free list starts at block 2
+  superBlock.freeLists.completeHead = BLOCKSIZE*2;  //free list starts at block 2
+  superBlock.freeLists.completeTail = BLOCKSIZE*(features.numBlocks) - 1;
   memcpy(array, &superBlock, sizeof (struct superPage));
   writeNAND(array, 0, 0);
 
@@ -34,7 +35,8 @@ int main (int argc, char *argv[])
   //link map entries to next available entry
   int i = 1;
   while (i < map.size - 1) {
-    map.map[i] = -(++i);
+    ++i;
+    map.map[i] = -i;
   }
   map.map[map.size - 1] = 0;     //last map entry
 
@@ -50,7 +52,7 @@ int main (int argc, char *argv[])
     page.nextLogBlock = (i+1)*BLOCKSIZE;
     memcpy(array, &page, sizeof (struct fullPage));
     writeNAND(array, (i+1)*BLOCKSIZE - 1, 1);
-    writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
+    //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
   }
   
   stopNAND();
