@@ -112,32 +112,36 @@ static void *xmp_init(struct fuse_conn_info *conn,
 static void xmp_destroy(void *private_data)
 {
   //retrieve CYCstate
-  struct fuse_context *context = fuse_get_context();
-  CYCstate state = context->private_data;
+  CYCstate state = private_data;
 
   //read in superBlock
   char buf[sizeof (struct fullPage)];
   readNAND(buf, 0);
-  superPage superBlock = buf;
+  superPage superBlock = (superPage) buf;
 
   /*write the updated vaddr map to NAND*/
-  page_addr latest = superBlock->latest_vaddr_map;
-  readNAND(buf, latest + 1);    //next page to write vaddr map is right after the current one
-  memcpy(buf, state->vaddrmap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr));
+  char buf2[sizeof (struct fullPage)];
+  page_addr previous = superBlock->latest_vaddr_map;
+  
+  //if previous vaddrMap is in the last page, erase block and rewrite the previous vaddrMap
+  if (previous == BLOCKSIZE*2 - 1) {
+    readNAND(buf2, previous);
+    eraseNAND(1);
+    writeNAND(buf2, BLOCKSIZE, 0);
+    previous = BLOCKSIZE;
+  }
 
-  //if latest vaddrMap is in the last page, erase block
-  //if (latest == BLOCKSIZE*2 - 1) {
-  //  eraseNAND(1);
-    
-  //}
-  writeNAND(buf, latest + 1, 0);
+  //write the most recent vaddrMap from CYCstate
+  readNAND(buf2, previous + 1);    //next page to write vaddr map is right after the current one
+  memcpy(buf2, state->vaddrMap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr));
+  writeNAND(buf2, previous + 1, 0);
   
   /*save and update the superBlock*/
-  superBlock->prev_vaddr_map = latest;
-  superBlock->latest_vaddr_map = latest + 1;
-  writeNAND(superBlock, 0, 1);
-  //we cheat here and write superBlock by replacement instead of copy
-  //also we write it to the same page 0 everytime
+  superBlock->prev_vaddr_map = previous;
+  superBlock->latest_vaddr_map = previous + 1;
+  writeNAND(buf, 0, 1);
+  //we cheat here and write superBlock
+  //to the same page 0 everytime
   
   free(private_data);
   stopNAND();
@@ -321,91 +325,92 @@ static int xmp_unlink(const char *path)
 	int res;
 	char *fullPath = makePath(path);
 	
-	//we don't check for hard/sym link, for now
-	//assume all hard links for now
+	/* //we don't check for hard/sym link, for now */
+	/* //assume all hard links for now */
 
-	//check how many hard links the file has left
-	struct stat st;
-	res = stat(fullPath, *st);
-	if (res == -1)
-	  return -errno;
+	/* //check how many hard links the file has left */
+	/* //we can also access hard link info in inode */
+	/* struct stat st; */
+	/* res = stat(fullPath, &st); */
+	/* if (res == -1) */
+	/*   return -errno; */
+
+	/* //more than 1 hard links, we simply unlink normally */
+	/* if(st.st_nlink > 1) { */
+	/*   res = unlink(fullPath); */
+	/*   free(fullPath); */
+	/*   if (res == -1) */
+	/*     return -errno; */
+	/*   return 0; */
+	/* } */
+
+	/* /\*Otherwise this is the last hard link to file. */
+	/*  *Check if the file is still open */
+	/*  *(openFile does not exist if file is not open) */
+	/*  *\/ */
+
+	/* //retrieve CYCstate */
+        /* struct fuse_context *context = fuse_get_context(); */
+        /* CYCstate state = context->private_data; */
 	
-	if(st.st_nlink > 1) { //more than 1 hard links
-	  res = unlink(fullPath);
-	  free(fullPath);
-	  if (res == -1)
-	    return -errno;
-	  return 0;
-	}
+	/* //read stub file for fileID */
+	/* log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info)); */
+	/* page_vaddr fileID = readStubFile(fullPath); */
 
-	/*Otherwise this is the last hard link to file.
-	 *Check if the file is still open
-	 *(openFile does not exist if file is not open)
-	 */
+	/* //check if there is any openFile */
+	/* openFile oFile = state->cache->openFileTable[fileID]; */
 
-	//retrieve CYCstate
-        struct fuse_context *context = fuse_get_context();
-        CYCstate state = context->private_data;
-	
-	//read stub file for fileID
-	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
-	page_vaddr fileID = readStubFile(fullPath);
+	/* //last link to file, no openFile */
+	/* if (oFile == NULL) { */
+	/*   //Go to logHeader of this file */
+	/*   page_addr logHeaderAddr = state->vaddrMap->map[fileID]; */
+	/*   char page[sizeof (struct fullPage)]; */
+	/*   readNAND(page, logHeaderAddr); */
+	/*   logHeader logH = page; */
 
-	//check if there is any openFile
-	openFile oFile = state->cache->openFileTable[fileID];
+	/*   //Go to last written logHeader */
+	/*   page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId]; */
+	/*   char page2[sizeof (struct fullPage)]; */
+	/*   readNAND(page2, lastHeaderAddr); */
+	/*   logHeader lastLogH; */
+	/*   lastLogH = page2; */
 
-	//last link to file, no openFile
-	if (oFile == NULL) {
-	  //Go to logHeader of this file
-	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
-	  char page[sizeof (struct fullPage)];
-	  readNAND(page, logHeaderAddr);
-	  logHeader logH;
-	  logH = page;
+	/*   /\*remove fileID from log's ID list. */
+	/*    *Always remove from index 0 since for now, */
+	/*    *there's only 1 file per log */
+	/*    *\/ */
+	/*   lastLogH->content->fileCount--; */
+	/*   lastLogH->content->fileId[0] = 0; */
 
-	  //Go to last written logHeader
-	  page_addr lastHeaderAddr = state->vaddr->map[logH->logId];
-	  char page2[sizeof (struct fullPage)];
-	  readNAND(page2, lastHeaderAddr);
-	  logHeader lastLogH;
-	  lastLogH = page2;
-
-	  /*remove fileID from log's ID list.
-	   *Always remove from index 0 since for now,
-	   *there's only 1 file per log
-	   */
-	  lastLogH->content->fileCount--;
-	  lastLogH->content->fileId[0] = 0;
-
-	  //if there's no more file in the log, recycle!
-	  if (lastLogH->content->fileCount == 0) {
-	    struct freeList freeList = state->lists;
-	    if (lastLogH->total == 1) {  //only 1 block in this log
+	/*   //if there's no more file in the log, recycle! */
+	/*   if (lastLogH->content->fileCount == 0) { */
+	/*     struct freeList freeList = state->lists; */
+	/*     if (lastLogH->total == 1) {  //only 1 block in this log */
 	      
-	      if (lastLogH->active <= BLOCKSIZE - 3) {
-		if (freeList.partialTail == 0) { //pList is empty
-		  freeList.partialHead = lastHeaderAddr + 1;
+	/*       if (lastLogH->active <= BLOCKSIZE - 3) { */
+	/* 	if (freeList.partialTail == 0) { //pList is empty */
+	/* 	  freeList.partialHead = lastHeaderAddr + 1; */
 		  
-		} else {                         //pList is not empty
-		  //make current last block points to new last block
-		  char buf[sizeof (struct fullPage)];
-		  readNAND(buf, freeList.partialTail);
-		  fullPage fPage = buf;
-		  fPage.nextLogBlock = lastHeaderAddr + 1;
-		  writeNAND(buf, freeList.partialTail, 1);
-		}
-		//change tail pointer
-		freeList.partialTail = lastHeaderAddr + 1; 
+	/* 	} else {                         //pList is not empty */
+	/* 	  //make current last block points to new last block */
+	/* 	  char buf[sizeof (struct fullPage)]; */
+	/* 	  readNAND(buf, freeList.partialTail); */
+	/* 	  fullPage fPage = (fullPage) buf; */
+	/* 	  fPage.nextLogBlock = lastHeaderAddr + 1; */
+	/* 	  writeNAND(buf, freeList.partialTail, 1); */
+	/* 	} */
+	/* 	//change tail pointer */
+	/* 	freeList.partialTail = lastHeaderAddr + 1;  */
 		
-	      } else {  //put in cList
-		if (freeList.completeTail == 0) { //cList is empty
-		  //freeList.completeHead = 
-		}
-	      }
+	/*       } else {  //put in cList */
+	/* 	if (freeList.completeTail == 0) { //cList is empty */
+	/* 	  //freeList.completeHead =  */
+	/* 	} */
+	/*       } */
 	      
-	    }
-	  }
-	} 
+	/*     } */
+	/*   } */
+	/* }  */
 	
 	res = unlink(fullPath);
 	free(fullPath);
@@ -589,11 +594,11 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	// if there is nothing in the partially used free list, use the complete list
 	page_addr logHeaderPage;
 	int erases;
-	if (state->lists->partialHead == 0) {
-	  logHeaderPage = state->lists->completeHead;
+	if (state->lists.partialHead == 0) {
+	  logHeaderPage = state->lists.completeHead;
 	  erases = getEraseCount(logHeaderPage);
 	} else {
-	  logHeaderPage = state->lists->partialHead;
+	  logHeaderPage = state->lists.partialHead;
 	  erases = getEraseCount((logHeaderPage/BLOCKSIZE)*BLOCKSIZE);
 	}
 
@@ -613,7 +618,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	//nextPage field in activeLog is supposed to be the one next to logheader
 	struct activeLog theLog;
 	initActiveLog(&theLog, logHeaderPage + 1, logH.first, logH);  
-	state->cache->openFileTable[logID] = &theLog;
+	state->cache->openFileTable[logID] = (openFile) &theLog;
 
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
@@ -666,8 +671,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	page_addr logHeaderAddr = state->vaddrMap->map[fileID];
 	char page[sizeof (struct fullPage)];
 	readNAND(page, logHeaderAddr);
-	logHeader logH;
-	logH = page;
+	logHeader logH = page;
 	struct inode ind = logH->content->file->fInode;
 
 	//locate the last written logHeader
@@ -689,7 +693,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
 	  //update vaddrMap and openFileTable
 	  state->cache->openFileTable[fileID] = oFile;
-	  state->cache->openFileTable[logID] = &log;
+	  state->cache->openFileTable[logID] = (openFile) &log;
 	}
 	oFile->currentOpens++;
 
@@ -939,13 +943,13 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
 	
-        stbuf.f_bsize = PAGESIZE;
-	stbuf.f_blocks = BLOCKSIZE*(state->nFeatures->numBlocks);
+        stbuf->f_bsize = PAGESIZE;
+	stbuf->f_blocks = BLOCKSIZE*(state->nFeatures.numBlocks);
 	//what do they mean by free pages in f_bfree?
-	stbuf.f_bavail = BLOCKSIZE*(state->nFeatures->numBlocks - 2); //minus superBlock and addrMap block
+	stbuf->f_bavail = BLOCKSIZE*(state->nFeatures.numBlocks - 2); //minus superBlock and addrMap block
 	//we're not sure about file nodes in f_files and f_ffree either
 	//f_fsid too?
-	stbuf.f_namemax = 255;   //matches that of underlying fs
+	stbuf->f_namemax = 255;   //matches that of underlying fs
 	//f_frsize and f_flag?
 	
 	return 0;
