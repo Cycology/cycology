@@ -621,7 +621,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	//Putting logHeader in activeLog
 	//nextPage field in activeLog is supposed to be the one next to logheader
 	struct activeLog theLog;
-	initActiveLog(&theLog, logHeaderPage + 1, logH.first, logH);  
+	initActiveLog(&theLog, logHeaderPage, logH.first, logH);  
 	state->cache->openFileTable[logID] = (openFile) &theLog;
 
 	//Put activeLog in openFile and store it in cache
