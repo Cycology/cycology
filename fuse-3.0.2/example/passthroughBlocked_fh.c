@@ -671,8 +671,8 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	page_addr logHeaderAddr = state->vaddrMap->map[fileID];
 	char page[sizeof (struct fullPage)];
 	readNAND(page, logHeaderAddr);
-	logHeader logH = page;
-	struct inode ind = logH->content->file->fInode;
+	logHeader logH = (logHeader) page;
+	struct inode ind = logH->content.file.fInode;
 
 	//locate the last written logHeader
 	page_vaddr logID = ind.i_log_no;
@@ -852,7 +852,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	//verify if the file has read permission
 	int flag = ((log_file_info) fi->fh)->flag;
 	printf("FLAG IN xmp_write: %x\n", flag);
-	if (flag & (O_RDWR | O_WRONLY)) == 0) {
+	if ((flag & (O_RDWR | O_WRONLY)) == 0) {
 	  perror("FILE IS NOT WRITEABLE\n");
 	  return -1;
 	}

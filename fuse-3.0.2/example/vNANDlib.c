@@ -54,7 +54,11 @@ int writeNAND(char *buf, page_addr k, int random_access)
     return -1;
   }
   lseek(fd, offset, SEEK_SET);
-  read(fd, &curBlock, (sizeof (struct block)));
+  int res = read(fd, &curBlock, (sizeof (struct block)));
+  if (res == -1) {
+    printf("CANNOT READ BLOCK IN writeNAND");
+    return -1;
+  } 
   
   //index of page k in the block
   int kInBlock = k%BLOCKSIZE;
@@ -69,7 +73,7 @@ int writeNAND(char *buf, page_addr k, int random_access)
     curBlock.data.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)
 	     + (k/BLOCKSIZE)*(sizeof (struct block))), SEEK_SET);
-  int res = write(fd, &curBlock, (sizeof (struct block))); 
+  res = write(fd, &curBlock, (sizeof (struct block))); 
   if (res == -1)
     perror("FAIL TO WRITE PAGE IN NAND");
 
@@ -84,22 +88,39 @@ void stopNAND(void)
 
 int eraseNAND(block_addr b)
 {
-  int offset = (sizeof (struct nandFeatures)
-		+ b*(sizeof (struct block)));
+  int offset = sizeof (struct nandFeatures)
+    + (b+1)*(sizeof (struct block)) - sizeof(int);
   if (offset >= features.memSize) {
-    printf("BLOCK OFFSET OUTSIDE OF BIG FILE");
+    printf("OFFSET OF eraseCount OUTSIDE OF BIG FILE");
     return -1;
   }
   lseek(fd, offset, SEEK_SET);
 
   //lseek and read in the block's eraseCount
   struct block curBlock;
-  read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
+  int eraseCount;
+  //int res = read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
+  int res = read(fd, &eraseCount, sizeof(int));
+  if (res == -1) {
+    printf("CANNOT READ BLOCK'S eraseCount IN eraseNAND");
+    return -1;
+  }
 
-  //increment eraseCount; paste the empty block into offset
-  int eraseCount = ++(curBlock.data.eraseCount);
-  lseek(fd, offset, SEEK_SET);
-  write(fd, &curBlock, (sizeof (struct block)));
+  //increment eraseCount; create and paste the empty block into offset
+  //int eraseCount = ++(curBlock.data.eraseCount);
+  eraseCount++;
+  memset(&curBlock, 0, (sizeof (struct fullPage))*BLOCKSIZE);
+  curBlock.contents[0].eraseCount = eraseCount;
+  curBlock.data.nextPage = 0;
+  curBlock.data.eraseCount = eraseCount;
 
+  lseek(fd, sizeof (struct nandFeatures)
+	+ b*(sizeof (struct block)), SEEK_SET);
+  res = write(fd, &curBlock, (sizeof (struct block)));
+  if (res == -1) {
+    printf("CANNOT WRITE UPDATED BLOCK IN eraseNAND");
+    return -1;
+  }
+  
   return eraseCount;
 }
