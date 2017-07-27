@@ -88,6 +88,10 @@ static void *xmp_init(struct fuse_conn_info *conn,
   //initialize other fields in state
   initCYCstate(state);
 
+  //print CYCstate content
+  printf("CYCstate:\n rootPath: %s\n storePath: %s\n numBlocks: %d\n memSize: %d\n vaddrMap.freePtr: %d\n", state->rootPath, state->storePath, state->nFeatures.numBlocks,
+	 state->nFeatures.memSize, state->vaddrMap->freePtr);
+  
   //keep CYCstate
   return state;
   
