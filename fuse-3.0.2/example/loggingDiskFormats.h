@@ -93,7 +93,7 @@ struct inode {
    with and statistics on space utilization within the log needed to determine
    when to scan logs to recover unused/unusable space.
 */
-struct logHeader {
+typedef struct logHeader {
   unsigned long erases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
   block_addr prev;      /* Address of previous block allocated to this log */
@@ -165,7 +165,6 @@ typedef struct superPage {
 	*/
 	page_addr prev_vaddr_map;
 	page_addr prev_journal;
-  
 
 } *superPage;
 
