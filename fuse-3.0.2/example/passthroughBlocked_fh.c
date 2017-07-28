@@ -127,22 +127,30 @@ static void xmp_destroy(void *private_data)
   char buf2[sizeof (struct fullPage)];
   page_addr previous = superBlock->latest_vaddr_map;
   
-  //if previous vaddrMap is in the last page, erase block and rewrite the previous vaddrMap
-  if (previous == BLOCKSIZE*2 - 1) {
-    readNAND(buf2, previous);
-    eraseNAND(1);
-    writeNAND(buf2, BLOCKSIZE, 0);
-    previous = BLOCKSIZE;
+  //if previous vaddrMap is in the 2nd last page of a block,
+  //allocate a new block
+  if ((previous + 2) % BLOCKSIZE == 0) {
+    //readNAND(buf2, previous);
+    int *erases;
+    int newBlock = getFreeBlock(state->lists, erases);
+    //writeNAND(buf2, newPrevious, 0);
+
+    //put previous block into Completely used free list
+    page_addr pageAddr = state->lists.completeTail;
+    struct fullPage page;
+    page.nextLogBlock = (previous/BLOCKSIZE)*BLOCKSIZE;
+    writeNAND((char *)page, pageAddr, 0);
+    state->lists.completeTail = previous + 1; 
   }
 
   //write the most recent vaddrMap from CYCstate
-  readNAND(buf2, previous + 1);    //next page to write vaddr map is right after the current one
+  readNAND(buf2, newBlock);    //next page to write vaddr map is right after the current one
   memcpy(buf2, state->vaddrMap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr));
-  writeNAND(buf2, previous + 1, 0);
+  writeNAND(buf2, newBlock, 0);
   
   /*save and update the superBlock*/
-  superBlock->prev_vaddr_map = previous;
-  superBlock->latest_vaddr_map = previous + 1;
+  //superBlock->prev_vaddr_map = newPrevious;
+  superBlock->latest_vaddr_map = newBlock;
   writeNAND(buf, 0, 1);
   //we cheat here and write superBlock
   //to the same page 0 everytime
@@ -595,16 +603,9 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	struct inode ind;
 	initInode(&ind, mode, fileID, logID);
 
-	// if there is nothing in the partially used free list, use the complete list
-	page_addr logHeaderPage;
-	int erases;
-	if (state->lists.partialHead == 0) {
-	  logHeaderPage = state->lists.completeHead;
-	  erases = getEraseCount(logHeaderPage);
-	} else {
-	  logHeaderPage = state->lists.partialHead;
-	  erases = getEraseCount((logHeaderPage/BLOCKSIZE)*BLOCKSIZE);
-	}
+	//allocate a new block
+	int *erases;
+	page_addr logHeaderPage = getFreeBlock(&(state->lists), erases);
 
 	//create the logHeader of the log containing this file
 	struct logHeader logH;
@@ -620,13 +621,13 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//Putting logHeader in activeLog
 	//nextPage field in activeLog is supposed to be the one next to logheader
-	struct activeLog theLog;
-	initActiveLog(&theLog, logHeaderPage + 1, logH.first, logH);  
-	state->cache->openFileTable[logID] = (openFile) &theLog;
+	activeLog theLog = (activeLog) malloc(sizeof (struct activeLog));
+	initActiveLog(theLog, logHeaderPage, logH.first, logH);  
+	state->cache->openFileTable[logID] = (openFile) theLog;
 
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
-	initOpenFile(oFile, &theLog, &ind, fileID);
+	initOpenFile(oFile, theLog, &ind, fileID);
 	state->cache->openFileTable[fileID] = oFile;
 	
 	//create stub file (WITHOUT KEEPING TRACK OF FD)
@@ -669,36 +670,48 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
 	char *fullPath = makePath(path);
 	page_vaddr fileID = readStubFile(fullPath);
+	if (fileID == -1)
+	  return -1;
 	free(fullPath);
 
-	//plug in file id no into vaddr map; retrieve logHeader then inode
-	page_addr logHeaderAddr = state->vaddrMap->map[fileID];
-	char page[sizeof (struct fullPage)];
-	readNAND(page, logHeaderAddr);
-	logHeader logH = (logHeader) page;
-	struct inode ind = logH->content.file.fInode;
-
-	//locate the last written logHeader
-	page_vaddr logID = ind.i_log_no;
-	page_addr lastHeaderAddr = state->vaddrMap->map[logID];
-	
 	//verify access rights
 	
-	
-	//check if there is an existing openFile for the file
-	//if not, create new activeLog and openFile
+
+	/*check if there is an existing openFile for the file
+	 *if not, create new openFile
+	 */
 	openFile oFile = state->cache->openFileTable[fileID];
 	if (oFile == NULL) {
-	  struct activeLog log;
-	  initActiveLog(&log, lastHeaderAddr + 1, lastHeaderAddr/BLOCKSIZE, *logH);
-	  //next free page is after last written logHeader addr
+	  //plug in file id no into vaddr map; retrieve logHeader then inode
+	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+	  char page[sizeof (struct fullPage)];
+	  readNAND(page, logHeaderAddr);
+	  logHeader logH = (logHeader) page;
+	  struct inode ind = logH->content.file.fInode;
+
+	  //locate the last written logHeader
+	  page_vaddr logID = ind.i_log_no;
+	  page_addr lastHeaderAddr = state->vaddrMap->map[logID];
+
+	  //check if activeLog exists for log containing this file
+	  activeLog log = state->openFileTable[logID];
+	  if (log == NULL) {
+	    activeLog log = (activeLog) malloc(sizeof (struct activeLog));
+	    initActiveLog(log, lastHeaderAddr + 1, lastHeaderAddr/BLOCKSIZE, *logH);
+	    /*we need to handle nextPage for activeLog later.
+	     *lastHeaderAddr + 1 may not always be correct
+	     */
+	  }
+
+	  //make a new openFile
 	  oFile = (openFile) malloc(sizeof (struct openFile));
-	  initOpenFile(oFile, &log, &ind, fileID);
+	  initOpenFile(oFile, log, &ind, fileID);
 
 	  //update vaddrMap and openFileTable
 	  state->cache->openFileTable[fileID] = oFile;
-	  state->cache->openFileTable[logID] = (openFile) &log;
+	  state->cache->openFileTable[logID] = (openFile) log;
 	}
+	
 	oFile->currentOpens++;
 
 	fptr->oFile = oFile;
