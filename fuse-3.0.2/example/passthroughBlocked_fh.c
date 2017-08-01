@@ -56,18 +56,6 @@
 #include "vNANDlib.h"
 #include "helper.h"
 
-//struct holding flag and fd; used in Blocked version
-typedef struct blocked_file_info{
-  int flag;
-  int fd;
-} *blocked_file_info;
-
-//struct holding flag and openFile; used in Logging version
-typedef struct log_file_info{
-  int flag;
-  openFile oFile;
-} *log_file_info;
-
 static char *makePath(const char *path)
 {
   char *fullPath = (char*) malloc(strlen(path) + strlen(ROOT_PATH) + 1);
@@ -598,33 +586,40 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
 	page_vaddr fileID = getFreePtr(state->vaddrMap);
-	page_vaddr logID = getFreePtr(state->vaddrMap);
+	//page_vaddr logID = getFreePtr(state->vaddrMap);
 
 	struct inode ind;
-	initInode(&ind, mode, fileID, logID);
 
-	//allocate a new block
-	int *erases;
-	page_addr logHeaderPage = getFreeBlock(&(state->lists), erases);
+	//next free page where we write logHeader containing the inode
+	page_addr *logHeaderPage;
+	
+	//Get log for file
+	activeLog theLog = getLogForFile(state, fileID, ind, mode, logHeaderPage);
 
-	//create the logHeader of the log containing this file
-	struct logHeader logH;
-	initLogHeader(&logH, erases, logID,
-		      (block_addr) logHeaderPage/BLOCKSIZE, LTYPE_FILES);
+	/* //allocate a new block */
+	/* int *erases; */
+	/* page_addr logHeaderPage = getFreeBlock(&(state->lists), erases); */
 
-	/*we put fileCount = 1 and index of fileID = 0
-	 *because for now, there's only 1 file per log
-	 */
-	logH.content.file.fileCount = 1;
-	logH.content.file.fileId[0] = fileID;
-	logH.content.file.fInode = ind;
+	/* //create the logHeader of the log containing this file */
+	/* struct logHeader logH; */
+	/* initLogHeader(&logH, erases, logID, */
+	/* 	      (block_addr) logHeaderPage/BLOCKSIZE, LTYPE_FILES); */
 
-	//Putting logHeader in activeLog
-	//nextPage field in activeLog is supposed to be the one next to logheader
-	activeLog theLog = (activeLog) malloc(sizeof (struct activeLog));
-	initActiveLog(theLog, logHeaderPage, logH.first, logH);  
-	state->cache->openFileTable[logID] = (openFile) theLog;
+	/* /\*we put fileCount = 1 and index of fileID = 0 */
+	/*  *because for now, there's only 1 file per log */
+	/*  *\/ */
+	/* logH.content.file.fileCount = 1; */
+	/* logH.content.file.fileId[0] = fileID; */
+	/* logH.content.file.fInode = ind; */
 
+	/* //Putting logHeader in activeLog */
+	/* //nextPage field in activeLog is supposed to be the one next to logheader */
+	/* activeLog theLog = (activeLog) malloc(sizeof (struct activeLog)); */
+	/* initActiveLog(theLog, logHeaderPage, logH.first, logH);   */
+	/* state->cache->openFileTable[logID] = (openFile) theLog; */
+
+	
+  
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
 	initOpenFile(oFile, theLog, &ind, fileID);
@@ -647,15 +642,12 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	if ( res == -1)
 	  perror("FAIL TO WRITE STUB FILE");
 	close(stubfd);
-	
-	state->vaddrMap->map[fileID] = logHeaderPage;
-	state->vaddrMap->map[logID] = logHeaderPage;
 
 	//Write the logHeader to virtual NAND
 	char buf[sizeof (struct fullPage)];
 	memset(buf, 0, sizeof (struct fullPage));
-	memcpy(buf, &logH, sizeof (struct logHeader));
-	writeNAND(buf, logHeaderPage, 0);
+	memcpy(buf, &(theLog->log), sizeof (struct logHeader));
+	writeNAND(buf, *logHeaderPage, 0);
 	      
 	return 0;
 }
