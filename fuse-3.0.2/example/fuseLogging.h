@@ -7,6 +7,16 @@
  *
  **************************************************************/
 
+/*************************************************************
+ *
+ * struct holding flag and openFile; stored in fi->fh
+ *
+ **************************************************************/
+typedef struct log_file_info{
+  int flag;
+  openFile oFile;
+} *log_file_info;
+
 /***************************************************************
  *
  * Mapping from file id number to virtual addresses of logHeader
