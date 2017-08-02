@@ -96,6 +96,8 @@ struct inode {
 typedef struct logHeader {
   unsigned long erases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
+  int prevErases;
+  int firstErases;
   block_addr prev;      /* Address of previous block allocated to this log */
   block_addr first;     /* Address of first block allocated to this log */
   unsigned int active;  /* Total number of active pages holding file data */
@@ -124,8 +126,11 @@ typedef struct logHeader {
  *
  */
 typedef struct freeList {
+  int partialHeadErases;
   page_addr partialHead;
   page_addr partialTail;
+  
+  int partialTailErases;
   page_addr completeHead;
   page_addr completeTail;
 } *freeList;

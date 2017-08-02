@@ -119,8 +119,7 @@ static void xmp_destroy(void *private_data)
   //allocate a new block
   if ((previous + 2) % BLOCKSIZE == 0) {
     //readNAND(buf2, previous);
-    int *erases;
-    int newBlock = getFreeBlock(state->lists, erases);
+    int newBlock = getFreeBlock(state->lists);
     //writeNAND(buf2, newPrevious, 0);
 
     //put previous block into Completely used free list
@@ -593,32 +592,8 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	//next free page where we write logHeader containing the inode
 	page_addr *logHeaderPage;
 	
-	//Get log for file
+	//Get log for file; this also handles creating new inode & logHeader for file
 	activeLog theLog = getLogForFile(state, fileID, ind, mode, logHeaderPage);
-
-	/* //allocate a new block */
-	/* int *erases; */
-	/* page_addr logHeaderPage = getFreeBlock(&(state->lists), erases); */
-
-	/* //create the logHeader of the log containing this file */
-	/* struct logHeader logH; */
-	/* initLogHeader(&logH, erases, logID, */
-	/* 	      (block_addr) logHeaderPage/BLOCKSIZE, LTYPE_FILES); */
-
-	/* /\*we put fileCount = 1 and index of fileID = 0 */
-	/*  *because for now, there's only 1 file per log */
-	/*  *\/ */
-	/* logH.content.file.fileCount = 1; */
-	/* logH.content.file.fileId[0] = fileID; */
-	/* logH.content.file.fInode = ind; */
-
-	/* //Putting logHeader in activeLog */
-	/* //nextPage field in activeLog is supposed to be the one next to logheader */
-	/* activeLog theLog = (activeLog) malloc(sizeof (struct activeLog)); */
-	/* initActiveLog(theLog, logHeaderPage, logH.first, logH);   */
-	/* state->cache->openFileTable[logID] = (openFile) theLog; */
-
-	
   
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
