@@ -99,7 +99,6 @@ int eraseNAND(block_addr b)
   //lseek and read in the block's eraseCount
   struct block curBlock;
   int eraseCount;
-  //int res = read(fd, (&curBlock + (sizeof (struct block)) - sizeof(int)), sizeof(int));
   int res = read(fd, &eraseCount, sizeof(int));
   if (res == -1) {
     printf("CANNOT READ BLOCK'S eraseCount IN eraseNAND");
@@ -107,10 +106,9 @@ int eraseNAND(block_addr b)
   }
 
   //increment eraseCount; create and paste the empty block into offset
-  //int eraseCount = ++(curBlock.data.eraseCount);
   eraseCount++;
   memset(&curBlock, 0, (sizeof (struct fullPage))*BLOCKSIZE);
-  curBlock.contents[0].eraseCount = eraseCount;
+  //curBlock.contents[0].eraseCount = eraseCount;
   curBlock.data.nextPage = 0;
   curBlock.data.eraseCount = eraseCount;
 
