@@ -118,9 +118,7 @@ static void xmp_destroy(void *private_data)
   //if previous vaddrMap is in the 2nd last page of a block,
   //allocate a new block
   if ((previous + 2) % BLOCKSIZE == 0) {
-    //readNAND(buf2, previous);
-    int newBlock = getFreeBlock(state->lists);
-    //writeNAND(buf2, newPrevious, 0);
+    page_addr newBlock = getFreeBlock(state->lists);
 
     //put previous block into Completely used free list
     page_addr pageAddr = state->lists.completeTail;
@@ -585,7 +583,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
 	page_vaddr fileID = getFreePtr(state->vaddrMap);
-	//page_vaddr logID = getFreePtr(state->vaddrMap);
 
 	struct inode ind;
 
