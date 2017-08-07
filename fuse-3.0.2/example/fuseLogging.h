@@ -65,7 +65,13 @@ typedef struct openFile {
 
         //virtual addr of inode, ie. file ID number
         page_vaddr address;
-  
+
+        /*flag to signify whether the file has been modified
+          in xmp_write when writing to the file, must set this
+          flag to 1
+        */
+        int modified;
+
 } * openFile;
 
 

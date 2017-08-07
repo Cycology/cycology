@@ -322,92 +322,92 @@ static int xmp_unlink(const char *path)
 	int res;
 	char *fullPath = makePath(path);
 	
-	/* //we don't check for hard/sym link, for now */
-	/* //assume all hard links for now */
+	//we don't check for hard/sym link, for now
+	//assume all hard links for now
 
-	/* //check how many hard links the file has left */
-	/* //we can also access hard link info in inode */
-	/* struct stat st; */
-	/* res = stat(fullPath, &st); */
-	/* if (res == -1) */
-	/*   return -errno; */
+	//check how many hard links the file has left
+	//we can also access hard link info in inode
+	struct stat st;
+	res = stat(fullPath, &st);
+	if (res == -1)
+	  return -errno;
 
-	/* //more than 1 hard links, we simply unlink normally */
-	/* if(st.st_nlink > 1) { */
-	/*   res = unlink(fullPath); */
-	/*   free(fullPath); */
-	/*   if (res == -1) */
-	/*     return -errno; */
-	/*   return 0; */
-	/* } */
+	//more than 1 hard links, we simply unlink normally
+	if(st.st_nlink > 1) {
+	  res = unlink(fullPath);
+	  free(fullPath);
+	  if (res == -1)
+	    return -errno;
+	  return 0;
+	}
 
-	/* /\*Otherwise this is the last hard link to file. */
-	/*  *Check if the file is still open */
-	/*  *(openFile does not exist if file is not open) */
-	/*  *\/ */
+	/*Otherwise this is the last hard link to file.
+	 *Check if the file is still open
+	 *(openFile does not exist if file is not open)
+	 */
 
-	/* //retrieve CYCstate */
-        /* struct fuse_context *context = fuse_get_context(); */
-        /* CYCstate state = context->private_data; */
+	//retrieve CYCstate
+        struct fuse_context *context = fuse_get_context();
+        CYCstate state = context->private_data;
 	
-	/* //read stub file for fileID */
-	/* log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info)); */
-	/* page_vaddr fileID = readStubFile(fullPath); */
+	//read stub file for fileID
+	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
+	page_vaddr fileID = readStubFile(fullPath);
 
-	/* //check if there is any openFile */
-	/* openFile oFile = state->cache->openFileTable[fileID]; */
+	//check if there is any openFile
+	openFile oFile = state->cache->openFileTable[fileID];
 
-	/* //last link to file, no openFile */
-	/* if (oFile == NULL) { */
-	/*   //Go to logHeader of this file */
-	/*   page_addr logHeaderAddr = state->vaddrMap->map[fileID]; */
-	/*   char page[sizeof (struct fullPage)]; */
-	/*   readNAND(page, logHeaderAddr); */
-	/*   logHeader logH = page; */
+	//last link to file, no openFile
+	if (oFile == NULL) {
+	  //Go to logHeader of this file
+	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+	  char page[sizeof (struct fullPage)];
+	  readNAND(page, logHeaderAddr);
+	  logHeader logH = page;
 
-	/*   //Go to last written logHeader */
-	/*   page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId]; */
-	/*   char page2[sizeof (struct fullPage)]; */
-	/*   readNAND(page2, lastHeaderAddr); */
-	/*   logHeader lastLogH; */
-	/*   lastLogH = page2; */
+	  //Go to last written logHeader
+	  page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
+	  char page2[sizeof (struct fullPage)];
+	  readNAND(page2, lastHeaderAddr);
+	  logHeader lastLogH;
+	  lastLogH = page2;
 
-	/*   /\*remove fileID from log's ID list. */
-	/*    *Always remove from index 0 since for now, */
-	/*    *there's only 1 file per log */
-	/*    *\/ */
-	/*   lastLogH->content->fileCount--; */
-	/*   lastLogH->content->fileId[0] = 0; */
+	  /*remove fileID from log's ID list.
+	   *Always remove from index 0 since for now,
+	   *there's only 1 file per log
+	   */
+	  lastLogH->content->fileCount--;
+	  lastLogH->content->fileId[0] = 0;
 
-	/*   //if there's no more file in the log, recycle! */
-	/*   if (lastLogH->content->fileCount == 0) { */
-	/*     struct freeList freeList = state->lists; */
-	/*     if (lastLogH->total == 1) {  //only 1 block in this log */
+	  //if there's no more file in the log, recycle!
+	  if (lastLogH->content->fileCount == 0) {
+	    struct freeList freeList = state->lists;
+	    if (lastLogH->total == 1) {  //only 1 block in this log
 	      
-	/*       if (lastLogH->active <= BLOCKSIZE - 3) { */
-	/* 	if (freeList.partialTail == 0) { //pList is empty */
-	/* 	  freeList.partialHead = lastHeaderAddr + 1; */
+	      if (lastLogH->active <= BLOCKSIZE - 3) {
+		if (freeList.partialTail == 0) { //pList is empty
+		  freeList.partialHead = lastHeaderAddr + 1;
 		  
-	/* 	} else {                         //pList is not empty */
-	/* 	  //make current last block points to new last block */
-	/* 	  char buf[sizeof (struct fullPage)]; */
-	/* 	  readNAND(buf, freeList.partialTail); */
-	/* 	  fullPage fPage = (fullPage) buf; */
-	/* 	  fPage.nextLogBlock = lastHeaderAddr + 1; */
-	/* 	  writeNAND(buf, freeList.partialTail, 1); */
-	/* 	} */
-	/* 	//change tail pointer */
-	/* 	freeList.partialTail = lastHeaderAddr + 1;  */
+		} else {                         //pList is not empty
+		  //make current last block points to new last block
+		  char buf[sizeof (struct fullPage)];
+		  readNAND(buf, freeList.partialTail);
+		  fullPage fPage = (fullPage) buf;
+		  fPage.nextLogBlock = lastHeaderAddr + 1;
+		  writeNAND(buf, freeList.partialTail, 1);
+		}
+		//change tail pointer
+		freeList.partialTail = lastHeaderAddr + 1;
 		
-	/*       } else {  //put in cList */
-	/* 	if (freeList.completeTail == 0) { //cList is empty */
-	/* 	  //freeList.completeHead =  */
-	/* 	} */
-	/*       } */
+	      } else {  //put in cList
+		if (freeList.completeTail == 0) { //cList is empty
+		  //freeList.completeHead =
+		}
+	      }
 	      
-	/*     } */
-	/*   } */
-	/* }  */
+	    }
+	  }
+	}
 	
 	res = unlink(fullPath);
 	free(fullPath);
@@ -970,8 +970,10 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	    will be here, after we figure out what change in metadata
 	    can occur during read/write*/
 
-	  //For now, write the most current logHeader from cache to the NAND memory
-	  writeCurrLogHeader(releasedFile);
+	  //if the file has been modified
+	  //write the most current logHeader from cache to the NAND memory
+	  if (releasedFile->modified == 1)
+	    writeCurrLogHeader(releasedFile);
 	  
 	  //remove openFile from cache since it's not referenced anymore
 	  releasedFile = NULL;
