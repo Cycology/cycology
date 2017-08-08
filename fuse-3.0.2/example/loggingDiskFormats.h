@@ -96,10 +96,10 @@ struct inode {
 typedef struct logHeader {
   unsigned long erases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
-  int prevErases;
-  int firstErases;
   block_addr prev;      /* Address of previous block allocated to this log */
+  int prevErases;
   block_addr first;     /* Address of first block allocated to this log */
+  int firstErases;
   unsigned int active;  /* Total number of active pages holding file data */
   unsigned int total;   /* Total number of blocks */
   short logType;        /* Does this log hold, files, and extent, or meta-data */
@@ -130,7 +130,7 @@ typedef struct freeList {
   page_addr partialHead;
   page_addr partialTail;
   
-  int partialTailErases;
+  int completeHeadErases;
   page_addr completeHead;
   page_addr completeTail;
 } *freeList;
@@ -241,3 +241,12 @@ typedef struct fullPage {
 	char pageType;    /* one of the PTYPE constants define above */
 
 } *fullPage;
+
+/*
+ * This structure will hold a fullPage as well as its physical page address
+ */
+typedef struct writeablePage {
+  struct fullPage page;
+  page_addr address;
+  
+} *writeablePage

@@ -5,8 +5,7 @@ void initInode(struct inode *ind, mode_t mode,
 	       page_vaddr fileID, page_vaddr logID);
 
 void initLogHeader(struct logHeader *logH, unsigned long erases,
-		   page_vaddr logId, block_addr first,
-		   short logType);
+		   page_vaddr logId, short logType);
 
 void initActiveLog(struct activeLog *theLog, page_addr page,
 		   block_addr block, struct logHeader logH);
@@ -21,7 +20,8 @@ void getPageFields(page_addr pageAddr, int *eraseCount,
 
 int getFreePtr(addrMap map);
 
-int getFreeBlock(freeList lists, page_addr *freePage, int newFile);
+writeablePage getFreeBlock(freeList lists, page_addr *freePage, int newFile,
+			   logHeader logH, activeLog log);
 
 activeLog getLogForFile(CYCstate state, page_vaddr fileID, struct inode ind,
 			mode_t mode,page_addr *logHeaderPage);

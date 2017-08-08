@@ -118,7 +118,7 @@ static void xmp_destroy(void *private_data)
   //if previous vaddrMap is in the 2nd last page of a block,
   //allocate a new block
   if ((previous + 2) % BLOCKSIZE == 0) {
-    page_addr newBlock = getFreeBlock(state->lists);
+    //NEED CODE HERE TO ALLOCATE NEW BLOCK, HAS TO BE DIFFERENT FROM GETFREEBLOCK METHOD
 
     //put previous block into Completely used free list
     page_addr pageAddr = state->lists.completeTail;
@@ -584,13 +584,14 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         CYCstate state = context->private_data;
 	page_vaddr fileID = getFreePtr(state->vaddrMap);
 
-	struct inode ind;
-
 	//next free page where we write logHeader containing the inode
-	page_addr *logHeaderPage;
+	page_addr logHeaderPage;
 	
 	//Get log for file; this also handles creating new inode & logHeader for file
-	activeLog theLog = getLogForFile(state, fileID, ind, mode, logHeaderPage);
+	activeLog theLog = getLogForFile(state, fileID, ind, mode, &logHeaderPage);
+	//struct inode ind = theLog->log.content.file.fInode;
+	state->vaddrMap->map[fileID] = logHeaderPage;
+		  
   
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
@@ -619,7 +620,8 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	char buf[sizeof (struct fullPage)];
 	memset(buf, 0, sizeof (struct fullPage));
 	memcpy(buf, &(theLog->log), sizeof (struct logHeader));
-	writeNAND(buf, *logHeaderPage, 0);
+	// do the check for the first page here, erase count 
+	writeNAND(buf, logHeaderPage, 0); 
 	      
 	return 0;
 }
