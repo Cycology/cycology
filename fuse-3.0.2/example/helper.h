@@ -20,8 +20,7 @@ void getPageFields(page_addr pageAddr, int *eraseCount,
 
 int getFreePtr(addrMap map);
 
-writeablePage getFreeBlock(freeList lists, page_addr *freePage, int newFile,
-			   logHeader logH, activeLog log);
+int getFreeBlock(freeList lists, page_addr *freePage, int newFile);
 
 activeLog getLogForFile(CYCstate state, page_vaddr fileID, struct inode ind,
 			mode_t mode,page_addr *logHeaderPage);
