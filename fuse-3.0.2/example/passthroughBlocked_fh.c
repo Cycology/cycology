@@ -124,7 +124,7 @@ static void xmp_destroy(void *private_data)
     page_addr pageAddr = state->lists.completeTail;
     struct fullPage page;
     page.nextLogBlock = (previous/BLOCKSIZE)*BLOCKSIZE;
-    writeNAND((char *)page, pageAddr, 0);
+    writeNAND((char*)page, pageAddr, 0);
     state->lists.completeTail = previous + 1; 
   }
 
@@ -592,7 +592,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	//struct inode ind = theLog->log.content.file.fInode;
 	state->vaddrMap->map[fileID] = logHeaderPage;
 		  
-  
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
 	initOpenFile(oFile, theLog, &ind, fileID);
@@ -617,11 +616,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	close(stubfd);
 
 	//Write the logHeader to virtual NAND
-	char buf[sizeof (struct fullPage)];
-	memset(buf, 0, sizeof (struct fullPage));
-	memcpy(buf, &(theLog->log), sizeof (struct logHeader));
-	// do the check for the first page here, erase count 
-	writeNAND(buf, logHeaderPage, 0); 
+	writeablePage buf = getFreePage(&state->lists, theLog)
+	memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
+	writeNAND((char*)buf->page, buf->page.address, 0);
+	
 	      
 	return 0;
 }
@@ -975,7 +973,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	  //if the file has been modified
 	  //write the most current logHeader from cache to the NAND memory
 	  if (releasedFile->modified == 1)
-	    writeCurrLogHeader(releasedFile);
+	    writeCurrLogHeader(releasedFile, state->lists);
 	  
 	  //remove openFile from cache since it's not referenced anymore
 	  releasedFile = NULL;
