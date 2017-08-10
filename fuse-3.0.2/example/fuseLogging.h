@@ -7,16 +7,6 @@
  *
  **************************************************************/
 
-/*************************************************************
- *
- * struct holding flag and openFile; stored in fi->fh
- *
- **************************************************************/
-typedef struct log_file_info{
-  int flag;
-  openFile oFile;
-} *log_file_info;
-
 /***************************************************************
  *
  * Mapping from file id number to virtual addresses of logHeader
@@ -29,6 +19,15 @@ typedef struct addrMap {
         int freePtr;       /* Points to next avaible slot in map */
 	page_addr map[];  /* The mapping */
 } * addrMap;
+
+/*
+ * This structure will hold a fullPage as well as its physical page address
+ */
+typedef struct writeablePage {
+  struct fullPage page;
+  page_addr address;
+  
+} *writeablePage;
 
 /*************************************************************
  *
@@ -76,6 +75,15 @@ typedef struct openFile {
 
 } * openFile;
 
+/*************************************************************
+ *
+ * struct holding flag and openFile; stored in fi->fh
+ *
+ **************************************************************/
+typedef struct log_file_info{
+  int flag;
+  openFile oFile;
+} *log_file_info;
 
 /**************************************************************
  *

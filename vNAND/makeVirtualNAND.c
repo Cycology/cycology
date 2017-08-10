@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
 
   //create the big NAND file
   int fd;
-  char *filename = "/home/quan/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND";
+  char *filename = "/home/tiffany/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND";
   fd = open(filename, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING BIG FILE");

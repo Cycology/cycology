@@ -52,7 +52,7 @@ struct extentHeader {
 };
 
 
-struct inode {
+typedef struct inode {
 	mode_t		   i_mode;     /* See STAT command man page for
 						      bit functions  */
 
@@ -80,7 +80,7 @@ struct inode {
 
     /* address of first data pages for file */
     page_addr          directPage[DIRECT_PAGES];
-};
+} *inode;
 
 
 /* All the active blocks in the file system are organized into logs. A given log can
@@ -241,12 +241,3 @@ typedef struct fullPage {
 	char pageType;    /* one of the PTYPE constants define above */
 
 } *fullPage;
-
-/*
- * This structure will hold a fullPage as well as its physical page address
- */
-typedef struct writeablePage {
-  struct fullPage page;
-  page_addr address;
-  
-} *writeablePage

@@ -56,6 +56,16 @@
 #include "vNANDlib.h"
 #include "helper.h"
 
+/*
+ * BECAUSE WE DID NOT IMPLEMENT THE RIGHT FUNCTIONS YET
+ */
+
+int unimplemented(void)
+{
+  int * bad = NULL;
+  return * bad;
+}
+
 static char *makePath(const char *path)
 {
   char *fullPath = (char*) malloc(strlen(path) + strlen(ROOT_PATH) + 1);
@@ -103,45 +113,54 @@ static void *xmp_init(struct fuse_conn_info *conn,
 
 static void xmp_destroy(void *private_data)
 {
-  //retrieve CYCstate
-  CYCstate state = private_data;
+  /* //retrieve CYCstate */
+  /* CYCstate state = private_data; */
 
-  //read in superBlock
-  char buf[sizeof (struct fullPage)];
-  readNAND(buf, 0);
-  superPage superBlock = (superPage) buf;
+  /* //read in superBlock */
+  /* char buf[sizeof (struct fullPage)]; */
+  /* readNAND(buf, 0); */
+  /* superPage superBlock = (superPage) buf; */
 
-  /*write the updated vaddr map to NAND*/
-  char buf2[sizeof (struct fullPage)];
-  page_addr previous = superBlock->latest_vaddr_map;
+  /* /\*write the updated vaddr map to NAND*\/ */
+  /* char buf2[sizeof (struct fullPage)]; */
+  /* page_addr previous = superBlock->latest_vaddr_map; */
   
-  //if previous vaddrMap is in the 2nd last page of a block,
-  //allocate a new block
-  if ((previous + 2) % BLOCKSIZE == 0) {
-    //NEED CODE HERE TO ALLOCATE NEW BLOCK, HAS TO BE DIFFERENT FROM GETFREEBLOCK METHOD
+  /* //if previous vaddrMap is in the 2nd last page of a block, */
+  /* //allocate a new block */
+  /* if ((previous + 2) % BLOCKSIZE == 0) { */
+  /*   //NEED CODE HERE TO ALLOCATE NEW BLOCK, HAS TO BE DIFFERENT FROM GETFREEBLOCK METHOD */
 
-    //put previous block into Completely used free list
-    page_addr pageAddr = state->lists.completeTail;
-    struct fullPage page;
-    page.nextLogBlock = (previous/BLOCKSIZE)*BLOCKSIZE;
-    writeNAND((char*)page, pageAddr, 0);
-    state->lists.completeTail = previous + 1; 
-  }
+  /*   //put previous block into Completely used free list */
+  /*   page_addr pageAddr = state->lists.completeTail; */
+  /*   struct fullPage page; */
+  /*   page.nextLogBlock = (previous/BLOCKSIZE)*BLOCKSIZE; */
+  /*   writeNAND((char*)page, pageAddr, 0); */
+  /*   state->lists.completeTail = previous + 1;  */
+  /* } */
 
-  //write the most recent vaddrMap from CYCstate
-  readNAND(buf2, newBlock);    //next page to write vaddr map is right after the current one
-  memcpy(buf2, state->vaddrMap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr));
-  writeNAND(buf2, newBlock, 0);
+  /* //write the most recent vaddrMap from CYCstate */
+  /* readNAND(buf2, newBlock);    //next page to write vaddr map is right after the current one */
+  /* memcpy(buf2, state->vaddrMap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr)); */
+  /* writeNAND(buf2, newBlock, 0); */
   
-  /*save and update the superBlock*/
-  //superBlock->prev_vaddr_map = newPrevious;
-  superBlock->latest_vaddr_map = newBlock;
-  writeNAND(buf, 0, 1);
-  //we cheat here and write superBlock
-  //to the same page 0 everytime
+  /* /\*save and update the superBlock*\/ */
+  /* //superBlock->prev_vaddr_map = newPrevious; */
+  /* superBlock->latest_vaddr_map = newBlock; */
+  /* writeNAND(buf, 0, 1); */
+  /* //we cheat here and write superBlock */
+  /* //to the same page 0 everytime */
   
-  free(private_data);
-  stopNAND();
+  /* free(private_data); */
+  /* stopNAND(); */
+}
+
+/*
+ * REMEMBER TO WRITE THIS FUNCTION!
+ */
+static int xmp_fstat(openFile oFile, struct stat *stbuf)
+{
+  unimplemented();
+  return -1;
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,
@@ -152,7 +171,7 @@ static int xmp_getattr(const char *path, struct stat *stbuf,
 	(void) path;
 	
 	if(fi)
-	  res = fstat(((blocked_file_info) fi->fh)->fd, stbuf);
+	   res = xmp_fstat(((log_file_info) fi->fh)->oFile, stbuf);
 	else
 	  {
 	  	char *fullPath = makePath(path);
@@ -351,7 +370,6 @@ static int xmp_unlink(const char *path)
         CYCstate state = context->private_data;
 	
 	//read stub file for fileID
-	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
 	page_vaddr fileID = readStubFile(fullPath);
 
 	//check if there is any openFile
@@ -363,24 +381,24 @@ static int xmp_unlink(const char *path)
 	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
 	  char page[sizeof (struct fullPage)];
 	  readNAND(page, logHeaderAddr);
-	  logHeader logH = page;
+	  logHeader logH = (logHeader)page;
 
 	  //Go to last written logHeader
 	  page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
 	  char page2[sizeof (struct fullPage)];
 	  readNAND(page2, lastHeaderAddr);
 	  logHeader lastLogH;
-	  lastLogH = page2;
+	  lastLogH = (logHeader)page2;
 
 	  /*remove fileID from log's ID list.
 	   *Always remove from index 0 since for now,
 	   *there's only 1 file per log
 	   */
-	  lastLogH->content->fileCount--;
-	  lastLogH->content->fileId[0] = 0;
+	  lastLogH->content.file.fileCount--;
+	  lastLogH->content.file.fileId[0] = 0;
 
 	  //if there's no more file in the log, recycle!
-	  if (lastLogH->content->fileCount == 0) {
+	  if (lastLogH->content.file.fileCount == 0) {
 	    struct freeList freeList = state->lists;
 	    if (lastLogH->total == 1) {  //only 1 block in this log
 	      
@@ -393,7 +411,7 @@ static int xmp_unlink(const char *path)
 		  char buf[sizeof (struct fullPage)];
 		  readNAND(buf, freeList.partialTail);
 		  fullPage fPage = (fullPage) buf;
-		  fPage.nextLogBlock = lastHeaderAddr + 1;
+		  fPage->nextLogBlock = lastHeaderAddr + 1;
 		  writeNAND(buf, freeList.partialTail, 1);
 		}
 		//change tail pointer
@@ -495,15 +513,20 @@ static int xmp_link(const char *from, const char *to)
 	return 0;
 }
 
+
+
 static int xmp_chmod(const char *path, mode_t mode,
 		     struct fuse_file_info *fi)
 {
 	int res;
 
+	//IF THE FILE IS A DIRECTORY, WE JUST WANT TO PASS THE CMOD REQUEST TO THE FILE SYSTEM
+	//IF IT IS NOT A DIRECTORY, WE NEED TO OPEN A FILE 
 
-
+	unimplemented();
 	if(fi)
-		res = fchmod(((blocked_file_info) fi->fh)->fd, mode);
+	  res = 0; //fchmod(((blocked_file_info) fi->fh)->fd, mode);
+	 
 	else {
 	  	char *fullPath = makePath(path);
 		res = chmod(fullPath, mode);
@@ -521,8 +544,12 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid,
 {
 	int res;
 
+	//IF THE FILE IS A DIRECTORY, WE JUST WANT TO PASS THE CHOWN REQUEST TO THE FILE SYSTEM
+	//IF IT IS NOT A DIRECTORY, WE NEED TO OPEN A FILE 
+
+	unimplemented();
 	if (fi)
-		res = fchown(((blocked_file_info) fi->fh)->fd, uid, gid);
+	  res = 0; //fchown(((blocked_file_info) fi->fh)->fd, uid, gid);
 	else {
 	        char *fullPath = makePath(path);
 	        res = lchown(fullPath, uid, gid);
@@ -533,15 +560,19 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid,
 	return 0;
 }
 
+/*
+ * NEED TO WRITE THIS FUNCTION!!!
+ */
 static int xmp_truncate(const char *path, off_t size,
 			 struct fuse_file_info *fi)
 {
 	int res;
 
+	unimplemented();
 	if(fi)
-		res = ftruncate(((blocked_file_info) fi->fh)->fd, size);
+	  res = 0; //ftruncate(((blocked_file_info) fi->fh)->fd, size);
 	else {
-	  	char *fullPath = makePath(path);
+	  char *fullPath = makePath(path);
 		res = truncate(path, size);
 		free(fullPath);
 	} if (res == -1)
@@ -556,9 +587,12 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 {
 	int res;
 
+	//IF THE FILE IS A DIRECTORY, WE JUST WANT TO PASS THE REQUEST TO THE FILE SYSTEM
+	//IF IT IS NOT A DIRECTORY, WE NEED TO OPEN A FILE 
+	unimplemented();
 	/* don't use utime/utimes since they follow symlinks */
 	if (fi)
-		res = futimens(((blocked_file_info) fi->fh)->fd, ts);
+	  res = 0; //futimens(((blocked_file_info) fi->fh)->fd, ts);
 	else {
 	        char *fullPath = makePath(path);
 	        res = utimensat(0, fullPath, ts, AT_SYMLINK_NOFOLLOW);
@@ -579,6 +613,7 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
  ***********************************************************/
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+  printf("WE GOT TO XMP_CREATE \n");
         //retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
@@ -588,13 +623,13 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	page_addr logHeaderPage;
 	
 	//Get log for file; this also handles creating new inode & logHeader for file
-	activeLog theLog = getLogForFile(state, fileID, ind, mode, &logHeaderPage);
+	activeLog theLog = getLogForFile(state, fileID, &logHeaderPage);
 	//struct inode ind = theLog->log.content.file.fInode;
 	state->vaddrMap->map[fileID] = logHeaderPage;
 		  
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
-	initOpenFile(oFile, theLog, &ind, fileID);
+	initOpenFile(oFile, theLog, &(theLog->log.content.file.fInode), fileID);
 	state->cache->openFileTable[fileID] = oFile;
 	
 	//create stub file (WITHOUT KEEPING TRACK OF FD)
@@ -616,9 +651,9 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	close(stubfd);
 
 	//Write the logHeader to virtual NAND
-	writeablePage buf = getFreePage(&state->lists, theLog)
+	writeablePage buf = getFreePage(&(state->lists),theLog);
 	memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
-	writeNAND((char*)buf->page, buf->page.address, 0);
+	writeNAND((char*)&(buf->page), buf->address, 0);
 	
 	      
 	return 0;
@@ -658,13 +693,10 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	  page_addr lastHeaderAddr = state->vaddrMap->map[logID];
 
 	  //check if activeLog exists for log containing this file
-	  activeLog log = state->openFileTable[logID];
+	  activeLog log = (activeLog)state->cache->openFileTable[logID];
 	  if (log == NULL) {
 	    activeLog log = (activeLog) malloc(sizeof (struct activeLog));
-	    initActiveLog(log, lastHeaderAddr + 1, lastHeaderAddr/BLOCKSIZE, *logH);
-	    /*we need to handle nextPage for activeLog later.
-	     *lastHeaderAddr + 1 may not always be correct
-	     */
+	    initActiveLog(log, lastHeaderAddr + 1);
 	  }
 
 	  //make a new openFile
@@ -688,6 +720,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
+        unimplemented();
         (void) path;
 
 	if (path != NULL) {
@@ -724,7 +757,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in 1st page (containing file prefix)
 	//We use a tempBuf since there are cases to check here
 	char tempBuf[PAGESIZE];
-	bytesRead = pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
+	bytesRead = 0; // pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
 	if (bytesRead == PAGESIZE || bytesRead >= size) {
 	  if (size <= PAGESIZE - offset) {                      //if we only have to read this page
 	    memcpy(buf, tempBuf + offset, size);
@@ -743,7 +776,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in pages in-between
 	while (size >= PAGESIZE) {
 	  pageNo++;
-	  bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, PAGESIZE, pageNo*PAGESIZE);
+	  bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, PAGESIZE, pageNo*PAGESIZE);
 	  if (bytesRead == PAGESIZE) {
 	    res += PAGESIZE;
 	    buf += PAGESIZE;
@@ -757,7 +790,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in last page
 	if (size > 0) {
 	  pageNo++;
-	  bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, size, pageNo*PAGESIZE);
+	  bytesRead = 0;// pread(((blocked_file_info) fi->fh)->fd, buf, size, pageNo*PAGESIZE);
 	  if (bytesRead == size) {
 	    return res + size;
 	  } else {
@@ -773,6 +806,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
 			size_t size, off_t offset, struct fuse_file_info *fi)
 {
+  unimplemented();
 	struct fuse_bufvec *src;
 
 	fprintf(stderr, "IN xmp_read_buf\n");
@@ -786,7 +820,7 @@ static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
 	*src = FUSE_BUFVEC_INIT(size);
 
 	src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-	src->buf[0].fd = ((blocked_file_info) fi->fh)->fd;
+	src->buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
 	src->buf[0].pos = offset;
 
 	*bufp = src;
@@ -813,7 +847,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
       toRead = PAGESIZE;
 
     //store page in buffer
-    int bytesRead = pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
+    int bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
     if (bytesRead != toRead) {
       perror("ERROR IN PREPARING BUFFER FOR xmp_write");
       return NULL;
@@ -828,6 +862,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
+  unimplemented();
 	(void) path;
 
 	//verify if the file has read permission
@@ -843,7 +878,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	struct stat stBuf;        //space for file info
 	
 	//save file info into stBuf
-	int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
+	int statRes = 0; // fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
 	if (statRes == -1)
 	  return -errno;
 	fprintf(stderr, "STAT RESULT IN xmp_write:\n %d\n", statRes);
@@ -882,7 +917,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
 	  //Now we can write the page
 	  fprintf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
-	  int written = pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
+	  int written = 0; // pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
 	  if (written != toWrite) {
 	    fprintf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
 	    return -errno;
@@ -905,7 +940,7 @@ static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
 	(void) path;
 
 	dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-	dst.buf[0].fd = ((blocked_file_info) fi->fh)->fd;
+	dst.buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
 	dst.buf[0].pos = offset;
 
 	return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
@@ -940,6 +975,8 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 
 static int xmp_flush(const char *path, struct fuse_file_info *fi)
 {
+  unimplemented();
+  
 	int res;
 
 	(void) path;
@@ -948,7 +985,7 @@ static int xmp_flush(const char *path, struct fuse_file_info *fi)
 	   called multiple times for an open file, this must not really
 	   close the file.  This is important if used on a network
 	   filesystem like NFS which flush the data/metadata on close() */
-	res = close(dup(((blocked_file_info) fi->fh)->fd));
+	res = 0; //close(dup(((blocked_file_info) fi->fh)->fd));
 	if (res == -1)
 		return -errno;
 
@@ -973,7 +1010,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	  //if the file has been modified
 	  //write the most current logHeader from cache to the NAND memory
 	  if (releasedFile->modified == 1)
-	    writeCurrLogHeader(releasedFile, state->lists);
+	    writeCurrLogHeader(releasedFile, &(state->lists));
 	  
 	  //remove openFile from cache since it's not referenced anymore
 	  releasedFile = NULL;
@@ -987,6 +1024,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 static int xmp_fsync(const char *path, int isdatasync,
 		     struct fuse_file_info *fi)
 {
+  unimplemented();
 	int res;
 	(void) path;
 
@@ -994,10 +1032,10 @@ static int xmp_fsync(const char *path, int isdatasync,
 	(void) isdatasync;
 #else
 	if (isdatasync)
-		res = fdatasync(((blocked_file_info) fi->fh)->fd);
+	  res = 0; //fdatasync(((blocked_file_info) fi->fh)->fd);
 	else
 #endif
-		res = fsync(((blocked_file_info) fi->fh)->fd);
+	  res = 0; // fsync(((blocked_file_info) fi->fh)->fd);
 	if (res == -1)
 		return -errno;
 
@@ -1008,12 +1046,13 @@ static int xmp_fsync(const char *path, int isdatasync,
 static int xmp_fallocate(const char *path, int mode,
 			off_t offset, off_t length, struct fuse_file_info *fi)
 {
-	(void) path;
-
-	if (mode)
-		return -EOPNOTSUPP;
-
-	return -posix_fallocate(((blocked_file_info) fi->fh)->fd, offset, length);
+  unimplemented();
+  (void) path;
+  
+  if (mode)
+    return -EOPNOTSUPP;
+  
+  return 0; //-posix_fallocate(((blocked_file_info) fi->fh)->fd, offset, length);
 }
 #endif
 
@@ -1079,10 +1118,11 @@ static int xmp_lock(const char *path, struct fuse_file_info *fi, int cmd,
 
 static int xmp_flock(const char *path, struct fuse_file_info *fi, int op)
 {
+  unimplemented();
 	int res;
 	(void) path;
 
-	res = flock(((blocked_file_info) fi->fh)->fd, op);
+	res = 0; // flock(((blocked_file_info) fi->fh)->fd, op);
 	if (res == -1)
 		return -errno;
 
