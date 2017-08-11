@@ -666,12 +666,12 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
         CYCstate state = context->private_data;
 
 	//open stub file
-	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
 	char *fullPath = makePath(path);
 	page_vaddr fileID = readStubFile(fullPath);
+	free(fullPath);	
 	if (fileID == -1)
 	  return -1;
-	free(fullPath);
+	log_file_info fptr = (log_file_info) malloc(sizeof (struct log_file_info));
 
 	//verify access rights
 	
@@ -683,29 +683,42 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	if (oFile == NULL) {
 	  //plug in file id no into vaddr map; retrieve logHeader then inode
 	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
-	  char page[sizeof (struct fullPage)];
-	  readNAND(page, logHeaderAddr);
-	  logHeader logH = (logHeader) page;
-	  struct inode ind = logH->content.file.fInode;
-
-	  //locate the last written logHeader
+	  fullPage page;
+	  readNAND((char*)page, logHeaderAddr);
+	  logHeader logH = (logHeader) (page->contents);
+	  inode ind = &(logH->content.file.fInode);
 	  page_vaddr logID = ind.i_log_no;
-	  page_addr lastHeaderAddr = state->vaddrMap->map[logID];
+		    
+
 
 	  //check if activeLog exists for log containing this file
 	  activeLog log = (activeLog)state->cache->openFileTable[logID];
 	  if (log == NULL) {
+
+	    //locate address of last written logHeader
+	    page_addr lastHeaderAddr = state->vaddrMap->map[logID];
+	    
 	    activeLog log = (activeLog) malloc(sizeof (struct activeLog));
 	    initActiveLog(log, lastHeaderAddr + 1);
-	  }
+	    state->cache->openFileTable[logID] = (openFile) log;	  
 
+	    //read in lastHeaderAddr
+	    if(lastHeaderAddr != logHeaderAddr) {
+	      fullPage page2;
+	      readNAND((char*)page2,lastHeaderAddr);
+	      logHeader logH2 = (logHeader)(page2->contents); //not sure what to read in if ind is already gotten
+	    }
+
+	    //increment activelog reference count
+	    log->fileCount++;
+	  }	  
+	
 	  //make a new openFile
 	  oFile = (openFile) malloc(sizeof (struct openFile));
 	  initOpenFile(oFile, log, &ind, fileID);
 
-	  //update vaddrMap and openFileTable
+	  //update openFileTable
 	  state->cache->openFileTable[fileID] = oFile;
-	  state->cache->openFileTable[logID] = (openFile) log;
 	}
 	
 	oFile->currentOpens++;
