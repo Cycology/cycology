@@ -3,8 +3,8 @@
 #define BLOCKSIZE 16
 
 //Define root path
-#define ROOT_PATH ((char *)"/home/tiffany/Documents/cycology/fuse-3.0.2/example/rootdir/root")
-#define STORE_PATH ((char *)"/home/tiffany/Documents/cycology/fuse-3.0.2/example/rootdir/virtualNAND")
+#define ROOT_PATH ((char *)"/home/parallels/Documents/fuse-3.0.2/example/rootdir/root")
+#define STORE_PATH ((char *)"/home/parallels/Documents/fuse-3.0.2/example/rootdir/virtualNAND")
 
 /****************************************************************
  *

@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  char *filename = "/home/tiffany/Documents/cycology/fuse-3.0.2/example/mntdir/createdFile";
+  char *filename = "/home/parallels/Documents/fuse-3.0.2/example/mntdir/createdFile";
   int fd = open(filename, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING FILE");

@@ -182,15 +182,20 @@ typedef struct superPage {
 
 #define PAGEDATASIZE 1024
 
-#define PTYPE_DATA 1               /* Contains file data */
-#define PTYPE_INODE 2              /* Contains an inode (and associated Lnode) */
-#define PTYPE_INDIRECT 3           /* Contains a single indirect page */
-#define PTYPE_DOUBIND_PRIMARY 4    /* Contains a file's first double-ind page */
-#define PTYPE_TRIPIND 5            /* Contains a file's only triple indirect page */
-#define PTYPE_DOUBIND_EXTENT 6     /* Contains a double-ind page describing an
-				      separate extent pointed to by a file's
-				      triple indirect page.
-				   */
+#define PTYPE_ERASED 0             /* Unwritten */
+#define PTYPE_SUPER 1              /* contains copy of super block */
+#define PTYPE_DATA 2               /* Contains file data */
+#define PTYPE_INODE 3              /* Contains an inode (and associated Lnode) */
+#define PTYPE_ADDRMAP 4            /* Part of virtual address map */
+#define PTYPE_NEXTLINK 5           /* Written to hold link in a free list */
+
+
+// #define PTYPE_INDIRECT 3           /* Contains a single indirect page */
+// #define PTYPE_DOUBIND_PRIMARY 4    /* Contains a file's first double-ind page */
+// #define PTYPE_TRIPIND 5            /* Contains a file's only triple indirect page */
+// #define PTYPE_DOUBIND_EXTENT 6     /* Contains a double-ind page describing a
+//				      separate extent pointed to by a file's
+//				      triple indirect page.				   */
 
 typedef struct fullPage {
 	char contents[PAGEDATASIZE];

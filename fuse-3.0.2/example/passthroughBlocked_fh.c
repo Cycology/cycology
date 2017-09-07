@@ -68,7 +68,8 @@ int unimplemented(void)
 
 static char *makePath(const char *path)
 {
-  char *fullPath = (char*) malloc(strlen(path) + strlen(ROOT_PATH) + 1);
+  int newLen = strlen(path) + strlen(ROOT_PATH) + 1;
+  char *fullPath = (char*) malloc(newLen);
   strcpy(fullPath, ROOT_PATH);
   strcat(fullPath, path);
   return fullPath;
@@ -113,6 +114,38 @@ static void *xmp_init(struct fuse_conn_info *conn,
 
 static void xmp_destroy(void *private_data)
 {
+
+  // This is a temporary version of xmp_destroy which simply write the superblock and
+  // the virtual address map over the previous copy. This would not work in a real
+  // system based on NAND. So, at some point, we need to implement a more realistic
+  // version that writes these structures to new locations.
+
+  // In addition, since at this point we are only writing initial inodes when we create
+  // empty files, we don't have to worry about flushing dirty/cached meta-data to the
+  // NAND. More work for later!
+  
+  
+  struct fuse_context *context = fuse_get_context();
+  CYCstate state = context->private_data;
+
+  struct fullPage page;
+
+  readNAND( (char *) &page, 0 );
+
+  superPage superBlock = (superPage) &page.contents;
+
+  superBlock->freeLists = state->lists;
+
+  writeNAND( (char *) &page, 0, 1);
+  
+  page_addr mapPage = superBlock->latest_vaddr_map;
+
+  int mapSize = sizeof( struct addrMap) + state->vaddrMap->size*sizeof(page_addr);
+  memcpy( &page.contents, state->vaddrMap, mapSize );
+
+  writeNAND( (char *) &page, mapPage, 1);
+  
+
   /* //retrieve CYCstate */
   /* CYCstate state = private_data; */
 
@@ -159,8 +192,23 @@ static void xmp_destroy(void *private_data)
  */
 static int xmp_fstat(openFile oFile, struct stat *stbuf)
 {
-  unimplemented();
-  return -1;
+  //  stbuf->st_dev = 0;
+  stbuf->st_ino = oFile->address;
+  stbuf->st_mode = oFile->inode.i_mode;
+  stbuf->st_nlink = oFile->inode.i_links_count;
+  stbuf->st_uid = oFile->inode.i_uid;
+  stbuf->st_gid = oFile->inode.i_gid;
+  stbuf->st_rdev = 0;  // irrelevant since no special files
+  stbuf->st_size = oFile->inode.i_size;
+
+  stbuf->st_blksize = PAGESIZE;
+  stbuf->st_blocks = oFile->inode.i_pages * (stbuf->st_blksize / 512 );
+
+  stbuf->st_atim = oFile->inode.i_atime;
+  stbuf->st_mtim = oFile->inode.i_mtime;
+  stbuf->st_ctim = oFile->inode.i_ctime;
+  
+  return 0;
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf,
@@ -613,7 +661,7 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
  ***********************************************************/
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-  printf("WE GOT TO XMP_CREATE \n");
+  printf("WE GOT TO XMP_CREATE with mode %o \n", mode);
         //retrieve CYCstate
         struct fuse_context *context = fuse_get_context();
         CYCstate state = context->private_data;
@@ -623,12 +671,12 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	page_addr logHeaderPage;
 	
 	//Get log for file; this also handles creating new inode & logHeader for file
-	activeLog theLog = getLogForFile(state, fileID, &logHeaderPage);
-	//struct inode ind = theLog->log.content.file.fInode;
+	activeLog theLog = getLogForFile(state, fileID, &logHeaderPage, mode);
 	state->vaddrMap->map[fileID] = logHeaderPage;
 		  
 	//Put activeLog in openFile and store it in cache
 	openFile oFile = (openFile) malloc(sizeof (struct openFile));
+	(theLog->log.content.file.fInode.i_links_count)++;
 	initOpenFile(oFile, theLog, &(theLog->log.content.file.fInode), fileID);
 	state->cache->openFileTable[fileID] = oFile;
 	
@@ -636,10 +684,14 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         char *fullPath = makePath(path);
 	log_file_info fptr;
 	fptr = (log_file_info) malloc(sizeof (struct log_file_info));
-	int stubfd = open(fullPath, O_RDWR | O_CREAT, mode);
+	int stubfd = open(fullPath, O_RDWR | O_CREAT, S_IRWXU + S_IRGRP + S_IROTH);
+	printf("About to open stub file %s\n", fullPath );
 	free(fullPath);
-	if (stubfd == -1)
+	if (stubfd == -1) {
+	  perror("ERROR: failed to open stub file --- " );
 		return -errno;
+	}
+	printf("stub file opened as %d\n", stubfd );
 	fptr->flag = fi->flags;
 	fptr->oFile = oFile;
 	fi->fh = (uint64_t) fptr;
@@ -652,7 +704,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 	//Write the logHeader to virtual NAND
 	writeablePage buf = getFreePage(&(state->lists),theLog);
+	
 	memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
+	buf->page.pageType = PTYPE_INODE;
+
 	writeNAND((char*)&(buf->page), buf->address, 0);
 	
 	      
@@ -687,7 +742,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	  readNAND((char*)page, logHeaderAddr);
 	  logHeader logH = (logHeader) (page->contents);
 	  inode ind = &(logH->content.file.fInode);
-	  page_vaddr logID = ind.i_log_no;
+	  page_vaddr logID = ind->i_log_no;
 		    
 
 
@@ -988,7 +1043,10 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 
 static int xmp_flush(const char *path, struct fuse_file_info *fi)
 {
-  unimplemented();
+  /////////////////////////////////////////////////////////
+  //  THIS FUNCTION IS NOT IMPLEMENTED. AT THIS POINT, IT
+  //  DOES NOTHING
+  /////////////////////////////////////////////////////////
   
 	int res;
 
