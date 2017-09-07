@@ -20,7 +20,7 @@ int getFreePtr(addrMap map);
 
 int getFreeBlock(freeList lists, page_addr *freePage, int newFile);
 
-activeLog getLogForFile(CYCstate state, page_vaddr fileID,page_addr *logHeaderPage);
+activeLog getLogForFile(CYCstate state, page_vaddr fileID,page_addr *logHeaderPage, mode_t mode);
 
 page_vaddr readStubFile(char *fullPath);
 

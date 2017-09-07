@@ -89,7 +89,7 @@ void stopNAND(void)
 int eraseNAND(block_addr b)
 {
   int offset = sizeof (struct nandFeatures)
-    + (b+1)*(sizeof (struct block)) - sizeof(int);
+    + (b+1)*(sizeof (struct block) - sizeof (int));
   if (offset >= features.memSize) {
     printf("OFFSET OF eraseCount OUTSIDE OF BIG FILE");
     return -1;
