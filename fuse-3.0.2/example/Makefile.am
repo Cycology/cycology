@@ -5,7 +5,8 @@ noinst_HEADERS = ioctl.h
 passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
-noinst_PROGRAMS = makefs makeVirtualNAND passthroughBlocked_fh passthrough passthrough_fh null hello hello_ll \
+showNAND_SOURCES = showNAND.c vNANDlib.c
+noinst_PROGRAMS = makefs makeVirtualNAND showNAND passthroughBlocked_fh passthrough passthrough_fh null hello hello_ll \
 		  ioctl ioctl_client poll poll_client \
 		  passthrough_ll notify_inval_inode \
 		  notify_store_retrieve notify_inval_entry \
@@ -13,6 +14,9 @@ noinst_PROGRAMS = makefs makeVirtualNAND passthroughBlocked_fh passthrough passt
 
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la @passthrough_fh_libs@
+
+passthroughBlocked_fh_CPPFLAGS = -O0
+passthroughBlocked_fh_LDFLAGS = -O0
 
 ioctl_client_CPPFLAGS =
 ioctl_client_LDFLAGS =

@@ -1,0 +1,4 @@
+rm rootdir/virtualNAND
+rm -f rootdir/root/*
+./makeVirtualNAND 8
+./makefs

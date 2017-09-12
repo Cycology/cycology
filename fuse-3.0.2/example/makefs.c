@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
   page.eraseCount = -1;
   page.pageType = PTYPE_SUPER;
 
-  writeNAND( (char *) &page, 0, 0);
+  writeNAND( &page, 0, 0);
 
   //initialize vaddr map
   memset( &page, 0, sizeof (struct fullPage));
@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
   page.pageType = PTYPE_ADDRMAP;
   
   //write vaddr into block 1
-  writeNAND( (char *)&page, BLOCKSIZE, 0);
+  writeNAND( &page, BLOCKSIZE, 0);
 
   //linking all blocks from block 2 to last block
   memset( &page, 0, sizeof (struct fullPage));
@@ -54,7 +54,7 @@ int main (int argc, char *argv[])
   
   for (int i = 2; i < features.numBlocks - 1; i++) {
     page.nextLogBlock = (i+1)*BLOCKSIZE;
-    writeNAND( (char *) &page, (i+1)*BLOCKSIZE - 1, 1);
+    writeNAND( &page, (i+1)*BLOCKSIZE - 1, 1);
     //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
   }
   
