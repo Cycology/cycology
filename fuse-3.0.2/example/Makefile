@@ -91,12 +91,13 @@ build_triplet = x86_64-unknown-linux-gnu
 host_triplet = x86_64-unknown-linux-gnu
 target_triplet = x86_64-unknown-linux-gnu
 noinst_PROGRAMS = makefs$(EXEEXT) makeVirtualNAND$(EXEEXT) \
-	passthroughBlocked_fh$(EXEEXT) passthrough$(EXEEXT) \
-	passthrough_fh$(EXEEXT) null$(EXEEXT) hello$(EXEEXT) \
-	hello_ll$(EXEEXT) ioctl$(EXEEXT) ioctl_client$(EXEEXT) \
-	poll$(EXEEXT) poll_client$(EXEEXT) passthrough_ll$(EXEEXT) \
-	notify_inval_inode$(EXEEXT) notify_store_retrieve$(EXEEXT) \
-	notify_inval_entry$(EXEEXT) cuse$(EXEEXT) cuse_client$(EXEEXT)
+	showNAND$(EXEEXT) passthroughBlocked_fh$(EXEEXT) \
+	passthrough$(EXEEXT) passthrough_fh$(EXEEXT) null$(EXEEXT) \
+	hello$(EXEEXT) hello_ll$(EXEEXT) ioctl$(EXEEXT) \
+	ioctl_client$(EXEEXT) poll$(EXEEXT) poll_client$(EXEEXT) \
+	passthrough_ll$(EXEEXT) notify_inval_inode$(EXEEXT) \
+	notify_store_retrieve$(EXEEXT) notify_inval_entry$(EXEEXT) \
+	cuse$(EXEEXT) cuse_client$(EXEEXT)
 subdir = example
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -171,11 +172,17 @@ passthrough_SOURCES = passthrough.c
 passthrough_OBJECTS = passthrough.$(OBJEXT)
 passthrough_LDADD = $(LDADD)
 passthrough_DEPENDENCIES = ../lib/libfuse3.la
-am_passthroughBlocked_fh_OBJECTS = passthroughBlocked_fh.$(OBJEXT) \
-	helper.$(OBJEXT) vNANDlib.$(OBJEXT)
+am_passthroughBlocked_fh_OBJECTS =  \
+	passthroughBlocked_fh-passthroughBlocked_fh.$(OBJEXT) \
+	passthroughBlocked_fh-helper.$(OBJEXT) \
+	passthroughBlocked_fh-vNANDlib.$(OBJEXT)
 passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
+passthroughBlocked_fh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(passthroughBlocked_fh_LDFLAGS) \
+	$(LDFLAGS) -o $@
 passthrough_fh_SOURCES = passthrough_fh.c
 passthrough_fh_OBJECTS = passthrough_fh.$(OBJEXT)
 passthrough_fh_DEPENDENCIES = ../lib/libfuse3.la
@@ -193,6 +200,10 @@ poll_client_DEPENDENCIES =
 poll_client_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(poll_client_LDFLAGS) $(LDFLAGS) -o $@
+am_showNAND_OBJECTS = showNAND.$(OBJEXT) vNANDlib.$(OBJEXT)
+showNAND_OBJECTS = $(am_showNAND_OBJECTS)
+showNAND_LDADD = $(LDADD)
+showNAND_DEPENDENCIES = ../lib/libfuse3.la
 AM_V_P = $(am__v_P_$(V))
 am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))
 am__v_P_0 = false
@@ -232,13 +243,13 @@ SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
 	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
-	passthrough_ll.c poll.c poll_client.c
+	passthrough_ll.c poll.c poll_client.c $(showNAND_SOURCES)
 DIST_SOURCES = cuse.c cuse_client.c hello.c hello_ll.c ioctl.c \
 	ioctl_client.c $(makeVirtualNAND_SOURCES) $(makefs_SOURCES) \
 	notify_inval_entry.c notify_inval_inode.c \
 	notify_store_retrieve.c null.c passthrough.c \
 	$(passthroughBlocked_fh_SOURCES) passthrough_fh.c \
-	passthrough_ll.c poll.c poll_client.c
+	passthrough_ll.c poll.c poll_client.c $(showNAND_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -266,13 +277,13 @@ ETAGS = etags
 CTAGS = ctags
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp compile
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/parallels/Documents/fuse-3.0.2/missing aclocal-1.15
+ACLOCAL = ${SHELL} /home/parallels/cycology/fuse-3.0.2/missing aclocal-1.15
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 0
 AR = ar
-AUTOCONF = ${SHELL} /home/parallels/Documents/fuse-3.0.2/missing autoconf
-AUTOHEADER = ${SHELL} /home/parallels/Documents/fuse-3.0.2/missing autoheader
-AUTOMAKE = ${SHELL} /home/parallels/Documents/fuse-3.0.2/missing automake-1.15
+AUTOCONF = ${SHELL} /home/parallels/cycology/fuse-3.0.2/missing autoconf
+AUTOHEADER = ${SHELL} /home/parallels/cycology/fuse-3.0.2/missing autoheader
+AUTOMAKE = ${SHELL} /home/parallels/cycology/fuse-3.0.2/missing automake-1.15
 AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -308,7 +319,7 @@ LIPO =
 LN_S = ln -s
 LTLIBICONV = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/parallels/Documents/fuse-3.0.2/missing makeinfo
+MAKEINFO = ${SHELL} /home/parallels/cycology/fuse-3.0.2/missing makeinfo
 MANIFEST_TOOL = :
 MKDIR_P = /bin/mkdir -p
 MOUNT_FUSE_PATH = ${sbindir}
@@ -333,10 +344,10 @@ SHELL = /bin/bash
 STRIP = strip
 UDEV_RULES_PATH = ${libdir}/udev/rules.d
 VERSION = 3.0.2
-abs_builddir = /home/parallels/Documents/fuse-3.0.2/example
-abs_srcdir = /home/parallels/Documents/fuse-3.0.2/example
-abs_top_builddir = /home/parallels/Documents/fuse-3.0.2
-abs_top_srcdir = /home/parallels/Documents/fuse-3.0.2
+abs_builddir = /home/parallels/cycology/fuse-3.0.2/example
+abs_srcdir = /home/parallels/cycology/fuse-3.0.2/example
+abs_top_builddir = /home/parallels/cycology/fuse-3.0.2
+abs_top_srcdir = /home/parallels/cycology/fuse-3.0.2
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
@@ -365,7 +376,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/parallels/Documents/fuse-3.0.2/install-sh
+install_sh = ${SHELL} /home/parallels/cycology/fuse-3.0.2/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 libfuse_libs = -ldl  
@@ -399,8 +410,11 @@ noinst_HEADERS = ioctl.h
 passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
+showNAND_SOURCES = showNAND.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la 
+passthroughBlocked_fh_CPPFLAGS = -O0
+passthroughBlocked_fh_LDFLAGS = -O0
 ioctl_client_CPPFLAGS = 
 ioctl_client_LDFLAGS = 
 ioctl_client_LDADD = 
@@ -505,7 +519,7 @@ passthrough$(EXEEXT): $(passthrough_OBJECTS) $(passthrough_DEPENDENCIES) $(EXTRA
 
 passthroughBlocked_fh$(EXEEXT): $(passthroughBlocked_fh_OBJECTS) $(passthroughBlocked_fh_DEPENDENCIES) $(EXTRA_passthroughBlocked_fh_DEPENDENCIES) 
 	@rm -f passthroughBlocked_fh$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(passthroughBlocked_fh_OBJECTS) $(passthroughBlocked_fh_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(passthroughBlocked_fh_LINK) $(passthroughBlocked_fh_OBJECTS) $(passthroughBlocked_fh_LDADD) $(LIBS)
 
 passthrough_fh$(EXEEXT): $(passthrough_fh_OBJECTS) $(passthrough_fh_DEPENDENCIES) $(EXTRA_passthrough_fh_DEPENDENCIES) 
 	@rm -f passthrough_fh$(EXEEXT)
@@ -523,6 +537,10 @@ poll_client$(EXEEXT): $(poll_client_OBJECTS) $(poll_client_DEPENDENCIES) $(EXTRA
 	@rm -f poll_client$(EXEEXT)
 	$(AM_V_CCLD)$(poll_client_LINK) $(poll_client_OBJECTS) $(poll_client_LDADD) $(LIBS)
 
+showNAND$(EXEEXT): $(showNAND_OBJECTS) $(showNAND_DEPENDENCIES) $(EXTRA_showNAND_DEPENDENCIES) 
+	@rm -f showNAND$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(showNAND_OBJECTS) $(showNAND_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -533,7 +551,6 @@ include ./$(DEPDIR)/cuse.Po
 include ./$(DEPDIR)/cuse_client.Po
 include ./$(DEPDIR)/hello.Po
 include ./$(DEPDIR)/hello_ll.Po
-include ./$(DEPDIR)/helper.Po
 include ./$(DEPDIR)/ioctl.Po
 include ./$(DEPDIR)/ioctl_client-ioctl_client.Po
 include ./$(DEPDIR)/makeVirtualNAND.Po
@@ -543,11 +560,14 @@ include ./$(DEPDIR)/notify_inval_inode.Po
 include ./$(DEPDIR)/notify_store_retrieve.Po
 include ./$(DEPDIR)/null.Po
 include ./$(DEPDIR)/passthrough.Po
-include ./$(DEPDIR)/passthroughBlocked_fh.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-helper.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
 include ./$(DEPDIR)/passthrough_fh.Po
 include ./$(DEPDIR)/passthrough_ll.Po
 include ./$(DEPDIR)/poll.Po
 include ./$(DEPDIR)/poll_client-poll_client.Po
+include ./$(DEPDIR)/showNAND.Po
 include ./$(DEPDIR)/vNANDlib.Po
 
 .c.o:
@@ -587,6 +607,48 @@ ioctl_client-ioctl_client.obj: ioctl_client.c
 #	$(AM_V_CC)source='ioctl_client.c' object='ioctl_client-ioctl_client.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ioctl_client_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ioctl_client-ioctl_client.obj `if test -f 'ioctl_client.c'; then $(CYGPATH_W) 'ioctl_client.c'; else $(CYGPATH_W) '$(srcdir)/ioctl_client.c'; fi`
+
+passthroughBlocked_fh-passthroughBlocked_fh.o: passthroughBlocked_fh.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-passthroughBlocked_fh.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Tpo -c -o passthroughBlocked_fh-passthroughBlocked_fh.o `test -f 'passthroughBlocked_fh.c' || echo '$(srcdir)/'`passthroughBlocked_fh.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Tpo $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Po
+#	$(AM_V_CC)source='passthroughBlocked_fh.c' object='passthroughBlocked_fh-passthroughBlocked_fh.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-passthroughBlocked_fh.o `test -f 'passthroughBlocked_fh.c' || echo '$(srcdir)/'`passthroughBlocked_fh.c
+
+passthroughBlocked_fh-passthroughBlocked_fh.obj: passthroughBlocked_fh.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-passthroughBlocked_fh.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Tpo -c -o passthroughBlocked_fh-passthroughBlocked_fh.obj `if test -f 'passthroughBlocked_fh.c'; then $(CYGPATH_W) 'passthroughBlocked_fh.c'; else $(CYGPATH_W) '$(srcdir)/passthroughBlocked_fh.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Tpo $(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Po
+#	$(AM_V_CC)source='passthroughBlocked_fh.c' object='passthroughBlocked_fh-passthroughBlocked_fh.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-passthroughBlocked_fh.obj `if test -f 'passthroughBlocked_fh.c'; then $(CYGPATH_W) 'passthroughBlocked_fh.c'; else $(CYGPATH_W) '$(srcdir)/passthroughBlocked_fh.c'; fi`
+
+passthroughBlocked_fh-helper.o: helper.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-helper.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-helper.Tpo -c -o passthroughBlocked_fh-helper.o `test -f 'helper.c' || echo '$(srcdir)/'`helper.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-helper.Tpo $(DEPDIR)/passthroughBlocked_fh-helper.Po
+#	$(AM_V_CC)source='helper.c' object='passthroughBlocked_fh-helper.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-helper.o `test -f 'helper.c' || echo '$(srcdir)/'`helper.c
+
+passthroughBlocked_fh-helper.obj: helper.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-helper.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-helper.Tpo -c -o passthroughBlocked_fh-helper.obj `if test -f 'helper.c'; then $(CYGPATH_W) 'helper.c'; else $(CYGPATH_W) '$(srcdir)/helper.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-helper.Tpo $(DEPDIR)/passthroughBlocked_fh-helper.Po
+#	$(AM_V_CC)source='helper.c' object='passthroughBlocked_fh-helper.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-helper.obj `if test -f 'helper.c'; then $(CYGPATH_W) 'helper.c'; else $(CYGPATH_W) '$(srcdir)/helper.c'; fi`
+
+passthroughBlocked_fh-vNANDlib.o: vNANDlib.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-vNANDlib.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo -c -o passthroughBlocked_fh-vNANDlib.o `test -f 'vNANDlib.c' || echo '$(srcdir)/'`vNANDlib.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
+#	$(AM_V_CC)source='vNANDlib.c' object='passthroughBlocked_fh-vNANDlib.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-vNANDlib.o `test -f 'vNANDlib.c' || echo '$(srcdir)/'`vNANDlib.c
+
+passthroughBlocked_fh-vNANDlib.obj: vNANDlib.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-vNANDlib.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo -c -o passthroughBlocked_fh-vNANDlib.obj `if test -f 'vNANDlib.c'; then $(CYGPATH_W) 'vNANDlib.c'; else $(CYGPATH_W) '$(srcdir)/vNANDlib.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
+#	$(AM_V_CC)source='vNANDlib.c' object='passthroughBlocked_fh-vNANDlib.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-vNANDlib.obj `if test -f 'vNANDlib.c'; then $(CYGPATH_W) 'vNANDlib.c'; else $(CYGPATH_W) '$(srcdir)/vNANDlib.c'; fi`
 
 poll_client-poll_client.o: poll_client.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(poll_client_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT poll_client-poll_client.o -MD -MP -MF $(DEPDIR)/poll_client-poll_client.Tpo -c -o poll_client-poll_client.o `test -f 'poll_client.c' || echo '$(srcdir)/'`poll_client.c

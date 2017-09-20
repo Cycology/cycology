@@ -25,7 +25,7 @@ struct nandFeatures initNAND(void)
 }
 
 //lseek to position of page and read entire page
-int readNAND(char *buf, page_addr k)
+int readNAND( fullPage buf, page_addr k)
 {
   int offset = sizeof (struct nandFeatures)
 		+ (k/BLOCKSIZE)*(sizeof (struct block))
@@ -43,7 +43,7 @@ int readNAND(char *buf, page_addr k)
   return res;
 }
 
-int writeNAND(char *buf, page_addr k, int random_access)
+int writeNAND( fullPage buf, page_addr k, int random_access)
 {
   //Read in the block containing target page
   struct block curBlock;
