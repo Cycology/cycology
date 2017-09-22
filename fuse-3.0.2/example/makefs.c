@@ -39,7 +39,7 @@ int main (int argc, char *argv[])
   map->freePtr = 1;
 
   //link map entries to next available entry
-
+  //abs value of neg entries = next free entry
   for (int i = 1; i < map->size - 1; i++) {
     map->map[i] = -(i+1);
   }
@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
   
   for (int i = 2; i < features.numBlocks - 1; i++) {
     page.nextLogBlock = (i+1)*BLOCKSIZE;
-    writeNAND( &page, (i+1)*BLOCKSIZE - 1, 1);
+    writeNAND( &page, (i)*BLOCKSIZE, 1);
     //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
   }
   
