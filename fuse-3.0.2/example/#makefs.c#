@@ -22,10 +22,8 @@ int main (int argc, char *argv[])
   
   memset( &page, 0, sizeof (struct fullPage));
   superBlock.latest_vaddr_map = BLOCKSIZE;  //first vaddr map is in block 1
-  superBlock.freeLists.partialHead = BLOCKSIZE*2;  //free list starts at block 2
-  superBlock.freeLists.partialTail = BLOCKSIZE*(features.numBlocks - 1);
-
-  // Write out to NAND memory
+  superBlock.freeLists.completeHead = BLOCKSIZE*2;  //free list starts at block 2
+  superBlock.freeLists.completeTail = BLOCKSIZE*(features.numBlocks - 1);
   memcpy(&page.contents, &superBlock, sizeof (struct superPage));
   page.eraseCount = -1;
   page.pageType = PTYPE_SUPER;

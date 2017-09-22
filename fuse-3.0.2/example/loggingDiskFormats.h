@@ -199,6 +199,7 @@ typedef struct superPage {
 
 typedef struct fullPage {
 	char contents[PAGEDATASIZE];
+  
 	int eraseCount;           /* In the first page of a block, this field will
 				     hold the erase count for the block */
 
