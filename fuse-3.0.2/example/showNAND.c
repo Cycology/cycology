@@ -8,51 +8,63 @@
 
 static struct fullPage page;
 static struct fullPage superBlockPage;
+static struct nandFeatures features;
+static struct superPage superBlock;
+static char* blockStat;
 
-int main (int argc, char *argv[])
-{
-  if (argc > 1) {        //Takes no arguments
-    printf("ERROR: makefs TAKES NO ARGS\n");
-    return -1;
-  }
+final int UNMARKED = 0;
+final int COMPLETELY_FREE = 1;
+final int PARTIALLY_FREE = 2;
 
-  struct nandFeatures features = initNAND();
-
+void printFreeLists() {    
   printf("NAND memory contains %d blocks. Total size in bytes is %d\n",
 	 features.numBlocks,
 	 features.memSize);
   
-  // read superBlock from block 0
-  readNAND( &superBlockPage, 0 );
-
-  superPage superBlock = (superPage) & superBlockPage.contents;
-
-  char *blockStat = (char *) malloc( features.numBlocks );
-  memset( blockStat, 0, features.numBlocks );
-  
-  printf("Virtual address map stored at page %d\n",
-	 superBlock->latest_vaddr_map);
-
-
+  // Display contents of both free lists  
   printf("Completely used block freelist starts at page %d and ends at %d\n    ",
 	 superBlock->freeLists.completeHead,
 	 superBlock->freeLists.completeTail);
 
-  int freeBlockPtr = superBlock->freeLists.completeHead;
+  showFreeList(COMPLETELY_FREE);
+  
+  printf("Partially used block freelist starts at page %d and ends at %d\n",
+	 superBlock->freeLists.partialHead,
+	 superBlock->freeLists.partialTail);
+
+  showFreeList(PARTIALLY_FREE);
+
+  printf("\n\n");
+
+}
+
+void showFreeList(int freeListType) {
   int freeCount = 0;
   int previous = 0;
-  while ( freeBlockPtr != 0 ) {
+  int freeBlockPtr = 0;
+  
+  if (freeListType == COMPLETELY_FREE) {
+    freeBlockPtr = superBlock->freeLists.completeHead;
+  } else if (freeListType == PARTIALLY_FREE) {
+    freeBlockPtr = superBlock->freeLists.partialHead;
+  }
+
+  while (freeBlockPtr != 0) {
     freeCount++;
     
     printf( "%d, ", freeBlockPtr );
     if ( freeCount % 10 == 9 ) {
       printf("\n");
     }
-    
-    if ( blockStat[ freeBlockPtr/BLOCKSIZE] == 0 ) {
-      blockStat[ freeBlockPtr/BLOCKSIZE ] = 1;
-    } else {
-      printf("\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n");
+
+    int blockType = blockStat[ freeBlockPtr/BLOCKSIZE];
+    if (blockType == UNMARKED) { // Mark as given free list
+      blockStat[ freeBlockPtr/BLOCKSIZE ] = freeListType;
+    } else if (blockType = freeListType) {  // Duplicate marking, error detected
+      printf( "\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n" );
+      break;
+    } else { // Block is in two free lists at once, error 
+      printf( "\n\n****** BLOCK IS IN BOTH FREE LISTS!\n" );
       break;
     }
 
@@ -61,25 +73,25 @@ int main (int argc, char *argv[])
     freeBlockPtr = page.nextLogBlock;
 
   }
-  if ( previous != 0 && previous != superBlock->freeLists.completeTail ) {
-    printf( "\n\n****** COMPLETELY USED BLOCK LIST TAIL INVALID IN SUPERBLOCK\n");
+  
+  if (previous != 0 && previous != superBlock->freeLists.completeTail) {
+    printf( "\n\n****** FREE BLOCK LIST TAIL INVALID IN SUPERBLOCK\n" );
   }
     
-  printf("\n\n");
+  printf( "\n\n" );
+}
 
-  
-  printf("Partially used block freelist starts at page %d and ends at %d\n",
-	 superBlock->freeLists.partialHead,
-	 superBlock->freeLists.partialTail);
-
-  printf("\n\n");
-
+void printVaddrMap() {
   // Display vaddr map
+  printf("Virtual address map stored at page %d\n",
+	 superBlock->latest_vaddr_map);
+  
   readNAND( &page , BLOCKSIZE );
   
   addrMap map = (addrMap) &page.contents;
   printf("Address map size = %d\n", map->size);
 
+  // Print active mappings
   int used = 0;
   for (int i; i < map->size; i++) {
     if( map->map[i] > 0 ) {
@@ -88,6 +100,7 @@ int main (int argc, char *argv[])
     }
   }
 
+  // Print list of free positions
   int freePos = map->freePtr;
   freeCount = 0;
   if ( freePos != 0 ) {
@@ -106,10 +119,10 @@ int main (int argc, char *argv[])
 
 
   printf("Map of active pages\n");
-
+  
   for ( int b = 2; b < features.numBlocks; b++ ) {
-    if ( blockStat[ b ] == 0 ) {
-      blockStat[b] = 3;
+    if ( blockStat[ b ] == UNMARKED ) {
+      blockStat[b] = 3; // Why? 
 
       printf( "Contents of used pages in block %d:\n", b );
       
@@ -142,13 +155,31 @@ int main (int argc, char *argv[])
 	  break;
 	  
 	}
-      }
-      
+      } 
     }
+  }
+}
 
+int main (int argc, char *argv[])
+{
+  // Check it takes no args
+  if (argc > 1) {        
+    printf("ERROR: makefs TAKES NO ARGS\n");
+    return -1;
   }
 
-  
-    
+  // TODO: Save features.numBlocks as separate global variable
+
+  // Initialize global variables
+  features = initNAND();
+  readNAND( &superBlockPage, 0 );
+  superBlock = (superPage) & superBlockPage.contents;
+  blockStat = (char *) malloc( features.numBlocks );
+  memset( blockStat, UNMARKED, features.numBlocks );
+
+  // Print NAND contents
+  printFreeLists();
+  printVaddrMap();
+
   stopNAND();
 }
