@@ -12,9 +12,91 @@ static struct nandFeatures features;
 static struct superPage superBlock;
 static char* blockStat;
 
-final int UNMARKED = 0;
-final int COMPLETELY_FREE = 1;
-final int PARTIALLY_FREE = 2;
+const int UNMARKED = 0;
+const int COMPLETELY_FREE = 1;
+const int PARTIALLY_FREE = 2;
+const int USED = 3;
+
+
+int getFreeListHead(int freeListType) {
+  if (freeListType == COMPLETELY_FREE) {
+    return superBlock->freeLists.completeHead;
+  } else {
+    return superBlock->freeLists.partialHead;
+  }
+}
+
+void printPage(int blockPtr, int position) {
+  printf( "%d, ", blockPtr );
+  if ( position % 10 == 9 ) {
+    printf("\n");
+  }
+}
+
+int markBlockStatistics(int freeListType, int freeBlockPtr) {
+  int blockType = blockStat[ freeBlockPtr/BLOCKSIZE];
+
+  if (blockType == UNMARKED) { // Mark as given free list
+    blockStat[ freeBlockPtr/BLOCKSIZE ] = freeListType;
+  } else if (blockType = freeListType) {  // Duplicate marking, error detected
+    printf( "\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n" );
+    return -1;
+  } else { // Block is in two free lists at once, error 
+    printf( "\n\n****** BLOCK IS IN BOTH FREE LISTS!\n" );
+    return -1;
+  }
+    
+  return 0;
+}
+
+int getNextLogBlock(int freeListType) {
+  if (freeListType == COMPLETELY_FREE) {
+    readNAND( &page, freeBlockPtr + BLOCKSIZE - 1);
+  } else {
+    readNAND( &page, freeBlockPtr );
+  }
+
+  return page.nextLogBlock;
+}
+
+bool isValidTail(int previous, int freeListType) {
+  if (previous != 0) {
+    return false;
+  }
+  
+  if (freeListType == COMPLETELY_FREE) {
+    return previous != superBlock->freeLists.completeTail;
+  } else {
+    return previous != superBlock->freeLists.partialTail;
+  }
+}
+
+void showFreeList(int freeListType) {
+  int freeCount = 0;
+  int previous = 0;
+  int freeBlockPtr = 0;
+
+  freeBlockPtr = getFreeListHead(freeListType);
+
+  while (freeBlockPtr != 0) {
+    freeCount++;
+    
+    printPage(freeBlockPtr, freeCount);
+    
+    if (markBlockStatistics(freeListType, freeBlockPtr) != 0) {
+      break;
+    }
+
+    previous = freeBlockPtr;
+    freeBlockPtr = getNextLogBlock(freeListType);
+  }
+  
+  if (!isValidTail(previous, freeListType)) {
+    printf( "\n\n****** FREE BLOCK LIST TAIL INVALID IN SUPERBLOCK\n" );    
+  }
+    
+  printf( "\n\n" );
+}
 
 void printFreeLists() {    
   printf("NAND memory contains %d blocks. Total size in bytes is %d\n",
@@ -38,60 +120,13 @@ void printFreeLists() {
 
 }
 
-void showFreeList(int freeListType) {
-  int freeCount = 0;
-  int previous = 0;
-  int freeBlockPtr = 0;
-  
-  if (freeListType == COMPLETELY_FREE) {
-    freeBlockPtr = superBlock->freeLists.completeHead;
-  } else if (freeListType == PARTIALLY_FREE) {
-    freeBlockPtr = superBlock->freeLists.partialHead;
-  }
 
-  while (freeBlockPtr != 0) {
-    freeCount++;
-    
-    printf( "%d, ", freeBlockPtr );
-    if ( freeCount % 10 == 9 ) {
-      printf("\n");
-    }
-
-    int blockType = blockStat[ freeBlockPtr/BLOCKSIZE];
-    if (blockType == UNMARKED) { // Mark as given free list
-      blockStat[ freeBlockPtr/BLOCKSIZE ] = freeListType;
-    } else if (blockType = freeListType) {  // Duplicate marking, error detected
-      printf( "\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n" );
-      break;
-    } else { // Block is in two free lists at once, error 
-      printf( "\n\n****** BLOCK IS IN BOTH FREE LISTS!\n" );
-      break;
-    }
-
-    previous = freeBlockPtr;
-    readNAND( &page, freeBlockPtr + BLOCKSIZE - 1 );
-    freeBlockPtr = page.nextLogBlock;
-
-  }
-  
-  if (previous != 0 && previous != superBlock->freeLists.completeTail) {
-    printf( "\n\n****** FREE BLOCK LIST TAIL INVALID IN SUPERBLOCK\n" );
-  }
-    
-  printf( "\n\n" );
+addrMap getVaddrMap() {
+  readNAND( &page , BLOCKSIZE );
+  return (addrMap) &page.contents;
 }
 
-void printVaddrMap() {
-  // Display vaddr map
-  printf("Virtual address map stored at page %d\n",
-	 superBlock->latest_vaddr_map);
-  
-  readNAND( &page , BLOCKSIZE );
-  
-  addrMap map = (addrMap) &page.contents;
-  printf("Address map size = %d\n", map->size);
-
-  // Print active mappings
+void printActiveMappings(addrMap map) {
   int used = 0;
   for (int i; i < map->size; i++) {
     if( map->map[i] > 0 ) {
@@ -99,10 +134,11 @@ void printVaddrMap() {
       printf("       id %d maps to address %d\n", i, map->map[i] );
     }
   }
+}
 
-  // Print list of free positions
+void printFreePositions(addrMap map) {
   int freePos = map->freePtr;
-  freeCount = 0;
+  int freeCount = 0;
   if ( freePos != 0 ) {
     printf( "Free entries in address map include:\n     ");
     while ( freePos > 0 ) {
@@ -116,49 +152,66 @@ void printVaddrMap() {
   } else {
     printf( "Free list in address map is empty \n" );
   }
+}
 
+void printPageInfo(fullPage page) {  
+  switch (page->pageType) {
+  case PTYPE_INODE: 
+    logHeader logH = (logHeader) & page->contents;
+    printf("Inode for file %d\n", logH->content.file.fInode.i_file_no );
+    printf("     Stored in log number %d\n", logH->content.file.fInode.i_log_no);
+    printf("     Referenced by %d links\n", logH->content.file.fInode.i_links_count );
+    printf("     File mode is %o\n", logH->content.file.fInode.i_mode );
+    printf("     File size is %ld with %d active pages\n",
+	   logH->content.file.fInode.i_size,
+	   logH->content.file.fInode.i_pages );
+    break;	  
+  }
+}
 
+void printBlock(int block) {
+  // Iterate through all pages in block
+  for ( int p = 0; p < BLOCKSIZE; p++ ) {
+    int pAddr = b*BLOCKSIZE + p;
+    readNAND( &page, pAddr );
+
+    // Don't print erased pages
+    if (page.pageType == PTYPE_ERASED) {
+      break;
+    }
+    
+    printf( "    Page %d:  ", pAddr );
+    printPageInfo(&page);
+  } 
+}
+
+void printUsedPages(addrMap map) {
   printf("Map of active pages\n");
-  
+
+  // Iterate through all blocks, printing out only the used ones
   for ( int b = 2; b < features.numBlocks; b++ ) {
     if ( blockStat[ b ] == UNMARKED ) {
-      blockStat[b] = 3; // Why? 
+      blockStat[b] = USED;
 
       printf( "Contents of used pages in block %d:\n", b );
-      
-      for ( int p = 0; p < BLOCKSIZE; p++ ) {
-	int pAddr = b*BLOCKSIZE + p;
-
-	readNAND( &page, pAddr );
-
-	if ( page.pageType == PTYPE_ERASED ) {
-	  break;
-	}
-
-	printf( "    Page %d:  ", pAddr );
-	switch ( page.pageType ) {
-
-	case PTYPE_INODE:
-	  {
-	    logHeader logH = (logHeader) & page.contents;
-	    printf("Inode for file %d\n", logH->content.file.fInode.i_file_no );
-	    printf("     Stored in log number %d\n", logH->content.file.fInode.i_log_no);
-	    printf("     Referenced by %d links\n", logH->content.file.fInode.i_links_count );
-	    printf("     File mode is %o\n", logH->content.file.fInode.i_mode );
-	    printf("     File size is %ld with %d active pages\n",
-		   logH->content.file.fInode.i_size,
-		   logH->content.file.fInode.i_pages );
-	    
-		   
-
-	  }
-	  break;
-	  
-	}
-      } 
+      printBlock(b);
     }
   }
 }
+
+void printVaddrMap() {
+  // Display vaddr map
+  printf("Virtual address map stored at page %d\n",
+	 superBlock->latest_vaddr_map);
+  
+  addrMap map = getVaddrMap();
+  printf("Address map size = %d\n", map->size);
+
+  printActiveMappings(map);
+  printFreePositions(map);
+  printUsedPages();
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -168,14 +221,12 @@ int main (int argc, char *argv[])
     return -1;
   }
 
-  // TODO: Save features.numBlocks as separate global variable
-
   // Initialize global variables
   features = initNAND();
   readNAND( &superBlockPage, 0 );
   superBlock = (superPage) & superBlockPage.contents;
-  blockStat = (char *) malloc( features.numBlocks );
-  memset( blockStat, UNMARKED, features.numBlocks );
+  blockStat = (char *) malloc( numBlocks );
+  memset( blockStat, UNMARKED, numBlocks );
 
   // Print NAND contents
   printFreeLists();
