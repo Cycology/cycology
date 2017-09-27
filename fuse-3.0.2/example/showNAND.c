@@ -41,10 +41,10 @@ int markBlockStatistics(int freeListType, int freeBlockPtr) {
     blockStat[ freeBlockPtr/BLOCKSIZE ] = freeListType;
   } else if (blockType = freeListType) {  // Duplicate marking, error detected
     printf( "\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n" );
-    return -1;
+    return 1;
   } else { // Block is in two free lists at once, error 
     printf( "\n\n****** BLOCK IS IN BOTH FREE LISTS!\n" );
-    return -1;
+    return 1;
   }
     
   return 0;
@@ -84,7 +84,8 @@ void showFreeList(int freeListType) {
     
     printPage(freeBlockPtr, freeCount);
     
-    if (markBlockStatistics(freeListType, freeBlockPtr) != 0) {
+    int error = markBlockStatistics(freeListType, freeBlockPtr);
+    if (error) {
       break;
     }
 
@@ -181,10 +182,10 @@ void printBlock(int block) {
     // Don't print erased pages
     if (page.pageType == PTYPE_ERASED) {
       break;
+    } else {
+      printf( "    Page %d:  ", pAddr );
+      printPageInfo(&page);
     }
-    
-    printf( "    Page %d:  ", pAddr );
-    printPageInfo(&page);
   } 
 }
 
