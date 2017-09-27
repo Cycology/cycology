@@ -3,13 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "vNANDlib.h"
 
 static struct fullPage page;
 static struct fullPage superBlockPage;
 static struct nandFeatures features;
-static struct superPage superBlock;
+static superPage superBlock;
 static char* blockStat;
 
 const int UNMARKED = 0;
@@ -20,9 +21,9 @@ const int USED = 3;
 
 int getFreeListHead(int freeListType) {
   if (freeListType == COMPLETELY_FREE) {
-    return superBlock.freeLists.completeHead;
+    return superBlock->freeLists.completeHead;
   } else {
-    return superBlock.freeLists.partialHead;
+    return superBlock->freeLists.partialHead;
   }
 }
 
@@ -61,13 +62,13 @@ int getNextLogBlock(int freeListType, int freeBlockPtr) {
 
 bool isValidTail(int previous, int freeListType) {
   if (previous != 0) {
-    return FALSE;
+    return false;
   }
   
   if (freeListType == COMPLETELY_FREE) {
-    return previous != superBlock.freeLists.completeTail;
+    return previous != superBlock->freeLists.completeTail;
   } else {
-    return previous != superBlock.freeLists.partialTail;
+    return previous != superBlock->freeLists.partialTail;
   }
 }
 
@@ -105,14 +106,14 @@ void printFreeLists() {
   
   // Display contents of both free lists  
   printf("Completely used block freelist starts at page %d and ends at %d\n    ",
-	 superBlock.freeLists.completeHead,
-	 superBlock.freeLists.completeTail);
+	 superBlock->freeLists.completeHead,
+	 superBlock->freeLists.completeTail);
 
   showFreeList(COMPLETELY_FREE);
   
   printf("Partially used block freelist starts at page %d and ends at %d\n",
-	 superBlock.freeLists.partialHead,
-	 superBlock.freeLists.partialTail);
+	 superBlock->freeLists.partialHead,
+	 superBlock->freeLists.partialTail);
 
   showFreeList(PARTIALLY_FREE);
 
@@ -156,16 +157,18 @@ void printFreePositions(addrMap map) {
 
 void printPageInfo(fullPage page) {  
   switch (page->pageType) {
-  case PTYPE_INODE: 
-    logHeader logH = (logHeader) & page->contents;
-    printf("Inode for file %d\n", logH->content.file.fInode.i_file_no );
-    printf("     Stored in log number %d\n", logH->content.file.fInode.i_log_no);
-    printf("     Referenced by %d links\n", logH->content.file.fInode.i_links_count );
-    printf("     File mode is %o\n", logH->content.file.fInode.i_mode );
-    printf("     File size is %ld with %d active pages\n",
-	   logH->content.file.fInode.i_size,
-	   logH->content.file.fInode.i_pages );
-    break;	  
+  case PTYPE_INODE:
+    {
+      logHeader logH = (logHeader) & page->contents;
+      printf("Inode for file %d\n", logH->content.file.fInode.i_file_no );
+      printf("     Stored in log number %d\n", logH->content.file.fInode.i_log_no);
+      printf("     Referenced by %d links\n", logH->content.file.fInode.i_links_count );
+      printf("     File mode is %o\n", logH->content.file.fInode.i_mode );
+      printf("     File size is %ld with %d active pages\n",
+	     logH->content.file.fInode.i_size,
+	     logH->content.file.fInode.i_pages );
+      break;
+    }
   }
 }
 
@@ -202,7 +205,7 @@ void printUsedPages() {
 void printVaddrMap() {
   // Display vaddr map
   printf("Virtual address map stored at page %d\n",
-	 superBlock.latest_vaddr_map);
+	 superBlock->latest_vaddr_map);
   
   addrMap map = getVaddrMap();
   printf("Address map size = %d\n", map->size);
@@ -225,8 +228,8 @@ int main (int argc, char *argv[])
   features = initNAND();
   readNAND( &superBlockPage, 0 );
   superBlock = (superPage) & superBlockPage.contents;
-  blockStat = (char *) malloc( numBlocks );
-  memset( blockStat, UNMARKED, numBlocks );
+  blockStat = (char *) malloc( features.numBlocks );
+  memset( blockStat, UNMARKED, features.numBlocks );
 
   // Print NAND contents
   printFreeLists();
