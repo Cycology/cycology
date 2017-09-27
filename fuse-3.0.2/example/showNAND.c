@@ -189,7 +189,7 @@ void printBlock(int block) {
   } 
 }
 
-void printUsedPages() {
+void updateBlockStatAndPrintUsedPages() {
   printf("Map of active pages\n");
 
   // Iterate through all blocks, printing out only the used ones
@@ -213,7 +213,7 @@ void printVaddrMap() {
 
   printActiveMappings(map);
   printFreePositions(map);
-  printUsedPages();
+  updateBlockStatAndPrintUsedPages();
 }
 
 
