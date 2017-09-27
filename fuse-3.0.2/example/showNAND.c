@@ -20,9 +20,9 @@ const int USED = 3;
 
 int getFreeListHead(int freeListType) {
   if (freeListType == COMPLETELY_FREE) {
-    return superBlock->freeLists.completeHead;
+    return superBlock.freeLists.completeHead;
   } else {
-    return superBlock->freeLists.partialHead;
+    return superBlock.freeLists.partialHead;
   }
 }
 
@@ -49,7 +49,7 @@ int markBlockStatistics(int freeListType, int freeBlockPtr) {
   return 0;
 }
 
-int getNextLogBlock(int freeListType) {
+int getNextLogBlock(int freeListType, int freeBlockPtr) {
   if (freeListType == COMPLETELY_FREE) {
     readNAND( &page, freeBlockPtr + BLOCKSIZE - 1);
   } else {
@@ -61,13 +61,13 @@ int getNextLogBlock(int freeListType) {
 
 bool isValidTail(int previous, int freeListType) {
   if (previous != 0) {
-    return false;
+    return FALSE;
   }
   
   if (freeListType == COMPLETELY_FREE) {
-    return previous != superBlock->freeLists.completeTail;
+    return previous != superBlock.freeLists.completeTail;
   } else {
-    return previous != superBlock->freeLists.partialTail;
+    return previous != superBlock.freeLists.partialTail;
   }
 }
 
@@ -88,7 +88,7 @@ void showFreeList(int freeListType) {
     }
 
     previous = freeBlockPtr;
-    freeBlockPtr = getNextLogBlock(freeListType);
+    freeBlockPtr = getNextLogBlock(freeListType, freeBlockPtr);
   }
   
   if (!isValidTail(previous, freeListType)) {
@@ -105,14 +105,14 @@ void printFreeLists() {
   
   // Display contents of both free lists  
   printf("Completely used block freelist starts at page %d and ends at %d\n    ",
-	 superBlock->freeLists.completeHead,
-	 superBlock->freeLists.completeTail);
+	 superBlock.freeLists.completeHead,
+	 superBlock.freeLists.completeTail);
 
   showFreeList(COMPLETELY_FREE);
   
   printf("Partially used block freelist starts at page %d and ends at %d\n",
-	 superBlock->freeLists.partialHead,
-	 superBlock->freeLists.partialTail);
+	 superBlock.freeLists.partialHead,
+	 superBlock.freeLists.partialTail);
 
   showFreeList(PARTIALLY_FREE);
 
@@ -172,7 +172,7 @@ void printPageInfo(fullPage page) {
 void printBlock(int block) {
   // Iterate through all pages in block
   for ( int p = 0; p < BLOCKSIZE; p++ ) {
-    int pAddr = b*BLOCKSIZE + p;
+    int pAddr = block*BLOCKSIZE + p;
     readNAND( &page, pAddr );
 
     // Don't print erased pages
@@ -185,7 +185,7 @@ void printBlock(int block) {
   } 
 }
 
-void printUsedPages(addrMap map) {
+void printUsedPages() {
   printf("Map of active pages\n");
 
   // Iterate through all blocks, printing out only the used ones
@@ -202,7 +202,7 @@ void printUsedPages(addrMap map) {
 void printVaddrMap() {
   // Display vaddr map
   printf("Virtual address map stored at page %d\n",
-	 superBlock->latest_vaddr_map);
+	 superBlock.latest_vaddr_map);
   
   addrMap map = getVaddrMap();
   printf("Address map size = %d\n", map->size);
