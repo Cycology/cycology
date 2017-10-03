@@ -446,38 +446,23 @@ static int xmp_unlink(const char *path)
 
 	  //if there's no more file in the log, recycle!
 	  if (lastLogH->content.file.fileCount == 0) {
-	    struct freeList freeList = state->lists;
-	    if (lastLogH->total == 1) {  //only 1 block in this log
-	      
-	      if (lastLogH->active <= BLOCKSIZE - 3) {
-		if (freeList.partialTail == 0) { //pList is empty
-		  freeList.partialHead = lastHeaderAddr + 1;
-		  
-		} else {                         //pList is not empty
-		  //make current last block points to new last block
-		  struct fullPage fPage;
-		  readNAND( & fPage, freeList.partialTail);
-		  fPage.nextLogBlock = lastHeaderAddr + 1;
-		  writeNAND( & fPage, freeList.partialTail, 1);
-		}
-		//change tail pointer
-		freeList.partialTail = lastHeaderAddr + 1;
-		
-	      } else {  //put in cList
-		if (freeList.completeTail == 0) { //cList is empty
-		  //freeList.completeHead =
-		}
-	      }
-	      
-	    }
+	    logs_recycle( lastLogH, state );
+	  } else {
+	    // There was more than one file in the log so nothing else to do?
 	  }
+
+	  // Remove the stub file
+	  res = unlink(fullPath);
+	  free(fullPath);
+	  if (res == -1)
+	    return -errno;
+	  return 0;	
+	  
+	} else {
+	  // The file is currently open so we need to flag it for removal
+	  // when all opens are closed.
 	}
 	
-	res = unlink(fullPath);
-	free(fullPath);
-	if (res == -1)
-	  return -errno;
-	return 0;	
 }
 
 static int xmp_rmdir(const char *path)
