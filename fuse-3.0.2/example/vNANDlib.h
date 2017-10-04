@@ -44,7 +44,7 @@ int readNAND( fullPage buf, page_addr k);
   POST:
   returns number of bytes written; -1 if error
  */
-int writeNAND( fullPage buf, page_addr k);
+int writeNAND( fullPage buf, page_addr k, int random_access);
 
 /*PRE:
   block_addr b - absolute block address to erase
