@@ -56,7 +56,7 @@ void linkFreeBlocks() {
   
   for (int i = 2; i < features.numBlocks - 1; i++) {
     page.nextLogBlock = (i+1)*BLOCKSIZE;
-    writeNAND( &page, (i)*BLOCKSIZE, 1);
+    writeNAND( &page, (i)*BLOCKSIZE, 0);
     //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
   }
 }

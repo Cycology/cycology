@@ -29,7 +29,8 @@ showNAND.o: showNAND.c /usr/include/stdc-predef.h /usr/include/unistd.h \
  /usr/include/x86_64-linux-gnu/sys/sysmacros.h \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h /usr/include/alloca.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h /usr/include/string.h \
- /usr/include/xlocale.h vNANDlib.h fuseLogging.h loggingDiskFormats.h
+ /usr/include/xlocale.h /usr/lib/gcc/x86_64-linux-gnu/5/include/stdbool.h \
+ vNANDlib.h fuseLogging.h loggingDiskFormats.h
 
 /usr/include/stdc-predef.h:
 
@@ -118,6 +119,8 @@ showNAND.o: showNAND.c /usr/include/stdc-predef.h /usr/include/unistd.h \
 /usr/include/string.h:
 
 /usr/include/xlocale.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/5/include/stdbool.h:
 
 vNANDlib.h:
 
