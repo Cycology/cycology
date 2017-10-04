@@ -43,7 +43,7 @@ int readNAND( fullPage buf, page_addr k)
   return res;
 }
 
-int writeNAND( fullPage buf, page_addr k, int random_access)
+int writeNAND( fullPage buf, page_addr k)
 {
   //Read in the block containing target page
   struct block curBlock;
@@ -62,15 +62,14 @@ int writeNAND( fullPage buf, page_addr k, int random_access)
   
   //index of page k in the block
   int kInBlock = k%BLOCKSIZE;
-  if (random_access == 0 && kInBlock != curBlock.data.nextPage) {
+  if (kInBlock != curBlock.data.nextPage) {
     printf("DOES NOT WRITE TO NEXT FREE PAGE OF BLOCK IN NAND");
     return -1;
   }
   
   //write from buffer to block; increase nextPage counter
   memcpy(&(curBlock.contents[kInBlock]), buf, sizeof (struct fullPage));
-  if (random_access == 0)
-    curBlock.data.nextPage++;
+  curBlock.data.nextPage++;
   lseek(fd, (sizeof (struct nandFeatures)
 	     + (k/BLOCKSIZE)*(sizeof (struct block))), SEEK_SET);
   res = write(fd, &curBlock, (sizeof (struct block))); 

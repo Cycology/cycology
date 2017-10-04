@@ -26,7 +26,7 @@ void writeOutSuperBlock() {
   memcpy(&page.contents, &superBlock, sizeof (struct superPage));
   page.eraseCount = -1;
   page.pageType = PTYPE_SUPER;
-  writeNAND( &page, 0, 0);
+  writeNAND( &page, 0);
 }
 
 void writeOutVaddrMap() {
@@ -46,7 +46,7 @@ void writeOutVaddrMap() {
   map->map[map->size - 1] = 0;     
 
   page.pageType = PTYPE_ADDRMAP;
-  writeNAND( &page, BLOCKSIZE, 0);
+  writeNAND( &page, BLOCKSIZE);
 }
 
 void linkFreeBlocks() {
@@ -56,8 +56,8 @@ void linkFreeBlocks() {
   
   for (int i = 2; i < features.numBlocks - 1; i++) {
     page.nextLogBlock = (i+1)*BLOCKSIZE;
-    writeNAND( &page, (i)*BLOCKSIZE, 1);
-    //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
+    writeNAND( &page, (i)*BLOCKSIZE);
+    //writeNAND(array, (i+1)*BLOCKSIZE - 2);
   }
 }
 
