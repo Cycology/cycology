@@ -27,7 +27,7 @@ int getFreeListHead(int freeListType) {
   }
 }
 
-void printPage(int blockPtr, int position) {
+void printPageNumber(int blockPtr, int position) {
   printf( "%d, ", blockPtr );
   if ( position % 10 == 9 ) {
     printf("\n");
@@ -60,12 +60,12 @@ int getNextLogBlock(int freeListType, int freeBlockPtr) {
   return page.nextLogBlock;
 }
 
-bool isValidTail(int previous, int freeListType) {
+bool isValidTail(int previous, int freeListType) {  
   if (previous != 0) {
     if (freeListType == COMPLETELY_FREE) {
-      return previous != superBlock->freeLists.completeTail;
+      return previous == superBlock->freeLists.completeTail;
     } else {
-      return previous != superBlock->freeLists.partialTail;
+      return previous == superBlock->freeLists.partialTail;
     }
   }
 
@@ -82,7 +82,7 @@ void showFreeList(int freeListType) {
   while (freeBlockPtr != 0) {
     freeCount++;
     
-    printPage(freeBlockPtr, freeCount);
+    printPageNumber(freeBlockPtr, freeCount);
     
     int error = markBlockStatistics(freeListType, freeBlockPtr);
     if (error) {
