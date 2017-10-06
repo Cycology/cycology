@@ -62,14 +62,14 @@ int getNextLogBlock(int freeListType, int freeBlockPtr) {
 
 bool isValidTail(int previous, int freeListType) {
   if (previous != 0) {
-    return false;
+    if (freeListType == COMPLETELY_FREE) {
+      return previous != superBlock->freeLists.completeTail;
+    } else {
+      return previous != superBlock->freeLists.partialTail;
+    }
   }
-  
-  if (freeListType == COMPLETELY_FREE) {
-    return previous != superBlock->freeLists.completeTail;
-  } else {
-    return previous != superBlock->freeLists.partialTail;
-  }
+
+  return true;
 }
 
 void showFreeList(int freeListType) {

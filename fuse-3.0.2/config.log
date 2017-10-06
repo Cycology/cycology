@@ -759,7 +759,7 @@ conftest.c:42:1: warning: function declaration isn't a prototype [-Wstrict-proto
 conftest.c:44:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
  main ()
  ^
-/tmp/cc5abeQS.o: In function `main':
+/tmp/ccJ4MAuD.o: In function `main':
 /home/parallels/cycology/fuse-3.0.2/conftest.c:46: undefined reference to `dlopen'
 collect2: error: ld returned 1 exit status
 configure:12189: $? = 1
