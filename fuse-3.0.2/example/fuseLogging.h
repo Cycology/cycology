@@ -36,7 +36,7 @@ typedef struct writeablePage {
  ************************************************************/
 typedef struct activeLog {
 	page_addr nextPage;    /* Address of next free page */
-	block_addr last;       /* Address of the last block allocated
+	page_addr last;       /* Address of the last block allocated
 				  to this log */
         int lastErases;        /* erase count of the last block allocated 
 				  to this log */

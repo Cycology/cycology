@@ -86,10 +86,10 @@ void stopNAND(void)
   close(fd);
 }
 
-int eraseNAND(block_addr b)
+int eraseNAND(page_addr k)
 {
   int offset = sizeof (struct nandFeatures)
-    + (b+1)*(sizeof (struct block) - sizeof (int));
+    + (k+1)*(sizeof (struct block) - sizeof (int));
   if (offset >= features.memSize) {
     printf("OFFSET OF eraseCount OUTSIDE OF BIG FILE");
     return -1;
@@ -113,7 +113,7 @@ int eraseNAND(block_addr b)
   curBlock.data.eraseCount = eraseCount;
 
   lseek(fd, sizeof (struct nandFeatures)
-	+ b*(sizeof (struct block)), SEEK_SET);
+	+ k*(sizeof (struct block)), SEEK_SET);
   res = write(fd, &curBlock, (sizeof (struct block)));
   if (res == -1) {
     printf("CANNOT WRITE UPDATED BLOCK IN eraseNAND");
