@@ -1,9 +1,10 @@
 ## Process this file with automake to produce Makefile.in
-
+AM_CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O0 -fno-strict-aliasing
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
-passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h 
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c
+passthroughBlocked_fhdir = .
+passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c 
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
 showNAND_SOURCES = showNAND.c vNANDlib.c

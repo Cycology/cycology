@@ -126,12 +126,13 @@ typedef struct logHeader {
  *
  */
 typedef struct freeList {
-  int partialHeadErases;
-  page_addr partialHead;
-  page_addr partialTail;
+  page_addr partialHead;         // Address of page holding next pointer in partially used free page.
+  int partialHeadErases;         // Erase count for block containing page referenced by partialHead
+  page_addr partialTail;         // Address of first unused page in last page of partial free list.
   
+
+  page_addr completeHead;        
   int completeHeadErases;
-  page_addr completeHead;
   page_addr completeTail;
 } *freeList;
 
@@ -199,22 +200,44 @@ typedef struct superPage {
 
 typedef struct fullPage {
 	char contents[PAGEDATASIZE];
-	int eraseCount;           /* In the first page of a block, this field will
+	int eraseCount;           /* This field will
 				     hold the erase count for the block */
 
 	page_addr nextLogBlock;  /* In last and next to last pages of a block,
-				     this field will hold the address of the
-				     next page of the log containing the pages.
+				     this field will hold the address of a
+				     page in the next block of a log or one of
+				     of the free lists.
 				     
-				     In next to last page (2nd last page),
-				     this points to next block of the log.
-				     In last page,
-				     this either points to next block of log,
-				     or next block of free list.
+				     The tricky part is that this is a page address
+				     rather than a block address. The question
+				     is what page within the next block should it
+				     point to.
 
-				     For partially used free list, this field
-				     will be available in the first unused page
-				     of each block.
+				     In an active log, it should point to the
+				     first page of data within the block that
+				     belongs to the current log. For blocks
+				     allocated to the log form the completely used
+				     free list, this will be page 0 of the block.
+				     For blocks allocated off the partially used
+				     free list, this will be the first page unused
+				     at the point the block was allocated.
+				     Note that this convention means that the
+				     recovery process can use these pointers to
+				     skip pages in a block that are inactive.
+
+				     In the completely used block free list, the
+				     exact page address should not matter. When
+				     used, the address should be rounded down to
+				     the 0th page of its block.
+
+				     On the other hand, in the partially used
+				     block freelist, this value of this pointer
+				     held in the last used page of one block
+				     in the free list should refer to the last
+				     used page of the next block of the
+				     partially used block free list.
+
+
 				  */
 
 	int nextBlockErases;     /* The number of times the block pointed to by
