@@ -55,12 +55,10 @@
 //.h files of our own
 #include "vNANDlib.h"
 #include "helper.h"
-#include "logs.h"
+
 /*
  * BECAUSE WE DID NOT IMPLEMENT THE RIGHT FUNCTIONS YET
  */
-
-int unimplemented(void);
 
 int unimplemented(void)
 {
@@ -132,20 +130,20 @@ static void xmp_destroy(void *private_data)
 
   struct fullPage page;
 
-  readNAND( &page, 0 );
+  readNAND( (char *) &page, 0 );
 
   superPage superBlock = (superPage) &page.contents;
 
   superBlock->freeLists = state->lists;
 
-  writeNAND( &page, 0, 1);
+  writeNAND( (char *) &page, 0, 1);
   
   page_addr mapPage = superBlock->latest_vaddr_map;
 
   int mapSize = sizeof( struct addrMap) + state->vaddrMap->size*sizeof(page_addr);
   memcpy( &page.contents, state->vaddrMap, mapSize );
 
-  writeNAND( &page, mapPage, 1);
+  writeNAND( (char *) &page, mapPage, 1);
   
 
   /* //retrieve CYCstate */
@@ -429,15 +427,16 @@ static int xmp_unlink(const char *path)
 	if (oFile == NULL) {
 	  //Go to logHeader of this file
 	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
-	  struct fullPage page;
-	  readNAND( & page, logHeaderAddr);
-	  logHeader logH = (logHeader) &page;
+	  char page[sizeof (struct fullPage)];
+	  readNAND(page, logHeaderAddr);
+	  logHeader logH = (logHeader)page;
 
 	  //Go to last written logHeader
 	  page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
-	  struct fullPage  page2;
-	  readNAND( &page2, lastHeaderAddr);
-	  logHeader lastLogH = (logHeader) &page2;
+	  char page2[sizeof (struct fullPage)];
+	  readNAND(page2, lastHeaderAddr);
+	  logHeader lastLogH;
+	  lastLogH = (logHeader)page2;
 
 	  /*remove fileID from log's ID list.
 	   *Always remove from index 0 since for now,
@@ -448,23 +447,39 @@ static int xmp_unlink(const char *path)
 
 	  //if there's no more file in the log, recycle!
 	  if (lastLogH->content.file.fileCount == 0) {
-	    logs_recycle( lastLogH, lastHeaderAddr, page2.eraseCount, state );
-	  } else {
-	    // There was more than one file in the log so nothing else to do?
+	    struct freeList freeList = state->lists;
+	    if (lastLogH->total == 1) {  //only 1 block in this log
+	      
+	      if (lastLogH->active <= BLOCKSIZE - 3) {
+		if (freeList.partialTail == 0) { //pList is empty
+		  freeList.partialHead = lastHeaderAddr + 1;
+		  
+		} else {                         //pList is not empty
+		  //make current last block points to new last block
+		  char buf[sizeof (struct fullPage)];
+		  readNAND(buf, freeList.partialTail);
+		  fullPage fPage = (fullPage) buf;
+		  fPage->nextLogBlock = lastHeaderAddr + 1;
+		  writeNAND(buf, freeList.partialTail, 1);
+		}
+		//change tail pointer
+		freeList.partialTail = lastHeaderAddr + 1;
+		
+	      } else {  //put in cList
+		if (freeList.completeTail == 0) { //cList is empty
+		  //freeList.completeHead =
+		}
+	      }
+	      
+	    }
 	  }
-
-	  // Remove the stub file
-	  res = unlink(fullPath);
-	  free(fullPath);
-	  if (res == -1)
-	    return -errno;
-	  return 0;	
-	  
-	} else {
-	  // The file is currently open so we need to flag it for removal
-	  // when all opens are closed.
 	}
 	
+	res = unlink(fullPath);
+	free(fullPath);
+	if (res == -1)
+	  return -errno;
+	return 0;	
 }
 
 static int xmp_rmdir(const char *path)
@@ -693,10 +708,9 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
 	buf->page.pageType = PTYPE_INODE;
 
-	writeNAND( &(buf->page), buf->address, 0);
+	writeNAND((char*)&(buf->page), buf->address, 0);
 	
-	// I HAVE A FEELING THERE SHOULD BE A free(buf) HERE!!! - Tom 9/12/17
-	
+	      
 	return 0;
 }
 
@@ -724,9 +738,9 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	if (oFile == NULL) {
 	  //plug in file id no into vaddr map; retrieve logHeader then inode
 	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
-	  struct fullPage page;
-	  readNAND( & page, logHeaderAddr);
-	  logHeader logH = (logHeader) &(page.contents);
+	  fullPage page;
+	  readNAND((char*)page, logHeaderAddr);
+	  logHeader logH = (logHeader) (page->contents);
 	  inode ind = &(logH->content.file.fInode);
 	  page_vaddr logID = ind->i_log_no;
 		    
@@ -745,10 +759,9 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
 	    //read in lastHeaderAddr
 	    if(lastHeaderAddr != logHeaderAddr) {
-	      struct fullPage page2;
-	      readNAND( & page2,lastHeaderAddr);
-	      logHeader logH2 = (logHeader) & (page2.contents);
-	      //not sure what to read in if ind is already gotten
+	      fullPage page2;
+	      readNAND((char*)page2,lastHeaderAddr);
+	      logHeader logH2 = (logHeader)(page2->contents); //not sure what to read in if ind is already gotten
 	    }
 
 	    //increment activelog reference count
