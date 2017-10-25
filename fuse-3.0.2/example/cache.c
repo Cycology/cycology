@@ -1,57 +1,61 @@
 // Joseph Oh
-// Taken from https://gist.github.com/tonious/1377667
+// Based on https://gist.github.com/tonious/1377667
 
-#define _XOPEN_SOURCE 500 /* Enable certain library functions (strdup) on linux.  See feature_test_macros(7) */
+/* Enable certain library functions (strdup) on linux.  See feature_test_macros(7) */
+#define _XOPEN_SOURCE 500 
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
 
-struct entry_s {
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
+#include "lruFileList.c"
+
+typedef struct cacheEntry {
   char *key;
-  char *value;
-  struct entry_s *next;
-};
+  page_addr value;
+  cacheEntry next;
+  
+} *cacheEntry;
 
-typedef struct entry_s entry_t;
-
-struct hashtable_s {
+typedef struct addressCache {
   int size;
-  struct entry_s **table;	
-};
-
-typedef struct hashtable_s hashtable_t;
+  struct cacheEntry **table;
+  struct lruFileList *lruList;
+  
+} *addressCache;
 
 
 /* Create a new hashtable. */
-hashtable_t *ht_create( int size ) {
+addressCache *cache_create( int size ) {
 
-  hashtable_t *hashtable = NULL;
+  addressCache cache = NULL;
   int i;
 
   if (size < 1) { return NULL; }
 
   /* Allocate the table itself. */
-  if ((hashtable = malloc( sizeof(hashtable_t))) == NULL) {
+  if ((cache = malloc( sizeof(struct addressCache))) == NULL) {
     return NULL;
   }
 
   /* Allocate pointers to the head nodes. */
-  if( ( hashtable->table = malloc( sizeof( entry_t * ) * size ) ) == NULL ) {
+  if( ( cache->table = malloc( sizeof( cacheEntry ) * size ) ) == NULL ) {
     return NULL;
   }
   for( i = 0; i < size; i++ ) {
-    hashtable->table[i] = NULL;
+    cache->table[i] = NULL;
   }
 
-  hashtable->size = size;
+  cache->size = size;
 
-  return hashtable;	
+  return cache;	
 }
 
 /* Hash a string for a particular hash table. */
-int ht_hash( hashtable_t *hashtable, char *key ) {
+int cache_hash( addressCache cache, char *key ) {
 
   unsigned long int hashval;
   int i = 0;
@@ -63,14 +67,14 @@ int ht_hash( hashtable_t *hashtable, char *key ) {
     i++;
   }
 
-  return hashval % hashtable->size;
+  return hashval % cache->size;
 }
 
 /* Create a key-value pair. */
-entry_t *ht_newpair( char *key, char *value ) {
-  entry_t *newpair;
+cacheEntry ht_newpair( char *key, char *value ) {
+  cacheEntry newpair;
 
-  if( ( newpair = malloc( sizeof( entry_t ) ) ) == NULL ) {
+  if( ( newpair = malloc( sizeof( struct cacheEntry ) ) ) == NULL ) {
     return NULL;
   }
 
@@ -88,15 +92,15 @@ entry_t *ht_newpair( char *key, char *value ) {
 }
 
 /* Insert a key-value pair into a hash table. */
-void ht_set( hashtable_t *hashtable, char *key, char *value ) {
+void cache_set( addressCache cache, char *key, char *value ) {
   int bin = 0;
-  entry_t *newpair = NULL;
-  entry_t *next = NULL;
-  entry_t *last = NULL;
+  cacheEntry newpair = NULL;
+  cacheEntry next = NULL;
+  cacheEntry last = NULL;
 
-  bin = ht_hash( hashtable, key );
+  bin = cache_hash( cache, key );
 
-  next = hashtable->table[ bin ];
+  next = cache->table[ bin ];
 
   while( next != NULL && next->key != NULL && strcmp( key, next->key ) > 0 ) {
     last = next;
@@ -111,12 +115,12 @@ void ht_set( hashtable_t *hashtable, char *key, char *value ) {
 
     /* Nope, could't find it.  Time to grow a pair. */
   } else {
-    newpair = ht_newpair( key, value );
+    newpair = cache_newpair( key, value );
 
     /* We're at the start of the linked list in this bin. */
-    if( next == hashtable->table[ bin ] ) {
+    if( next == cache->table[ bin ] ) {
       newpair->next = next;
-      hashtable->table[ bin ] = newpair;
+      cache->table[ bin ] = newpair;
 	
       /* We're at the end of the linked list in this bin. */
     } else if ( next == NULL ) {
@@ -131,14 +135,14 @@ void ht_set( hashtable_t *hashtable, char *key, char *value ) {
 }
 
 /* Retrieve a key-value pair from a hash table. */
-char *ht_get( hashtable_t *hashtable, char *key ) {
+char* cache_get( addressCache cache, char *key ) {
   int bin = 0;
-  entry_t *pair;
+  cacheEntry pair;
 
-  bin = ht_hash( hashtable, key );
+  bin = cache_hash( cache, key );
 
   /* Step through the bin, looking for our value. */
-  pair = hashtable->table[ bin ];
+  pair = cache->table[ bin ];
   while( pair != NULL && pair->key != NULL && strcmp( key, pair->key ) > 0 ) {
     pair = pair->next;
   }
@@ -150,7 +154,6 @@ char *ht_get( hashtable_t *hashtable, char *key ) {
   } else {
     return pair->value;
   }
-	
 }
 
 
