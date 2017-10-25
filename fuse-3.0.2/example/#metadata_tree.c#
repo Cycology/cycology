@@ -36,7 +36,7 @@ int addToCache(pageKey key, writeablePage destination) {
 }
 
 void updateIndirectPointer(cachedPage indirectPage, pageKey key,  page_addr destAddress) {
-  int posToUpdate = (key->dataOffset - indirectPage->dataOffset) / POINTER_SIZE;
+  int posToUpdate = (key->dataOffset - indirectPage->dataOffset) / PAGE_SIZE;
   // Write destAddress in this location
   // 
 }
