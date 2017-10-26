@@ -59,7 +59,7 @@ passthroughBlocked_fh-passthroughBlocked_fh.o: passthroughBlocked_fh.c \
  /usr/include/x86_64-linux-gnu/sys/time.h \
  /usr/include/x86_64-linux-gnu/sys/xattr.h \
  /usr/include/x86_64-linux-gnu/sys/file.h vNANDlib.h fuseLogging.h \
- loggingDiskFormats.h helper.h
+ loggingDiskFormats.h helper.h logs.h
 
 /usr/include/stdc-predef.h:
 
@@ -230,3 +230,5 @@ fuseLogging.h:
 loggingDiskFormats.h:
 
 helper.h:
+
+logs.h:

@@ -130,20 +130,20 @@ static void xmp_destroy(void *private_data)
 
   struct fullPage page;
 
-  readNAND( &page, 0 );
+  readNAND( (char *) &page, 0 );
 
   superPage superBlock = (superPage) &page.contents;
 
   superBlock->freeLists = state->lists;
 
-  writeNAND( &page, 0, 1);
+  writeNAND( (char *) &page, 0, 1);
   
   page_addr mapPage = superBlock->latest_vaddr_map;
 
   int mapSize = sizeof( struct addrMap) + state->vaddrMap->size*sizeof(page_addr);
   memcpy( &page.contents, state->vaddrMap, mapSize );
 
-  writeNAND( &page, mapPage, 1);
+  writeNAND( (char *) &page, mapPage, 1);
   
 
   /* //retrieve CYCstate */
@@ -417,6 +417,7 @@ static int xmp_unlink(const char *path)
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
 	
+<<<<<<< HEAD:fuse-3.0.2/example/#passthroughBlocked_fh.c#
   //read stub file for fileID
   page_vaddr fileID = readStubFile(fullPath);
 
@@ -448,11 +449,46 @@ static int xmp_unlink(const char *path)
     if (lastLogH->content.file.fileCount == 0) {
       struct freeList freeList = state->lists;
       if (lastLogH->total == 1) {  //only 1 block in this log
+=======
+	//read stub file for fileID
+	page_vaddr fileID = readStubFile(fullPath);
+
+	//check if there is any openFile
+	openFile oFile = state->cache->openFileTable[fileID];
+
+	//last link to file, no openFile
+	if (oFile == NULL) {
+	  //Go to logHeader of this file
+	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+	  char page[sizeof (struct fullPage)];
+	  readNAND(page, logHeaderAddr);
+	  logHeader logH = (logHeader)page;
+
+	  //Go to last written logHeader
+	  page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
+	  char page2[sizeof (struct fullPage)];
+	  readNAND(page2, lastHeaderAddr);
+	  logHeader lastLogH;
+	  lastLogH = (logHeader)page2;
+
+	  /*remove fileID from log's ID list.
+	   *Always remove from index 0 since for now,
+	   *there's only 1 file per log
+	   */
+	  lastLogH->content.file.fileCount--;
+	  lastLogH->content.file.fileId[0] = 0;
+
+	  //if there's no more file in the log, recycle!
+	  if (lastLogH->content.file.fileCount == 0) {
+	    struct freeList freeList = state->lists;
+	    if (lastLogH->total == 1) {  //only 1 block in this log
+>>>>>>> master:#passthroughBlocked_fh.c#
 	      
 	if (lastLogH->active <= BLOCKSIZE - 3) {
 	  if (freeList.partialTail == 0) { //pList is empty
 	    freeList.partialHead = lastHeaderAddr + 1;
 		  
+<<<<<<< HEAD:fuse-3.0.2/example/#passthroughBlocked_fh.c#
 	  } else {                         //pList is not empty
 	    //make current last block points to new last block
 	    struct fullPage fPage;
@@ -462,6 +498,18 @@ static int xmp_unlink(const char *path)
 	  }
 	  //change tail pointer
 	  freeList.partialTail = lastHeaderAddr + 1;
+=======
+		} else {                         //pList is not empty
+		  //make current last block points to new last block
+		  char buf[sizeof (struct fullPage)];
+		  readNAND(buf, freeList.partialTail);
+		  fullPage fPage = (fullPage) buf;
+		  fPage->nextLogBlock = lastHeaderAddr + 1;
+		  writeNAND(buf, freeList.partialTail, 1);
+		}
+		//change tail pointer
+		freeList.partialTail = lastHeaderAddr + 1;
+>>>>>>> master:#passthroughBlocked_fh.c#
 		
 	} else {  //put in cList
 	  if (freeList.completeTail == 0) { //cList is empty
@@ -706,11 +754,18 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
   memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
   buf->page.pageType = PTYPE_INODE;
 
+<<<<<<< HEAD:fuse-3.0.2/example/#passthroughBlocked_fh.c#
   writeNAND( &(buf->page), buf->address, 0);
 	
   // I HAVE A FEELING THERE SHOULD BE A free(buf) HERE!!! - Tom 9/12/17
 	
   return 0;
+=======
+	writeNAND((char*)&(buf->page), buf->address, 0);
+	
+	      
+	return 0;
+>>>>>>> master:#passthroughBlocked_fh.c#
 }
 
 static int xmp_open(const char *path, struct fuse_file_info *fi)
@@ -730,6 +785,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
   //verify access rights
 	
 
+<<<<<<< HEAD:fuse-3.0.2/example/#passthroughBlocked_fh.c#
   /*check if there is an existing openFile for the file
    *if not, create new openFile
    */
@@ -742,6 +798,20 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
     logHeader logH = (logHeader) &(page.contents);
     inode ind = &(logH->content.file.fInode);
     page_vaddr logID = ind->i_log_no;
+=======
+	/*check if there is an existing openFile for the file
+	 *if not, create new openFile
+	 */
+	openFile oFile = state->cache->openFileTable[fileID];
+	if (oFile == NULL) {
+	  //plug in file id no into vaddr map; retrieve logHeader then inode
+	  page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+	  fullPage page;
+	  readNAND((char*)page, logHeaderAddr);
+	  logHeader logH = (logHeader) (page->contents);
+	  inode ind = &(logH->content.file.fInode);
+	  page_vaddr logID = ind->i_log_no;
+>>>>>>> master:#passthroughBlocked_fh.c#
 		    
 
 
@@ -752,6 +822,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       //locate address of last written logHeader
       page_addr lastHeaderAddr = state->vaddrMap->map[logID];
 	    
+<<<<<<< HEAD:fuse-3.0.2/example/#passthroughBlocked_fh.c#
       activeLog log = (activeLog) malloc(sizeof (struct activeLog));
       initActiveLog(log, lastHeaderAddr + 1);
       state->cache->openFileTable[logID] = (openFile) log;	  
@@ -766,6 +837,22 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       //increment activelog reference count
       log->fileCount++;
     }	  
+=======
+	    activeLog log = (activeLog) malloc(sizeof (struct activeLog));
+	    initActiveLog(log, lastHeaderAddr + 1);
+	    state->cache->openFileTable[logID] = (openFile) log;	  
+
+	    //read in lastHeaderAddr
+	    if(lastHeaderAddr != logHeaderAddr) {
+	      fullPage page2;
+	      readNAND((char*)page2,lastHeaderAddr);
+	      logHeader logH2 = (logHeader)(page2->contents); //not sure what to read in if ind is already gotten
+	    }
+
+	    //increment activelog reference count
+	    log->fileCount++;
+	  }	  
+>>>>>>> master:#passthroughBlocked_fh.c#
 	
     //make a new openFile
     oFile = (openFile) malloc(sizeof (struct openFile));

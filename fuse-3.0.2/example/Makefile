@@ -107,7 +107,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(noinst_HEADERS) \
-	$(am__DIST_COMMON)
+	$(passthroughBlocked_fh_HEADERS) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/include/config.h
 CONFIG_CLEAN_FILES =
@@ -175,6 +175,7 @@ passthrough_DEPENDENCIES = ../lib/libfuse3.la
 am_passthroughBlocked_fh_OBJECTS =  \
 	passthroughBlocked_fh-passthroughBlocked_fh.$(OBJEXT) \
 	passthroughBlocked_fh-helper.$(OBJEXT) \
+	passthroughBlocked_fh-logs.$(OBJEXT) \
 	passthroughBlocked_fh-vNANDlib.$(OBJEXT)
 passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
@@ -255,7 +256,35 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-HEADERS = $(noinst_HEADERS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(passthroughBlocked_fhdir)"
+HEADERS = $(noinst_HEADERS) $(passthroughBlocked_fh_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -405,9 +434,12 @@ target_vendor = unknown
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
+AM_CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declarations -Wwrite-strings -g -O0 -fno-strict-aliasing
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c vNANDlib.c
+passthroughBlocked_fhdir = .
+passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c 
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
 showNAND_SOURCES = showNAND.c vNANDlib.c
@@ -561,6 +593,7 @@ include ./$(DEPDIR)/notify_store_retrieve.Po
 include ./$(DEPDIR)/null.Po
 include ./$(DEPDIR)/passthrough.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-helper.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-logs.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
 include ./$(DEPDIR)/passthrough_fh.Po
@@ -636,6 +669,20 @@ passthroughBlocked_fh-helper.obj: helper.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-helper.obj `if test -f 'helper.c'; then $(CYGPATH_W) 'helper.c'; else $(CYGPATH_W) '$(srcdir)/helper.c'; fi`
 
+passthroughBlocked_fh-logs.o: logs.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-logs.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-logs.Tpo -c -o passthroughBlocked_fh-logs.o `test -f 'logs.c' || echo '$(srcdir)/'`logs.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-logs.Tpo $(DEPDIR)/passthroughBlocked_fh-logs.Po
+#	$(AM_V_CC)source='logs.c' object='passthroughBlocked_fh-logs.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-logs.o `test -f 'logs.c' || echo '$(srcdir)/'`logs.c
+
+passthroughBlocked_fh-logs.obj: logs.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-logs.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-logs.Tpo -c -o passthroughBlocked_fh-logs.obj `if test -f 'logs.c'; then $(CYGPATH_W) 'logs.c'; else $(CYGPATH_W) '$(srcdir)/logs.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-logs.Tpo $(DEPDIR)/passthroughBlocked_fh-logs.Po
+#	$(AM_V_CC)source='logs.c' object='passthroughBlocked_fh-logs.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-logs.obj `if test -f 'logs.c'; then $(CYGPATH_W) 'logs.c'; else $(CYGPATH_W) '$(srcdir)/logs.c'; fi`
+
 passthroughBlocked_fh-vNANDlib.o: vNANDlib.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-vNANDlib.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo -c -o passthroughBlocked_fh-vNANDlib.o `test -f 'vNANDlib.c' || echo '$(srcdir)/'`vNANDlib.c
 	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Tpo $(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
@@ -669,6 +716,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-passthroughBlocked_fhHEADERS: $(passthroughBlocked_fh_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(passthroughBlocked_fh_HEADERS)'; test -n "$(passthroughBlocked_fhdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(passthroughBlocked_fhdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(passthroughBlocked_fhdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(passthroughBlocked_fhdir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(passthroughBlocked_fhdir)" || exit $$?; \
+	done
+
+uninstall-passthroughBlocked_fhHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(passthroughBlocked_fh_HEADERS)'; test -n "$(passthroughBlocked_fhdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(passthroughBlocked_fhdir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -756,6 +824,9 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(HEADERS)
 installdirs:
+	for dir in "$(DESTDIR)$(passthroughBlocked_fhdir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -809,7 +880,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-passthroughBlocked_fhHEADERS
 
 install-dvi: install-dvi-am
 
@@ -855,7 +926,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-passthroughBlocked_fhHEADERS
 
 .MAKE: install-am install-strip
 
@@ -866,12 +937,14 @@ uninstall-am:
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-info-am install-man \
+	install-passthroughBlocked_fhHEADERS install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am
+	tags tags-am uninstall uninstall-am \
+	uninstall-passthroughBlocked_fhHEADERS
 
 .PRECIOUS: Makefile
 
