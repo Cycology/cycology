@@ -33,8 +33,8 @@ int readIntoCache(page_addr address, pageKey key) {
     cache_evictLru(cache);
   } 
 
-  cachedPage page = initCachedPage(page);
-  if (readNAND(page->contents, address) == SUCCESS) {
+  cachedPage page = initCachedPage();
+  if (readNAND(&page->contents, address) == SUCCESS) {
     return -1;
   }
   cache_set(cache, key, page);
@@ -43,6 +43,7 @@ int readIntoCache(page_addr address, pageKey key) {
 }
 
 int getNumPagesPerPointerAtLevel(openFile file, int level) {
+  // Error; fix 
   if (level == file.tree_height) {
     return pow(INDIRECT_POINTERS, level - 2) * INODE_POINTERS;
   } else {
@@ -67,6 +68,7 @@ page_addr extractAddress(cachedPage parent, pageKey key) {
 cachedPage allocatePage(page_addr address, pageKey key) {
   // TODO: Returns a blank indirect page for now. Is this okay?
   cachedPage page = initCachedPage(page);
+  cache_set(key, page);
   return page;
 }
 
