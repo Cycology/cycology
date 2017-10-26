@@ -1,0 +1,34 @@
+// Joseph Oh
+
+struct pageKey {
+  
+}
+
+int hash(openFile file, int dataOffset, int levelsAbove) {
+
+}
+
+int checkCache(openFile file, int dataOffset, int levelsAbove) {
+
+}
+
+int readIntoCache(page_addr address, openFile file, int dataOffset, int levelsAbove) {
+
+}
+
+page_addr extractAddress(cachedPage parent, openFile file, int dataOffset, int levelsAbove) {
+
+}
+
+void allocatePageInCache(page_addr address, openFile file, int dataOffset, int levelsAbove) {
+  
+}
+
+int addToCache(openFile file, int dataOffset, int ???, writeablePage destination) {
+
+}
+
+void updateIndirectPointer(cachedPage indirectPage, openFile file, int dataOffset, writeablePage destAddress) {
+  int 
+}
+

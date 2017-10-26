@@ -1,3 +1,4 @@
+// TODO: Comment these
 
 void initCYCstate(CYCstate state);
 

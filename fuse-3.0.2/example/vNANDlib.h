@@ -51,7 +51,7 @@ int writeNAND( fullPage buf, page_addr k, int random_access);
   POST:
   returns eraseCount; erases block
  */
-int eraseNAND(block_addr b);
+int eraseNAND(page_addr k);
 
 //POST: close NAND file; free nandFeatures field
 void stopNAND(void);
