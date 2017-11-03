@@ -13,20 +13,24 @@
 #include "fuseLogging.h"
 #include "lruFileList.c"
 
+#define HASH_SIZE 1000;
+
 typedef struct cacheEntry {
-  char *key;
-  page_addr value;
+  pageKey key;
+  writeablePage value;
+  
   cacheEntry next;
   
 } *cacheEntry;
 
 typedef struct addressCache {
+  int MAX_SIZE;
   int size;
   struct cacheEntry **table;
   struct lruFileList *lruList;
   
 } *addressCache;
-
+ 
 
 /* Create a new hashtable. */
 addressCache *cache_create( int size ) {
@@ -37,26 +41,28 @@ addressCache *cache_create( int size ) {
   if (size < 1) { return NULL; }
 
   /* Allocate the table itself. */
-  if ((cache = malloc( sizeof(struct addressCache))) == NULL) {
+  if ( ( cache = malloc( sizeof( struct addressCache ) ) ) == NULL ) {
     return NULL;
   }
 
   /* Allocate pointers to the head nodes. */
-  if( ( cache->table = malloc( sizeof( cacheEntry ) * size ) ) == NULL ) {
+  if( ( cache->table = malloc( sizeof( struct cacheEntry ) * size ) ) == NULL ) {
     return NULL;
   }
   for( i = 0; i < size; i++ ) {
     cache->table[i] = NULL;
   }
 
-  cache->size = size;
+  cache->size = 0;
+  cache->MAX_SIZE = size;
 
   return cache;	
 }
 
 /* Hash a string for a particular hash table. */
-int cache_hash( addressCache cache, char *key ) {
-
+int cache_hash( addressCache cache, pageKey page_key ) {
+  char* key = page_key->file->name + page_key->offset + page_key->levelsAbove;
+  
   unsigned long int hashval;
   int i = 0;
 
@@ -67,34 +73,40 @@ int cache_hash( addressCache cache, char *key ) {
     i++;
   }
 
-  return hashval % cache->size;
+  return hashval % HASH_SIZE;
+}
+
+/* Evict the LRU file from the cache */
+void cache_evict( addressCache cache ) {
+  
 }
 
 /* Create a key-value pair. */
-cacheEntry ht_newpair( char *key, char *value ) {
-  cacheEntry newpair;
+cacheEntry cache_newentry( addressCache cache, pageKey key, writeablePage wp ) {
+  cacheEntry newentry;
 
-  if( ( newpair = malloc( sizeof( struct cacheEntry ) ) ) == NULL ) {
+  if ( cache->size >= cache->MAX_SIZE ) {
+    cache_evict(cache);
+  }
+
+  if( ( newentry = malloc( sizeof( struct cacheEntry ) ) ) == NULL ) {
     return NULL;
   }
 
-  if( ( newpair->key = strdup( key ) ) == NULL ) {
-    return NULL;
-  }
+  // TODO: Check the pointer assignments???
+  newentry->key = key;
+  newentry->value = wp;
+  newentry->next = NULL;
 
-  if( ( newpair->value = strdup( value ) ) == NULL ) {
-    return NULL;
-  }
+  cache->size++;
 
-  newpair->next = NULL;
-
-  return newpair;
+  return newentry;
 }
 
 /* Insert a key-value pair into a hash table. */
-void cache_set( addressCache cache, char *key, char *value ) {
+void cache_set( addressCache cache, pageKey key, writeablePage wp ) {
   int bin = 0;
-  cacheEntry newpair = NULL;
+  cacheEntry newentry = NULL;
   cacheEntry next = NULL;
   cacheEntry last = NULL;
 
@@ -109,33 +121,33 @@ void cache_set( addressCache cache, char *key, char *value ) {
 
   /* There's already a pair.  Let's replace that string. */
   if( next != NULL && next->key != NULL && strcmp( key, next->key ) == 0 ) {
-
+    // TODO: Check pointer assignment
     free( next->value );
-    next->value = strdup( value );
-
+    next->value = wp;
+    
     /* Nope, could't find it.  Time to grow a pair. */
   } else {
-    newpair = cache_newpair( key, value );
+    newentry = cache_newentry( cache, key, wp );
 
     /* We're at the start of the linked list in this bin. */
     if( next == cache->table[ bin ] ) {
-      newpair->next = next;
-      cache->table[ bin ] = newpair;
+      newentry->next = next;
+      cache->table[ bin ] = newentry;
 	
       /* We're at the end of the linked list in this bin. */
     } else if ( next == NULL ) {
-      last->next = newpair;
+      last->next = newentry;
 	
       /* We're in the middle of the list. */
     } else  {
-      newpair->next = next;
-      last->next = newpair;
+      newentry->next = next;
+      last->next = newentry;
     }
   }
 }
 
 /* Retrieve a key-value pair from a hash table. */
-char* cache_get( addressCache cache, char *key ) {
+cacheEntry cache_get( addressCache cache, pageKey key ) {
   int bin = 0;
   cacheEntry pair;
 
@@ -159,17 +171,17 @@ char* cache_get( addressCache cache, char *key ) {
 
 int main( int argc, char **argv ) {
 
-  hashtable_t *hashtable = ht_create( 65536 );
+  hashtable_t *hashtable = cache_create( 65536 );
 
-  ht_set( hashtable, "key1", "inky" );
-  ht_set( hashtable, "key2", "pinky" );
-  ht_set( hashtable, "key3", "blinky" );
-  ht_set( hashtable, "key4", "floyd" );
+  cache_set( hashtable, "key1", "inky" );
+  cache_set( hashtable, "key2", "pinky" );
+  cache_set( hashtable, "key3", "blinky" );
+  cache_set( hashtable, "key4", "floyd" );
 
-  printf( "%s\n", ht_get( hashtable, "key1" ) );
-  printf( "%s\n", ht_get( hashtable, "key2" ) );
-  printf( "%s\n", ht_get( hashtable, "key3" ) );
-  printf( "%s\n", ht_get( hashtable, "key4" ) );
+  printf( "%s\n", cache_get( hashtable, "key1" ) );
+  printf( "%s\n", cache_get( hashtable, "key2" ) );
+  printf( "%s\n", cache_get( hashtable, "key3" ) );
+  printf( "%s\n", cache_get( hashtable, "key4" ) );
 
   return 0;
 }
