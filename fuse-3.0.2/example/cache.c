@@ -16,18 +16,36 @@
 #define HASH_SIZE 1000;
 
 typedef struct cacheEntry {
+  // Content fields
   pageKey key;
   writeablePage value;
-  
   cacheEntry next;
+
+  // Global LRU data pages list
+  cacheEntry lruDataNext;
+  cacheEntry lruDataPrev;
+
+  // OpenFile's data pages list
+  cacheEntry dataNext;
+  
+  // OpenFile's dirty parent pages list
+  cacheEntry metaNext;
   
 } *cacheEntry;
 
 typedef struct addressCache {
-  int MAX_SIZE;
+  int MAX_SIZE;               
   int size;
-  struct cacheEntry **table;
-  struct lruFileList *lruList;
+  
+  struct cacheEntry **table;  /* Actual data table of the cacheEntries */
+
+  // Global LRU data pages list
+  cacheEntry lruDataHead;     
+  cacheEntry lruDataTail;
+
+  // Global LRU openFiles list
+  openFile lruFileHead;       
+  openFile lruFileTail;
   
 } *addressCache;
  
