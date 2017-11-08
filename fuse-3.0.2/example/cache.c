@@ -15,21 +15,31 @@
 
 #define HASH_SIZE 1000;
 
+typedef struct pageKey {
+  struct openFile file;
+  int dataOffset;
+  int levelsAbove;
+  
+} *pageKey;
+
 typedef struct cacheEntry {
   // Content fields
   pageKey key;
-  writeablePage value;
+  writeablePage wp;
   cacheEntry next;
+  bool dirty;
 
   // Global LRU data pages list
   cacheEntry lruDataNext;
   cacheEntry lruDataPrev;
 
   // OpenFile's data pages list
-  cacheEntry dataNext;
+  cacheEntry fileDataNext;
+  cacheEntry fileDataPrev; // TODO: Possibly remove when removing just data (global lru)
   
   // OpenFile's dirty parent pages list
-  cacheEntry metaNext;
+  cacheEntry fileMetadataNext;
+  cacheEntry fileMetadataPrev;
   
 } *cacheEntry;
 
@@ -94,9 +104,19 @@ int cache_hash( addressCache cache, pageKey page_key ) {
   return hashval % HASH_SIZE;
 }
 
+
 /* Evict the LRU file from the cache */
 void cache_evict( addressCache cache ) {
+  openFile lruFile = cache->lruFileTail;
+
+  // Flush out data pages
+  flushData_FileDataList(cache, lruFile);
+
+  // Flush out metadata pages
+  flushMetadata_FileDataList(cache, lruFile);
   
+  // Remove file from LRU file list
+  remove_LruFileList(cache, lruFile);
 }
 
 /* Create a key-value pair. */
@@ -113,8 +133,15 @@ cacheEntry cache_newentry( addressCache cache, pageKey key, writeablePage wp ) {
 
   // TODO: Check the pointer assignments???
   newentry->key = key;
-  newentry->value = wp;
+  newentry->wp = wp;
   newentry->next = NULL;
+  newentry->dirty = false;
+  newentry->lruDataNext = NULL;
+  newentry->lruDataPrev = NULL;
+  newentry->fileDataNext = NULL;
+  newentry->fileDataPrev = NULL;
+  newentry->fileMetadataNext = NULL;
+  newentry->fileMetadataPrev = NULL;
 
   cache->size++;
 
@@ -122,7 +149,7 @@ cacheEntry cache_newentry( addressCache cache, pageKey key, writeablePage wp ) {
 }
 
 /* Insert a key-value pair into a hash table. */
-void cache_set( addressCache cache, pageKey key, writeablePage wp ) {
+void cache_set( addressCache cache, pageKey key, writeablePage wp, bool isWrite) {
   int bin = 0;
   cacheEntry newentry = NULL;
   cacheEntry next = NULL;
@@ -140,8 +167,13 @@ void cache_set( addressCache cache, pageKey key, writeablePage wp ) {
   /* There's already a pair.  Let's replace that string. */
   if( next != NULL && next->key != NULL && strcmp( key, next->key ) == 0 ) {
     // TODO: Check pointer assignment
-    free( next->value );
-    next->value = wp;
+    free( next->wp );
+    next->wp = wp;
+
+    // Update the LRU Data list
+    if (key->levelsAbove == 0) {
+      updateHead_LruDataList(cache, next);
+    }
     
     /* Nope, could't find it.  Time to grow a pair. */
   } else {
@@ -182,7 +214,7 @@ cacheEntry cache_get( addressCache cache, pageKey key ) {
     return NULL;
 
   } else {
-    return pair->value;
+    return pair->wp;
   }
 }
 

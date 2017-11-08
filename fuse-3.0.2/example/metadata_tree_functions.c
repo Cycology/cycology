@@ -1,56 +1,40 @@
 // Tom Murtagh
 // Joseph Oh
 
+// TODO: Split file into cache.c, lru.c, openFile.c
+
 #include "cache.c"
 #include "loggingDiskFormats.h"
-
-typedef struct pageKey {
-  struct openFile file;
-  int dataOffset;
-  int levelsAbove;
-} *pageKey;
-
 
 
 /*** getPage() ***/
 
 /* Return new key with levelsAbove incremented by 1 */
 pageKey getParentKey(pageKey childKey) {
-  pageKey parentKey;
+  // TODO: Check malloc() call here
+  pageKey parentKey = malloc( sizeof (struct pageKey) );
   parentKey->file = childKey->file;
   parentKey->dataOffset = childKey->dataOffset;
   parentKey->levelsAbove = childKey->levelsAbove + 1;
   return parentKey;
 }
 
-/* Read in the fullPage from disk if it already exists */
-int readFromDiskIntoPage(page_addr address, writeablePage desired) {
-  return readNAND(desired->nandPage, address);
-}
+/* Read a writeablePage into the cache from the given NAND address */
+cacheEntry readIntoCache(page_addr address, pageKey key) {
+  writeablePage wp = malloc( sizeof (struct writeablePage) );
 
-writeablePage newWriteablePage() {
-  return malloc( sizeof( struct writeablePage ) );
-}
-
-/* Put the desired page into the cache */
-writeablePage putInCache(page_addr address, pageKey key) {
-  writeablePage desired = newWriteablePage();
+  // Read from disk into page
   if (address != 0) {
-    if (readFromDiskIntoPage(address, desired) != 0) {
-      // TODO: Handle read errors
-    }
+    // TODO: Handle read errors
+    readNAND(wp->nandPage, address);
   }
-  cache_set(cache, key, desired);
+  cacheEntry entry = cache_set(cache, key, wp);
   
-  return desired;
-}
-
-bool isInode(desiredKey) {
-  return (desiredKey->levelsAbove == desiredKey->file->inode->treeHeight);
+  return entry;
 }
 
 /* Get the physical address of the given data page from the parent indirect page */
-int getAddressFromParent(writeablePage parent, pageKey desiredKey) {
+int getAddressFromParent(cacheEntry parent, pageKey desiredKey) {
   int parentStartOffset = getStartOfRange(desiredKey);
   int pages_per_pointer = getNumPagesPerPointerAtLevel(desiredKey->file,
 						       desiredKey->levelsAbove + 1);
@@ -65,22 +49,28 @@ int getAddressFromParent(writeablePage parent, pageKey desiredKey) {
 }
 
 /* Return the requested page from cache memory */
-writeablePage getPage(pageKey desiredKey) {
-  if (isInode(desiredKey)) {
+cacheEntry getPage(pageKey desiredKey) {
+  int maxFileHeight = desiredKey->file->inode->treeHeight;
+
+  if (desiredKey->levelsAbove > maxFileHeight) {
+    return NULL;
+
+  } else if (desiredKey->levelsAbove == maxFileHeight) {
     // TODO: Should store a pointer to the writeablePage of the latest inode instead
     //       Thus should get it from the cache
     return desiredKey->file->inode;
+
   } else {
-    writeablePage desired = cache_get(cache, key);
+    cacheEntry desired = cache_get(cache, key);
 
     // Page is not in cache
     if (desired == null) {
       // TODO: getParentKey should shift the offset to the parent page's unique offset
       pageKey parentKey = getParentKey(desiredKey);
-      writeablePage parent = getPage(parentKey);
+      cacheEntry parent = getPage(parentKey);
       
       page_addr desiredAddr = getAddressFromParent(parent, desiredKey);
-      desired = putInCache(desiredAddr, desiredKey);
+      desired = readIntoCache(desiredAddr, desiredKey);
     }
 
     return desired;
@@ -91,14 +81,6 @@ writeablePage getPage(pageKey desiredKey) {
 
 
 /*** writeData() ***/
-
-/* Write the physical address of the data page to its parent indirect page */
-void updateParentPage(writeablePage parentPage, pageKey childKey,  page_addr childAddress) {
-  // TODO: Write functions to get the dataOffset of the parent indirect page
-  int posToUpdate = ((childKey->dataOffset - parentPage->dataOffset)
-		     / POINTER_SIZE) * POINTER_SIZE;
-  parentPage->nandPage.contents[posToUpdate] = childAddress;
-}
 
 /* Return address of the first free page of the first free block [PUFL only] */
 int consumeFreeBlock(activeLog log, int preferCUFL) {
@@ -160,12 +142,8 @@ void lastPageOps(writeablePage freePage, activeLog log) {
   freePage->page.nextBlockErases = log->lastErases;    
 }
 
-/*
- * gets the next free page in a log
- * would have to call getFreeBlock, fill in the fields if necessary
- * updates active pages in logHeader
- */
-void setAsFreePage(writeablePage freePage, activeLog log) {
+/* Allocate a new writeablePage from the log */
+void allocateFreePage(writeablePage freePage, activeLog log) {
   // Assign freePage to the next free NAND address
   freePage->address = log->nextPage;
 
@@ -187,27 +165,59 @@ void setAsFreePage(writeablePage freePage, activeLog log) {
   log->log.active++;
 }
 
-/* Write the data into the wp, and prepare it for writing out to NAND */
-void writeDataIntoPage(writeablePage wp, pageKey key, char* data) {
-  setAsFreePage(wp, key->file->log);
-  memcpy(wp->nandPage.contents, data, sizeof(wp->nandPage.contents));
+/* Create a writeable page that is ready to be written to NAND */
+writeablePage newWriteablePage(pageKey key, char* data) {
+  writeablePage wp = (writeablePage) malloc( sizeof( struct writeablePage ) );
+  allocateFreePage(wp, key->file->log);
+  memcpy(wp->nandPage.contents, data, sizeof(wp->nandPage.contents));  
+
+  return wp;
+}
+
+/* Adds entry to the cache and updates metadata lists */
+cacheEntry putDataPageInCache(writeablePage dataPage, pageKey key) {
+  // Add/update to cache
+  cacheEntry entry = cache_set(cache, key, dataPage);
+
+  // Update OpenFile's data page linked list
+  openFile_addDataPage(key->file, entry);
+  
+  // Update global LRU lists
+  lru_addDataPage(cache, entry);
+  lru_addFile(cache, key->file);
+
+  return entry;
+}
+
+/* Write the physical address of the data page to its parent indirect page */
+void updateParentPageInCache(pageKey childKey,  page_addr childAddress, bool dirty) {
+  // Get the parent page
+  pageKey parentKey = getParentKey(childKey);
+  cacheEntry parentPage = getPage(parentKey);
+  
+  if (parentPage == NULL) {
+    return;
+  }
+
+  // TODO: Write functions to get the dataOffset of the parent indirect page
+  // Update the child pointer address in the parent
+  int posToUpdate = ((childKey->dataOffset - parentPage->dataOffset)
+		     / POINTER_SIZE) * POINTER_SIZE;
+  parentPage->writeablePage->nandPage.contents[posToUpdate] = childAddress;
+
+  // Add parent page to OpenFile's indirect page linked list
+  parentPage->dirty = dirty;
+  openFile_addIndirectPage(childkey->file, parentPage);
 }
 
 /* Write the given data to the offset in the file */ 
-writeablePage writeData(pageKey key, char * data) {
-  // First write the data into the cache
-  writeablePage wp = newWriteablePage();
-  writeDataIntoPage(wp, key, data);
-  cache_set(key, wp);
+writeablePage writeData(pageKey dataKey, char * data) {
+  writeablePage dataPage = newWriteablePage(dataKey, data);
 
-  // Then write the data out to storage
-  // TODO: Shouldn't we write the data to NAND first before updating metadata? 
-  if (writeNAND( &wp->nandPage, wp->address, 0 ) < 0) {
-    // TODO: ERROR
-  }
+  writeNAND(&dataPage->nandPage, dataPage->address, 0); // TODO: Error checking
 
-  // Update indirect pointer 1 level above data
-  pageKey parentKey = getParentKey(key);
-  writeablePage parentPage = getPage(parentKey);
-  updateParentPage(parentPage, key, wp->address);
+  putDataPageInCache(dataPage, dataKey);
+  updateParentPageInCache(dataKey, dataPage->address, dirty);
+
+  return dataPage;
 }
