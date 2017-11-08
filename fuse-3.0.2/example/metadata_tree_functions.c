@@ -7,7 +7,12 @@
 #include "loggingDiskFormats.h"
 
 
-/*** getPage() ***/
+/*************************************************************
+ *
+ * getPage()
+ *
+ *************************************************************/
+
 
 /* Return new key with levelsAbove incremented by 1 */
 pageKey getParentKey(pageKey childKey) {
@@ -78,9 +83,11 @@ cacheEntry getPage(pageKey desiredKey) {
 }
 
 
-
-
-/*** writeData() ***/
+/*************************************************************
+ *
+ * writeData()
+ *
+ *************************************************************/
 
 /* Return address of the first free page of the first free block [PUFL only] */
 int consumeFreeBlock(activeLog log, int preferCUFL) {
@@ -142,7 +149,7 @@ void lastPageOps(writeablePage freePage, activeLog log) {
   freePage->page.nextBlockErases = log->lastErases;    
 }
 
-/* Allocate a new writeablePage from the log */
+/* Allocate a free NAND address from the log into the given writeablePage */
 void allocateFreePage(writeablePage freePage, activeLog log) {
   // Assign freePage to the next free NAND address
   freePage->address = log->nextPage;
@@ -207,7 +214,7 @@ void updateParentPageInCache(pageKey childKey,  page_addr childAddress, bool dir
 
   // Add parent page to OpenFile's indirect page linked list
   parentPage->dirty = dirty;
-  openFile_addIndirectPage(childkey->file, parentPage);
+  openFile_addMetadataPage(childkey->file, parentPage);
 }
 
 /* Write the given data to the offset in the file */ 

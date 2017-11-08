@@ -37,7 +37,7 @@ typedef struct cacheEntry {
   cacheEntry fileDataNext;
   cacheEntry fileDataPrev; // TODO: Possibly remove when removing just data (global lru)
   
-  // OpenFile's dirty parent pages list
+  // OpenFile's dirty metadata pages list
   cacheEntry fileMetadataNext;
   cacheEntry fileMetadataPrev;
   
@@ -81,8 +81,13 @@ addressCache *cache_create( int size ) {
     cache->table[i] = NULL;
   }
 
+  /* Initialize data fields */
   cache->size = 0;
   cache->MAX_SIZE = size;
+  lruDataHead = NULL;
+  lruDataTail = NULL;
+  lruFileHead = NULL;
+  lruFileTail = NULL;
 
   return cache;	
 }
@@ -110,13 +115,13 @@ void cache_evict( addressCache cache ) {
   openFile lruFile = cache->lruFileTail;
 
   // Flush out data pages
-  flushData_FileDataList(cache, lruFile);
+  openFile_flushDataPages(lruFile, cache);
 
   // Flush out metadata pages
-  flushMetadata_FileDataList(cache, lruFile);
+  openFile_flushMetadataPages(lruFile, cache);
   
   // Remove file from LRU file list
-  remove_LruFileList(cache, lruFile);
+  lru_removeFile(cache, lruFile);
 }
 
 /* Create a key-value pair. */
@@ -169,11 +174,6 @@ void cache_set( addressCache cache, pageKey key, writeablePage wp, bool isWrite)
     // TODO: Check pointer assignment
     free( next->wp );
     next->wp = wp;
-
-    // Update the LRU Data list
-    if (key->levelsAbove == 0) {
-      updateHead_LruDataList(cache, next);
-    }
     
     /* Nope, could't find it.  Time to grow a pair. */
   } else {

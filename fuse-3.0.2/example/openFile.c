@@ -22,9 +22,10 @@ typedef struct openFile {
   cacheEntry inodeCacheEntry;
 
   // Linked List fields for caching
-  cacheEntry dataHead;     /* Head pointer to the list of cached data pages */
-  cacheEntry metaHead;     /* Head pointer to the list of cached indirect pages
-			      that are the direct parents of the dirty data pages */
+  cacheEntry dataHead;         /* Head pointer to the list of cached data pages */
+  cacheEntry dataTail;
+  cacheEntry metadataHead;     /* Head pointer to the list of cached metadata pages */
+  cachEntry metadataTail;
 
   // Linked List fields for LRU File list
   openFile lruFileNext;
@@ -41,50 +42,48 @@ typedef struct openFile {
 
 } * openFile;
 
+
+/*************************************************************
+ *
+ * DATA PAGE LIST OPERATIONS
+ *
+ *************************************************************/
+
 /* Add the entry to the tail of the data file list */ 
 void openFile_addDataPage(openFile file, cacheEntry entry) {
-  // TODO: Make this a doubly linked list
-
-  // Only add if it doesn't already exist in the list
   if (entry->fileDataNext == NULL && entry->fileDataPrev == NULL) {
-    entry->dataNext = file->dataHead;
-    file->dataHead = entry;
-  }
-}
+    cacheEntry tail = file->dataTail;
 
-/* Add entry to the tail of the file's metadata list */
-void openFile_addIndirectPage(openFile file, cacheEntry entry) {
-  // TODO: Make this a doubly linked list
+    entry->fileDataPrev = tail;
+    entry->fileDataNext = NULL;
 
-  // Only add if it doesn't already exist in the list
-  if (entry->metadataNext == NULL && entry->metadatPrev == NULL) {
-    entry->metadataNext = file->metadataHead;
-    file->metadataHead = entry;
-  }
-}
+    if (tail == NULL) {
+      // List was empty, set head
+      file->dataHead = entry;
+    } else {
+      tail->fileDataNext = entry;
+    }
 
-/* Remove from global LRU Data List */
-cacheEntry lru_removeDataPage(addressCache cache, cacheEntry current) {
-  if (current == cache->lruDataHead) {
-    // If head, then change the head to point to next
-    cache->lruDataHead = current->fileDataNext;
-  } else {
-    // Otherwise bypass current
-    current->lruDataPrev->lruDataNext = current->fileDataNext;
-  }
-
-  if (current == cache->lruDataTail) {
-    // Change the last to point to previous link
-    cache->lruDataTail = current->lruDataPrev;
-  } else {
-    current->fileDataNext->lruDataPrev = current->lruDataPrev;
+    file->dataTail = entry;
   }
 }
 
 /* Remove cacheEntry from OpenFile Data List */
-void openFile_removeDataPage(openFile file) {
-  cacheEntry next = file->dataHead->fileDataNext;
-  file->dataHead = next;
+void openFile_removeDataPage(openFile file, cacheEntry entry) {
+  cacheEntry head = file->dataHead;
+  cacheEntry tail = file->dataTail;
+
+  if (entry == head) {
+    file->dataHead = entry->fileDataNext;
+  } else {
+    entry->fileDataPrev->fileDataNext = entry->fileDataNext;
+  }
+
+  if (entry == tail) {
+    file->dataTail = entry->fileDataPrev;
+  } else {
+    entry->fileDataNext->fileDataPrev = entry->fileDataPrev;
+  }
 }
 
 /* Write out all data pages in the file's data list */
@@ -96,7 +95,7 @@ void openFile_flushDataPages(openFile file, addressCache cache) {
     next = current->fileDataNext;
 
     lru_removeDataPage(cache, current);
-    openFile_removeDataPage(file);
+    openFile_removeDataPage(file, current);
 
     // Move to next node
     free(current);
@@ -104,7 +103,48 @@ void openFile_flushDataPages(openFile file, addressCache cache) {
   }
 }
 
-void openFile_flushIndirectPages(openFile file, addressCache cache) {
+/*************************************************************
+ *
+ * META-DATA PAGE LIST OPERATIONS
+ *
+ *************************************************************/
+
+/* Add entry to the tail of the file's metadata list */
+void openFile_addMetadataPage(openFile file, cacheEntry entry) {
+  // Only add if it doesn't already exist in the list
+  if (entry->fileMetadataNext == NULL && entry->fileMetadataPrev == NULL) {
+    cacheEntry tail = file->metadataTail;
+    if (tail == NULL) {
+      // This is the first entry in the list
+      file->metadataTail = entry;
+      file->metadataHead = entry;
+    } else {
+      tail->fileMetadataNext = entry;
+      entry->fileMetadataPrev = tail;
+      file->metadataTail = entry;
+    }
+  }
+}
+
+/* Remove the entry from the file's metadata pages list */
+void openFile_removeMetadataPage(openFile file, cacheENtry entry) {
+  cacheEntry head = file->metadataHead;
+  cacheEntry tail = file->metadataTail;
+
+  if (entry == head) {
+    file->metadataHead = entry->fileMetadataNext;
+  } else {
+    entry->fileMetadataPrev->fileMetadataNext = entry->fileMetadataNext;
+  }
+
+  if (entry == tail) {
+    file->metadataTail = entry->fileMetadataPrev;
+  } else {
+    entry->fileMetadataNext->fileMetadataPrev = entry->fileMetadataPrev;
+  }
+}
+
+void openFile_flushMetadataPages(openFile file, addressCache cache) {
   cacheEntry current = file->metadataHead;
 
   // Use the metadata linked list as the queue of dirty pages
@@ -119,8 +159,9 @@ void openFile_flushIndirectPages(openFile file, addressCache cache) {
     }
     
     // Remove current metadata page from openFile
-    file->metadataHead = next;
+    openFile_removeMetadataPage(file, current);
 
+    // Put parent pages in queue to be flushed
     updateParentPageInCache(current->key, wp->address, current->dirty);
 
     // Move to next node
