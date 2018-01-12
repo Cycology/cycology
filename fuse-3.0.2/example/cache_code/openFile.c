@@ -1,47 +1,9 @@
-/************************************************************
- *
- * Descriptor kept for each open file
- *
- ***********************************************************/
-typedef struct openFile {
-  int currentOpens;   /* Count of number of active opens */
+#include <stdlib.h>
+#include <stdio.h>
 
-  /* descriptor for log holding first/main extent of file */
-  activeLog mainExtentLog;
-
-  /* Pointer to array of descriptor for active extents
-     reference through the file's triple indirect page
-     (or NULL). If used, entries in the array will be
-     NULL until an extent is referenced.
-  */
-  activeLog *(tripleExtents[EXTENT_PAGES]);
-
-  /* Current inode for the associated file */
-  struct inode inode;
-
-  /* Head pointer to the list of cached data pages */
-  cacheEntry dataHead;         
-  cacheEntry dataTail;
-  /* Head pointer to the list of cached metadata pages. As of now, this list contains all of
-     the metadata pages without any level differentiation. */
-  cacheEntry metadataHead;     
-  cachEntry metadataTail;
-
-  // Linked List fields for LRU File list
-  openFile lruFileNext;
-  openFile lruFilePrev;
-
-  //virtual addr of inode, ie. file ID number
-  page_vaddr address;
-
-  /*flag to signify whether the file has been modified
-    in xmp_write when writing to the file, must set this
-    flag to 1
-  */
-  int modified;
-
-} * openFile;
-
+#include "loggingDiskFormats.h"
+#include "cacheStructs.h"
+#include "cache.h"
 
 /*************************************************************
  *
@@ -86,22 +48,6 @@ void openFile_removeDataPage(openFile file, cacheEntry entry) {
   }
 }
 
-/* Write out all data pages in the file's data list */
-void openFile_flushDataPages(openFile file, addressCache cache) {
-  cacheEntry current = file->dataHead;
-  cacheEntry next;
-  
-  while (current != NULL) {
-    next = current->fileDataNext;
-
-    lru_removeDataPage(cache, current);
-    openFile_removeDataPage(file, current);
-
-    // Move to next node
-    free(current);
-    current = next;
-  }
-}
 
 /*************************************************************
  *
@@ -144,38 +90,20 @@ void openFile_removeMetadataPage(openFile file, cacheEntry entry) {
   }
 }
 
-void openFile_flushMetadataPages(openFile file, addressCache cache) {
-  // Flush dirty metadata pages in lowest-to-highest-level order
-  int max_level = file->inode->treeHeight;
-  for (int level = 1; level < max_level; level++) {
-    cacheEntry current = file->metadataHead;
+/*************************************************************
+ *
+ * PRINT OPERATIONS
+ *
+ *************************************************************/
 
-    // Traverse through the whole list each time
-    while (current != NULL) {
-      cacheEntry next = current->fileMetadataNext;
-
-      if (current->key->levelsAbove == level) {
-	// Write out current metadata page to NAND
-	if (current->dirty) {
-	  writeablePage wp = current->writeablePage;
-	  allocateFreePage(wp, current->key->file->mainExtentLog);
-	  writeNAND(&wp->nandPage, wp->address, 0);
-	}
-    
-	// Remove current metadata page from openFile
-	openFile_removeMetadataPage(file, current);
-
-	// Update the parent page with the written information
-	updateParentPage(current->key, wp->address, current->dirty);
-
-	free(current);
-      }
-      
-      current = next;
-    }
+void openFile_printData(openFile file) {
+  cacheEntry current = file->dataHead;
+  int i = 0;
+  while (current != NULL) {
+    cacheEntry next = current->fileDataNext;    
+    current = next;
+    i++;
   }
+
+  printf("This file has %d data pages in cache.", i);
 }
-
-
-
-

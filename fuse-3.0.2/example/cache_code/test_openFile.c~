@@ -1,0 +1,67 @@
+// Joseph Oh
+
+#include "openFile.c"
+#include "cache.c"
+
+addressCache cache = NULL;
+openFile file = NULL;
+pageKey keys[100];
+int PAGE_SIZE = 4096;
+
+void init() {
+  cache = malloc( sizeof(struct addressCache) );
+  file = malloc( sizeof(struct openFile) );
+
+}
+
+void finish() {
+  free(cache);
+  free(file);
+}
+
+int test_addRemoveData() {  
+  // Add data
+  for (int i = 0; i < 20; i++) {
+    pageKey key = malloc( sizeof(struct pageKey) );
+    key->levelsAbove = 0;
+    key->file = file;
+    key->dataOffset = i*PAGE_SIZE;
+    keys[i] = key;
+    
+    writeablePage wp = malloc( sizeof(struct writeablePage) );
+    cacheEntry entry = cache_set(cache, key, wp);
+
+    openFile_addDataPage(file, entry);
+  }
+
+  openFile_printData(file);
+
+  // Remove data
+  for (int i = 0; i < 20; i++) {
+    pageKey key = keys[i];
+    cacheEntry entry = cache_get(cache, key);
+    
+    openFile_removeDataPage(file, entry);
+  }
+
+  openFile_printData(file);
+}
+
+int test_flushData() {
+
+}
+
+
+int test_addRemoveMetadata() {
+
+}
+
+int test_flushMetadata() {
+
+}
+
+int main() {
+  init();
+  test_addRemoveData();
+  finish();
+}
