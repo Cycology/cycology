@@ -13,9 +13,9 @@ openFile file = NULL;
 pageKey keys[100];
 
 void init() {
-  cache = cache_create(10);
+  cache = cache_create(200);
   file = malloc( sizeof(struct openFile) );
-
+  file->address = 100;
 }
 
 void finish() {

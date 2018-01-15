@@ -1,9 +1,9 @@
 make:
-	gcc -c cache.c
-	gcc -c openFile.c
-	gcc -c filesystem.c
-	gcc -c test_openFile.c
-	gcc -o test_openFile *.o -lm
+	gcc -c -g cache.c
+	gcc -c -g openFile.c
+	gcc -c -g filesystem.c
+	gcc -c -g test_openFile.c
+	gcc -o test *.o -lm
 
 clean:
 	rm *.o
