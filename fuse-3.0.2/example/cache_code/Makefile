@@ -3,7 +3,7 @@ make:
 	gcc -c -g openFile.c
 	gcc -c -g filesystem.c
 	gcc -c -g test_openFile.c
-	gcc -o test *.o -lm
+	gcc -o of_test *.o -lm
 
 clean:
 	rm *.o
