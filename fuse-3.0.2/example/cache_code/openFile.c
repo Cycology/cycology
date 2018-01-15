@@ -15,6 +15,7 @@
 void openFile_addDataPage(openFile file, cacheEntry entry) {
   if (entry->fileDataNext == NULL && entry->fileDataPrev == NULL) {
     cacheEntry tail = file->dataTail;
+    
 
     entry->fileDataPrev = tail;
     entry->fileDataNext = NULL;
