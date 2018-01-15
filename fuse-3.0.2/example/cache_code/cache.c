@@ -65,18 +65,15 @@ int cache_hash( addressCache cache, pageKey page_key ) {
   int length = (int)((ceil(log10(numKey))+1)*sizeof(char));
   char strKey[length];
   sprintf(strKey, "%d", numKey);
-  
-  unsigned long int hashval;
-  int i = 0;
 
-  /* Convert our string to an integer */
-  while( hashval < ULONG_MAX && i < strlen( strKey ) ) {
-    hashval = hashval << 8;
-    hashval += strKey[ i ];
-    i++;
+  unsigned long hash = 5381;
+  int c = 0;
+  int index = 0;
+
+  while ((c = strKey[index])) {
+    hash = ((hash << 5) + hash) + c;
+    index++;
   }
-
-  return hashval % HASH_SIZE;
 }
 
 

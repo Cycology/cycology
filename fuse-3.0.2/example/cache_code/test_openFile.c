@@ -15,10 +15,9 @@ pageKey keys[100];
 
 
 void init() {
-  printf("Begin Init");
-  cache = cache_create(10);
+  cache = cache_create(200);
   file = malloc( sizeof(struct openFile) );
-  printf("Init finished");
+  file->address = 100;
 }
 
 
