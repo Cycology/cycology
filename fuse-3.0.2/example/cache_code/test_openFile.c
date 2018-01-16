@@ -85,16 +85,51 @@ void test_addRemoveMetadata() {
 
 
 void test_flushData() {
+  // Add data
+  for (int i = 0; i < 20; i++) {
+    pageKey key = malloc( sizeof(struct pageKey) );
+    key->levelsAbove = 0;
+    key->file = file;
+    key->dataOffset = i*PAGESIZE;
+    keys[i] = key;
+    
+    writeablePage wp = malloc( sizeof(struct writeablePage) );
+    cacheEntry entry = cache_set(cache, key, wp);
 
+    openFile_addDataPage(file, entry);
+  }
+
+  openFile_printData(file);
+
+  // Flush
+  fs_flushDataPages(cache, file);  
 }
 
 void test_flushMetadata() {
+  // Add Metadata
+  for (int i = 0; i < 20; i++) {
+    pageKey key = malloc( sizeof(struct pageKey) );
+    key->levelsAbove = 1;
+    key->file = file;
+    key->dataOffset = i*PAGESIZE;
+    keys[i] = key;
+    
+    writeablePage wp = malloc( sizeof(struct writeablePage) );
+    cacheEntry entry = cache_set(cache, key, wp);
 
+    openFile_addMetadataPage(file, entry);
+  }
+  
+  openFile_printMetadata(file);
+
+  // Flush
+  fs_flushMetadataPages(cache, file);
 }
 
 int main() {
   init();
   //test_addRemoveData();
-  test_addRemoveMetadata();
+  //test_addRemoveMetadata();
+  test_flushData();
   //  finish();
 }

@@ -384,7 +384,7 @@ void fs_flushDataPages(addressCache cache, openFile file) {
   while (current != NULL) {
     next = current->fileDataNext;
 
-    cache_removeDataPageFromLru(cache, current);
+    //cache_removeDataPageFromLru(cache, current);
     openFile_removeDataPage(file, current);
 
     // Move to next node
