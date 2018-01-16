@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "loggingDiskFormats.h"
 #include "cacheStructs.h"
@@ -413,9 +414,10 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
     
 	// Remove current metadata page from openFile
 	openFile_removeMetadataPage(file, current);
+	printf("Removed page at level: %d\n", current->key->levelsAbove);
 
 	// Update the parent page with the written information
-	fs_updateParentPage(current->key, current->wp->address, current->dirty);
+	// fs_updateParentPage(current->key, current->wp->address, current->dirty);
 
 	free(current);
       }

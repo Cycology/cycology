@@ -18,6 +18,7 @@ void init() {
   cache = cache_create(200);
   file = malloc( sizeof(struct openFile) );
   file->address = 100;
+  file->inode.treeHeight = 4;
 }
 
 
@@ -100,36 +101,47 @@ void test_flushData() {
   }
 
   openFile_printData(file);
+  printf("\n");
 
   // Flush
-  fs_flushDataPages(cache, file);  
+  fs_flushDataPages(cache, file);
+
+  openFile_printData(file);
+  printf("\n");
 }
 
 void test_flushMetadata() {
   // Add Metadata
-  for (int i = 0; i < 20; i++) {
-    pageKey key = malloc( sizeof(struct pageKey) );
-    key->levelsAbove = 1;
-    key->file = file;
-    key->dataOffset = i*PAGESIZE;
-    keys[i] = key;
+  for (int j = 1; j < 4; j++) {
+    for (int i = 0; i < 2; i++) {
+      pageKey key = malloc( sizeof(struct pageKey) );
+      key->levelsAbove = j;
+      key->file = file;
+      key->dataOffset = i*PAGESIZE;
+      keys[i] = key;
     
-    writeablePage wp = malloc( sizeof(struct writeablePage) );
-    cacheEntry entry = cache_set(cache, key, wp);
+      writeablePage wp = malloc( sizeof(struct writeablePage) );
+      cacheEntry entry = cache_set(cache, key, wp);
 
-    openFile_addMetadataPage(file, entry);
+      openFile_addMetadataPage(file, entry);
+    }
   }
   
   openFile_printMetadata(file);
+  printf("\n");
 
   // Flush
   fs_flushMetadataPages(cache, file);
+
+  openFile_printMetadata(file);
+  printf("\n");
 }
 
 int main() {
   init();
   //test_addRemoveData();
   //test_addRemoveMetadata();
-  test_flushData();
-  //  finish();
+  //  test_flushData();
+  test_flushMetadata();
+  finish();
 }
