@@ -108,3 +108,16 @@ void openFile_printData(openFile file) {
 
   printf("This file has %d data pages in cache.", i);
 }
+
+
+void openFile_printMetadata(openFile file) {
+  cacheEntry current = file->metadataHead;
+  int i = 0;
+  while (current != NULL) {
+    cacheEntry next = current->fileMetadataNext;    
+    current = next;
+    i++;
+  }
+
+  printf("This file has %d metadata pages in cache.", i);
+}
