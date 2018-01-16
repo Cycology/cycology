@@ -35,13 +35,11 @@ void test_addRemoveData() {
     key->file = file;
     key->dataOffset = i*PAGESIZE;
     keys[i] = key;
-    printf("PageKey %d created", i);
     
     writeablePage wp = malloc( sizeof(struct writeablePage) );
     cacheEntry entry = cache_set(cache, key, wp);
 
     openFile_addDataPage(file, entry);
-    printf("Added dataPage %d to OF", i);
   }
 
   openFile_printData(file);
@@ -52,7 +50,6 @@ void test_addRemoveData() {
     cacheEntry entry = cache_get(cache, key);
     
     openFile_removeDataPage(file, entry);
-    printf("Removed dataPage %d from OF", i);
   }
 
   openFile_printData(file);
@@ -66,13 +63,11 @@ void test_addRemoveMetadata() {
     key->file = file;
     key->dataOffset = i*PAGESIZE;
     keys[i] = key;
-    printf("PageKey %d created", i);
     
     writeablePage wp = malloc( sizeof(struct writeablePage) );
     cacheEntry entry = cache_set(cache, key, wp);
 
     openFile_addMetadataPage(file, entry);
-    printf("Added MetadataPage %d to OF", i);
   }
 
   openFile_printMetadata(file);
@@ -83,7 +78,6 @@ void test_addRemoveMetadata() {
     cacheEntry entry = cache_get(cache, key);
     
     openFile_removeMetadataPage(file, entry);
-    printf("Removed MetadataPage %d from OF", i);
   }
 
   openFile_printMetadata(file);
@@ -99,7 +93,6 @@ void test_flushMetadata() {
 }
 
 int main() {
-  printf("Hello");
   init();
   //test_addRemoveData();
   test_addRemoveMetadata();
