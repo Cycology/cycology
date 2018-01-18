@@ -73,7 +73,7 @@ int cache_hash( addressCache cache, pageKey page_key ) {
     index++;
   }
 
-  return hash % cache->size;
+  return hash % cache->MAX_SIZE;
 }
 
 
@@ -249,8 +249,34 @@ cacheEntry cache_removeDataPageFromLru(addressCache cache, cacheEntry current) {
 }
 
 void cache_remove(addressCache cache, cacheEntry entry) {
+  pageKey key = entry->key;
+  int bin = cache_hash(cache, key);
+  
   if (entry->key->levelsAbove == 0) {
-    cache_removeDataPageFromLru(cache, entry);
+    //cache_removeDataPageFromLru(cache, entry);
+  }
+
+  // Remove the entry from the table
+  cacheEntry prev = NULL;
+  cacheEntry cur = cache->table[bin];
+  if (keyCmp(cur->key, key) == 0) {
+    // This entry is the first in the bin
+    cache->table[bin] = entry->next;
+
+  } else {
+    // The entry is in the middle, take it out
+    while (prev != NULL && prev->key != NULL &&
+	   keyCmp(key, cur->key) > 0) {
+      prev = cur;
+      cur = cur->next;
+    }
+
+    if (keyCmp(key, cur->key) == 0) {
+      prev->next = entry->next;
+    } else {
+      // Something is wrong
+      printf("ERROR");
+    }
   }
 
   free(entry);

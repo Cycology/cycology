@@ -56,6 +56,7 @@ void test_addRemoveData() {
     cacheEntry entry = cache_get(cache, key);
     
     openFile_removeDataPage(file, entry);
+    cache_remove(cache, entry);
   }
 
   openFile_printData(file);
@@ -89,6 +90,7 @@ void test_addRemoveMetadata() {
     cacheEntry entry = cache_get(cache, key);
     
     openFile_removeMetadataPage(file, entry);
+    cache_remove(cache, entry);
   }
 
   openFile_printMetadata(file);
@@ -101,7 +103,7 @@ void test_flushData() {
   printf("\n*****TEST_FLUSH_DATA*****\n");
   
   // Add data
-  for (int i = 0; i < 20; i++) {
+  for (int i = 0; i < 1; i++) {
     pageKey key = malloc( sizeof(struct pageKey) );
     key->levelsAbove = 0;
     key->file = file;
@@ -130,9 +132,8 @@ void test_flushMetadata() {
   printf("\n*****TEST_FLUSH_METADATA*****\n");
 
   // Add Metadata
-  printf("TEST_FLUSH_METADATA\n");
-  for (int j = 1; j < 4; j++) {
-    for (int i = 0; i < 2; i++) {
+  for (int j = 1; j < 2; j++) {
+    for (int i = 0; i < 1; i++) {
       pageKey key = malloc( sizeof(struct pageKey) );
       key->levelsAbove = j;
       key->file = file;
