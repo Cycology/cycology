@@ -19,6 +19,8 @@ void init() {
   file = malloc( sizeof(struct openFile) );
   file->address = 100;
   file->inode.treeHeight = 4;
+  file->inode.directPage[0] = 300;
+  file->inode.directPage[127] = 600;
 }
 
 
@@ -135,6 +137,10 @@ void test_flushMetadata() {
 
   openFile_printMetadata(file);
   printf("\n");
+}
+
+void test_getPage() {
+  
 }
 
 int main() {

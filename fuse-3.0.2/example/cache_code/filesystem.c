@@ -131,8 +131,8 @@ pageKey getParentKey(pageKey childKey) {
   parentKey->file = childKey->file;
   
   // Recalculate dataOffset of the parent
-  int parentSize = PAGESIZE * INDIRECT_PAGES;
-  int parentStartOffset = (childKey->dataOffset / parentSize) * parentSize;
+  int parentDataRange = PAGESIZE * (INDIRECT_PAGES ^ (childKey->levelsAbove + 1));
+  int parentStartOffset = (childKey->dataOffset / parentDataRange) * POINTER_SIZE;
   parentKey->dataOffset = parentStartOffset;
   
   parentKey->levelsAbove = childKey->levelsAbove + 1;
@@ -175,22 +175,31 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
   if (address != 0) {
     // TODO: Handle read errors 
     //readNAND(wp->nandPage, address);
+
+    /* TESTING */
+    if (address == 300) {
+      wp->nandPage->contents[0] = (char) 1;
+    } else if (address == 600) {
+      wp->nandPage->contents[1016] = (char) 2;
+    } else if (address == 1) {
+      wp->nandPage->contents[];
+    } else if (address = 2) {
+
+    }
   }
 
   return wp;
 }
 
+int getIndexInInode(int childOffset, int fileHeight) {
+  // TODO
+  return ( (childOffset) / ((DIRECT_PAGES) * ((INDIRECT_PAGES) ^ (fileHeight - 2))) );
 
+}
+  
 /* Get the index of the given data page from the parent indirect page's contents array */
-int getIndexInParent(int childOffset, int parentOffset, int isInode) {
-  int pointer_index;
-  if (isInode == 1) {
-    pointer_index = (childOffset) / DIRECT_PAGES;
-  } else {
-    pointer_index = (childOffset - parentOffset) / INDIRECT_PAGES;
-  }
-
-  return pointer_index;
+int getIndexInParent(int childOffset, int parentOffset) {
+  return ((childOffset - parentOffset) / INDIRECT_PAGES);
 }
 
 /* Return the requested page from cache memory */
@@ -209,8 +218,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
     if (desiredKey->levelsAbove == maxFileHeight - 1) {
       // If the top-level metadata page doesn't exist, should read it in from disk
       struct inode parent = desiredKey->file->inode;
-      int isInode = 1;
-      int desiredIndex = getIndexInParent(desiredKey->dataOffset, 0, isInode);
+      int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
       desiredAddr = parent.directPage[desiredIndex];
       	
     } else {
@@ -220,7 +228,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
 
       int isInode = 0;
       int desiredIndex =
-	getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset, isInode);
+	getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset);
       desiredAddr = parent->wp->nandPage.contents[desiredIndex];
     }
    
