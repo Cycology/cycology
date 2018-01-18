@@ -106,7 +106,7 @@ void openFile_printData(openFile file) {
     i++;
   }
 
-  printf("This file has %d data pages in cache.", i);
+  printf("\nThis file has %d data pages in cache.", i);
 }
 
 
@@ -119,5 +119,5 @@ void openFile_printMetadata(openFile file) {
     i++;
   }
 
-  printf("This file has %d metadata pages in cache.", i);
+  printf("\nThis file has %d metadata pages in cache.", i);
 }

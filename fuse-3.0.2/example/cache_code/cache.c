@@ -13,8 +13,6 @@
 #include "loggingDiskFormats.h"
 #include "cacheStructs.h"
 
-#define HASH_SIZE 1000;
-
 /* Create a new hashtable. */
 addressCache cache_create( int size ) {
 
@@ -74,6 +72,8 @@ int cache_hash( addressCache cache, pageKey page_key ) {
     hash = ((hash << 5) + hash) + c;
     index++;
   }
+
+  return hash % cache->size;
 }
 
 
@@ -125,6 +125,7 @@ cacheEntry cache_set( addressCache cache, pageKey key, writeablePage wp) {
   /* There's already a pair.  Let's replace that string. */
   if( next != NULL && next->key != NULL && keyCmp(key, next->key) == 0 ) {
     // TODO: Check pointer assignment
+    newentry = next;
     free( next->wp );
     next->wp = wp;
     

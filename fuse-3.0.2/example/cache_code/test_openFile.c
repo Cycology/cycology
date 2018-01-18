@@ -28,7 +28,10 @@ void finish() {
 }
 
 
-void test_addRemoveData() {  
+void test_addRemoveData() {
+  printf("\n*****TEST_ADD/RM_DATA*****\n");
+  //init();
+  
   // Add data
   for (int i = 0; i < 20; i++) {
     pageKey key = malloc( sizeof(struct pageKey) );
@@ -54,9 +57,14 @@ void test_addRemoveData() {
   }
 
   openFile_printData(file);
+
+  //finish();
 }
 
 void test_addRemoveMetadata() {
+  printf("\n*****TEST_ADD/RM_METADATA*****\n");
+  //init();
+  
    // Add Metadata
   for (int i = 0; i < 20; i++) {
     pageKey key = malloc( sizeof(struct pageKey) );
@@ -82,10 +90,14 @@ void test_addRemoveMetadata() {
   }
 
   openFile_printMetadata(file);
+
+  //finish();
 }
 
 
 void test_flushData() {
+  printf("\n*****TEST_FLUSH_DATA*****\n");
+  
   // Add data
   for (int i = 0; i < 20; i++) {
     pageKey key = malloc( sizeof(struct pageKey) );
@@ -108,10 +120,15 @@ void test_flushData() {
 
   openFile_printData(file);
   printf("\n");
+
+  //finish();
 }
 
 void test_flushMetadata() {
+  printf("\n*****TEST_FLUSH_METADATA*****\n");
+
   // Add Metadata
+  printf("TEST_FLUSH_METADATA\n");
   for (int j = 1; j < 4; j++) {
     for (int i = 0; i < 2; i++) {
       pageKey key = malloc( sizeof(struct pageKey) );
@@ -139,9 +156,11 @@ void test_flushMetadata() {
 
 int main() {
   init();
-  //test_addRemoveData();
-  //test_addRemoveMetadata();
-  //  test_flushData();
+
+  test_addRemoveData();
+  test_addRemoveMetadata();
+  test_flushData();
   test_flushMetadata();
+
   finish();
 }
