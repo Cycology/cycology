@@ -114,6 +114,7 @@ void fs_removeFileFromLru(addressCache cache, openFile file) {
     next->lruFilePrev = file->lruFilePrev;
   }
 
+  // TODO: Check free pointers
   free(lruFile);
 }
 
