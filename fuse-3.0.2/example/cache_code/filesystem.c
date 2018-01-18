@@ -179,11 +179,11 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
 
     /* TESTING */
     if (address == 300) {
-      wp->nandPage->contents[0] = (char) 1;
+      wp->nandPage.contents[0] = (char) 1;
     } else if (address == 600) {
-      wp->nandPage->contents[1016] = (char) 2;
+      wp->nandPage.contents[1016] = (char) 2;
     } else if (address == 1) {
-      wp->nandPage->contents[];
+      wp->nandPage.contents[0] = (char) 3;
     } else if (address = 2) {
 
     }
@@ -421,10 +421,9 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	}
     
 	// Remove current metadata page from openFile
+	printf("Removed page at level: %d\n", current->key->levelsAbove);
 	openFile_removeMetadataPage(file, current);
 	cache_remove(cache, current);
-
-	printf("Removed page at level: %d\n", current->key->levelsAbove);
 
 	// Update the parent page with the written information
 	// fs_updateParentPage(current->key, current->wp->address, current->dirty);
