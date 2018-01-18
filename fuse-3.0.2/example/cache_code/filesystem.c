@@ -393,11 +393,10 @@ void fs_flushDataPages(addressCache cache, openFile file) {
   while (current != NULL) {
     next = current->fileDataNext;
 
-    //cache_removeDataPageFromLru(cache, current);
     openFile_removeDataPage(file, current);
+    cache_remove(cache, current);
 
     // Move to next node
-    free(current);
     current = next;
   }
 }
@@ -422,12 +421,12 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
     
 	// Remove current metadata page from openFile
 	openFile_removeMetadataPage(file, current);
+	cache_remove(cache, current);
+
 	printf("Removed page at level: %d\n", current->key->levelsAbove);
 
 	// Update the parent page with the written information
 	// fs_updateParentPage(current->key, current->wp->address, current->dirty);
-
-	free(current);
       }
       
       current = next;

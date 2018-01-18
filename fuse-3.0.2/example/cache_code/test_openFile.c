@@ -163,10 +163,15 @@ void test_getPage() {
 int main() {
   init();
 
+  cache_printSize(cache);
   test_addRemoveData();
+  cache_printSize(cache);
   test_addRemoveMetadata();
+  cache_printSize(cache);
   test_flushData();
+  cache_printSize(cache);
   test_flushMetadata();
+  cache_printSize(cache);
 
   finish();
 }

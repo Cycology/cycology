@@ -247,3 +247,16 @@ cacheEntry cache_removeDataPageFromLru(addressCache cache, cacheEntry current) {
 
   return current;
 }
+
+void cache_remove(addressCache cache, cacheEntry entry) {
+  if (entry->key->levelsAbove == 0) {
+    cache_removeDataPageFromLru(cache, entry);
+  }
+
+  free(entry);
+  cache->size--;
+}
+
+void cache_printSize(addressCache cache) {
+  printf("\nCache entries: %d\n", cache->size);
+}
