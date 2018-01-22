@@ -158,7 +158,11 @@ void test_flushMetadata() {
 }
 
 void test_getPage() {
-  
+  // Create a filetree
+
+  // Open the file
+
+  // Get the page from the cache
 }
 
 int main() {
