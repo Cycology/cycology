@@ -775,6 +775,9 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
+  // Since we now have access to the inode, we can check to see if the size requested is greater
+  // than the file's size. If so, then replace the bytes requested with the max bytes in file.
+  // So that getPage() will always work. 
         unimplemented();
         (void) path;
 
@@ -973,6 +976,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	  //Now we can write the page
 	  fprintf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
 	  int written = 0; // pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
+	  // TODO: Replace this with writeData() - (fi->fh->openFile)
 	  if (written != toWrite) {
 	    fprintf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
 	    return -errno;
