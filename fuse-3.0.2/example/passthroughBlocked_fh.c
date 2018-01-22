@@ -775,7 +775,6 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
-        unimplemented();
         (void) path;
 
 	if (path != NULL) {
@@ -812,7 +811,9 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//read in 1st page (containing file prefix)
 	//We use a tempBuf since there are cases to check here
 	char tempBuf[PAGESIZE];
-	bytesRead = 0; // pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
+
+	bytesRead = pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
+	
 	if (bytesRead == PAGESIZE || bytesRead >= size) {
 	  if (size <= PAGESIZE - offset) {                      //if we only have to read this page
 	    memcpy(buf, tempBuf + offset, size);
