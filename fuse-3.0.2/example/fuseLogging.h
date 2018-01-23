@@ -1,4 +1,3 @@
-#include "loggingDiskFormats.h"
 
 /*************************************************************
  *
@@ -7,18 +6,6 @@
  *
  **************************************************************/
 
-
-/***************************************************************
- *
- * Struct used to hold information for caching.
- *
- **************************************************************/
-
-typedef struct cachedPage {
-  struct writeablePage writeablePage;     /* Data */
-  
-  
-} * cachedPage;
 
 
 /***************************************************************
@@ -58,76 +45,34 @@ typedef struct activeLog {
   int fileCount;         /* The number of files held in this log */
 } * activeLog;
 
-/************************************************************
- *
- * Descriptor kept for each open file
- *
- ***********************************************************/
-typedef struct openFile {
-  int currentOpens;   /* Count of number of active opens */
-
-  /* descriptor for log holding first/main extent of file */
-  activeLog mainExtentLog;
-
-  /* Pointer to array of descriptor for active extents
-     reference through the file's triple indirect page
-     (or NULL). If used, entries in the array will be
-     NULL until an extent is referenced.
-  */
-  activeLog *(tripleExtents[EXTENT_PAGES]);
-
-  /* Current inode for the associated file */
-  struct inode inode;
-  // TODO: This will be used in xmp_open and create() instead of the struct inode
-  cacheEntry inodeCacheEntry;
-
-  // Linked List fields for caching
-  cacheEntry dataHead;     /* Head pointer to the list of cached data pages */
-  cacheEntry metaHead;     /* Head pointer to the list of cached indirect pages
-			      that are the direct parents of the dirty data pages */
-
-  // Linked List fields for LRU File list
-  openFile lruFileNext;
-  openFile lruFilePrev;
-
-  //virtual addr of inode, ie. file ID number
-  page_vaddr address;
-
-  /*flag to signify whether the file has been modified
-    in xmp_write when writing to the file, must set this
-    flag to 1
-  */
-  int modified;
-
-} * openFile;
-
 /*************************************************************
  *
  * struct holding flag and openFile; stored in fi->fh
  *
  **************************************************************/
+/*
 typedef struct log_file_info{
   int flag;
   openFile oFile;
-} *log_file_info;
+  } *log_file_info; */
 
 /**************************************************************
  *
  * Used to maintain a cache of active pages from the store
  *
  *************************************************************/
-typedef struct pageBuffer {
+/*typedef struct pageBuffer {
   page_addr address;
   struct pageBuffer * nextLRU, * prevLRU;
   char page[PAGESIZE];
-} * pageBuffer;
+  } * pageBuffer; */
 
-
+/*
 typedef struct pageCache {
-  int size;                                      /* Number of active pages */
+  int size;                                      
   pageBuffer headLRU, tailLRU;
   openFile openFileTable[PAGEDATASIZE/4 - 2]; //table of ptrs to struct openFiles
-} * pageCache;
+  } * pageCache; */
 
 /****************************************************************
  *

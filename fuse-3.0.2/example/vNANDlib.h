@@ -1,5 +1,3 @@
-#include "fuseLogging.h"
-
 #define BLOCKSIZE 16
 
 //Define root path

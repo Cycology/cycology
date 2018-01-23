@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
 #include "vNANDlib.h"
 
 static struct fullPage page;

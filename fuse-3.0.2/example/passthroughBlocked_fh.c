@@ -53,6 +53,9 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
+#include "cacheStructs.h"
 #include "vNANDlib.h"
 #include "helper.h"
 #include "logs.h"
@@ -206,9 +209,9 @@ static int xmp_fstat(openFile oFile, struct stat *stbuf)
   stbuf->st_blksize = PAGESIZE;
   stbuf->st_blocks = oFile->inode.i_pages * (stbuf->st_blksize / 512 );
 
-  stbuf->st_atim = oFile->inode.i_atime;
-  stbuf->st_mtim = oFile->inode.i_mtime;
-  stbuf->st_ctim = oFile->inode.i_ctime;
+  //stbuf->st_atim = oFile->inode.i_atime;
+  //stbuf->st_mtim = oFile->inode.i_mtime;
+  //stbuf->st_ctim = oFile->inode.i_ctime;
   
   return 0;
 }
@@ -775,6 +778,14 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
+  // Since we now have access to the inode, we can check to see if the size requested is greater
+  // than the file's size. If so, then replace the bytes requested with the max bytes in file, 
+  // so that getPage() will always work.
+  openFile file = fi->fh->oFile;
+  if (size > file->inode.i_size) {
+    size = file->inode.i_size;
+  }  
+  
   (void) path;
 
   if (path != NULL) {
@@ -805,14 +816,53 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   /* else if (offset + size > stBuf.st_size)  //make sure only reading within file size */
   /*   size = stBuf.st_size - offset; */
 
-  int pageNo = offset / PAGESIZE;          //starting page
-  offset = offset % PAGESIZE;              //location of offset in that page
+  // Init variables
+  pageKey key = malloc (sizeof (struct pageKey) );
+  int bytesLeft = size;
+  int bytesRead = 0;
+  int bytesInPage = 0;
+  
+  // Prepare the first page
+  {
+    int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
+    int relativeOffset = offset - pageStartOffset;
+    bytesInPage = PAGESIZE - relativeOffset;
 
-  //read in 1st page (containing file prefix)
-  //We use a tempBuf since there are cases to check here
-  char tempBuf[PAGESIZE];
+    key->file = file;
+    key->dataOffset = pageStartOffset;
+    key->levelsAbove = 0;    
+  }
+  
+  // Read in the next pages
+  while (bytesLeft > 0) {
+    // Get the next page
+    cacheEntry entry = getPage(key);
 
-  bytesRead = pread(((blocked_file_info) fi->fh)->fd, tempBuf, PAGESIZE, pageNo*PAGESIZE);
+    // Read into the buf
+    memcpy(buf[bytesRead], entry->wp->nandPage.contents[relativeOffset], bytesInPage);
+
+    // Set up for the next page
+    key->dataOffset += PAGESIZE;
+    bytesLeft -= bytesInPage;
+    bytesRead += bytesInPage;
+    relativeOffset = 0;
+
+    if (bytesLeft >= PAGESIZE) {
+      // Is middle page, read in the full page
+      bytesInPage = PAGESIZE;
+    } else {
+      // Is the last page, only read whatever remains
+      bytesInPage = bytesLeft;
+    }
+  }
+
+  if (bytesLeft < 0) {
+    // ERROR HERE
+  }
+
+  free(key);
+  key = NULL;
+  
 	
   if (bytesRead == PAGESIZE || bytesRead >= size) {
     if (size <= PAGESIZE - offset) {                      //if we only have to read this page

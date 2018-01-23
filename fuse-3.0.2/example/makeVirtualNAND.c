@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <string.h>
 
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
 #include "vNANDlib.h"
 
 static struct nandFeatures features;

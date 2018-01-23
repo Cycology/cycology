@@ -4,12 +4,18 @@
 #define PAGESIZE 1024
 #define BLOCKSIZE 16
 
+/* Size of each data page pointer in an indirect block */
+#define POINTER_SIZE 8;
+
 /* The number of pointers to indirect pages that can fit into an extend descriptor page */
 /*            This must leave room for log and extent headers.                          */
 #define EXTENT_PAGES 128
 
 /* The number of pointers directly to data pages that can fit into an inode.            */
 #define DIRECT_PAGES 16
+
+/* The number of pointers to indirect or data pages that can fit into an indirect page.  */
+#define INDIRECT_PAGES 128
 
 /* The maximum number of files that can be merged into a single log.                    */
 #define MAX_FILES_IN_LOG 8
@@ -65,14 +71,15 @@ typedef struct inode {
   page_vaddr	    i_log_no;    /* Number of log associated with 1st extent */
 
   unsigned int        i_links_count;         /* Number of hard links to file */
-
-  struct timespec	    i_atime;    /* Access, modification and     */
-  struct timespec	    i_mtime;    /* status change times for the file  */
-  struct timespec	    i_ctime;
-
+  
+  //   struct timespec           i_atime;    /* Access, modification and     */
+  //  struct timespec	    i_mtime;    /* status change times for the file  */
+  //  struct timespec	    i_ctime; 
+  
   pagecnt_t           i_pages;    /* Number of active/allocated pages ? */
-  loff_t              i_size;     /* File size in bytes */
+  off_t              i_size;     /* File size in bytes */
 
+  int                treeHeight;  /* Height of the file tree */
 
   page_addr          indirect;   /* Address of single indirect block */
   page_addr          doubleInd;  /* Address of double indirect block */

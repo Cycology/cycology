@@ -8,60 +8,13 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
+#include <math.h>
 
 #include "loggingDiskFormats.h"
-#include "fuseLogging.h"
-#include "lruFileList.c"
-
-#define HASH_SIZE 1000;
-
-typedef struct pageKey {
-  struct openFile file;
-  int dataOffset;
-  int levelsAbove;
-  
-} *pageKey;
-
-typedef struct cacheEntry {
-  // Content fields
-  pageKey key;
-  writeablePage wp;
-  cacheEntry next;
-  bool dirty;
-
-  // Global LRU data pages list
-  cacheEntry lruDataNext;
-  cacheEntry lruDataPrev;
-
-  // OpenFile's data pages list
-  cacheEntry fileDataNext;
-  cacheEntry fileDataPrev; // TODO: Possibly remove when removing just data (global lru)
-  
-  // OpenFile's dirty metadata pages list
-  cacheEntry fileMetadataNext;
-  cacheEntry fileMetadataPrev;
-  
-} *cacheEntry;
-
-typedef struct addressCache {
-  int MAX_SIZE;               
-  int size;
-  
-  struct cacheEntry **table;  /* Actual data table of the cacheEntries */
-
-  // Global LRU data pages list
-  cacheEntry lruDataHead;     
-  cacheEntry lruDataTail;
-
-  // Global LRU openFiles list
-  openFile lruFileHead;       
-  openFile lruFileTail;
-  
-} *addressCache;
- 
+#include "cacheStructs.h"
 
 /* Create a new hashtable. */
-addressCache *cache_create( int size ) {
+addressCache cache_create( int size ) {
 
   addressCache cache = NULL;
   int i;
@@ -84,63 +37,63 @@ addressCache *cache_create( int size ) {
   /* Initialize data fields */
   cache->size = 0;
   cache->MAX_SIZE = size;
-  lruDataHead = NULL;
-  lruDataTail = NULL;
-  lruFileHead = NULL;
-  lruFileTail = NULL;
+  cache->lruDataHead = NULL;
+  cache->lruDataTail = NULL;
 
   return cache;	
 }
 
+int keyCmp(pageKey key1, pageKey key2) {
+  int num1 = key1->file->address + key1->dataOffset + key1->levelsAbove;
+  int length1 = (int)((ceil(log10(num1))+1)*sizeof(char));
+  char str1[length1];
+  sprintf(str1, "%d", num1);
+
+  int num2 = key2->file->address + key2->dataOffset + key2->levelsAbove;
+  int length2 = (int)((ceil(log10(num2))+1)*sizeof(char));
+  char str2[length2];
+  sprintf(str2, "%d", num2);
+
+  return strcmp(str1, str2);
+}
+
 /* Hash a string for a particular hash table. */
 int cache_hash( addressCache cache, pageKey page_key ) {
-  char* key = page_key->file->name + page_key->offset + page_key->levelsAbove;
-  
-  unsigned long int hashval;
-  int i = 0;
+  int numKey = page_key->file->address + page_key->dataOffset + page_key->levelsAbove;
+  int length = (int)((ceil(log10(numKey))+1)*sizeof(char));
+  char strKey[length];
+  sprintf(strKey, "%d", numKey);
 
-  /* Convert our string to an integer */
-  while( hashval < ULONG_MAX && i < strlen( key ) ) {
-    hashval = hashval << 8;
-    hashval += key[ i ];
-    i++;
+  unsigned long hash = 5381;
+  int c = 0;
+  int index = 0;
+
+  while ((c = strKey[index])) {
+    hash = ((hash << 5) + hash) + c;
+    index++;
   }
 
-  return hashval % HASH_SIZE;
+  return hash % cache->MAX_SIZE;
 }
 
-
-/* Evict the LRU file from the cache */
-void cache_evict( addressCache cache ) {
-  openFile lruFile = cache->lruFileTail;
-
-  // Flush out data pages
-  openFile_flushDataPages(lruFile, cache);
-
-  // Flush out metadata pages
-  openFile_flushMetadataPages(lruFile, cache);
-  
-  // Remove file from LRU file list
-  lru_removeFile(cache, lruFile);
-}
 
 /* Create a key-value pair. */
-cacheEntry cache_newentry( addressCache cache, pageKey key, writeablePage wp ) {
+cacheEntry cache_newEntry( addressCache cache, pageKey key, writeablePage wp ) {
   cacheEntry newentry;
 
   if ( cache->size >= cache->MAX_SIZE ) {
-    cache_evict(cache);
+    return NULL;
   }
 
   if( ( newentry = malloc( sizeof( struct cacheEntry ) ) ) == NULL ) {
     return NULL;
   }
 
-  // TODO: Check the pointer assignments???
+  // Initialize data fields
   newentry->key = key;
   newentry->wp = wp;
   newentry->next = NULL;
-  newentry->dirty = false;
+  newentry->dirty = 0;
   newentry->lruDataNext = NULL;
   newentry->lruDataPrev = NULL;
   newentry->fileDataNext = NULL;
@@ -154,7 +107,7 @@ cacheEntry cache_newentry( addressCache cache, pageKey key, writeablePage wp ) {
 }
 
 /* Insert a key-value pair into a hash table. */
-void cache_set( addressCache cache, pageKey key, writeablePage wp, bool isWrite) {
+cacheEntry cache_set( addressCache cache, pageKey key, writeablePage wp) {
   int bin = 0;
   cacheEntry newentry = NULL;
   cacheEntry next = NULL;
@@ -164,20 +117,21 @@ void cache_set( addressCache cache, pageKey key, writeablePage wp, bool isWrite)
 
   next = cache->table[ bin ];
 
-  while( next != NULL && next->key != NULL && strcmp( key, next->key ) > 0 ) {
+  while( next != NULL && next->key != NULL && keyCmp(key, next->key) > 0 ) {
     last = next;
     next = next->next;
   }
 
   /* There's already a pair.  Let's replace that string. */
-  if( next != NULL && next->key != NULL && strcmp( key, next->key ) == 0 ) {
+  if( next != NULL && next->key != NULL && keyCmp(key, next->key) == 0 ) {
     // TODO: Check pointer assignment
+    newentry = next;
     free( next->wp );
     next->wp = wp;
     
     /* Nope, could't find it.  Time to grow a pair. */
   } else {
-    newentry = cache_newentry( cache, key, wp );
+    newentry = cache_newEntry( cache, key, wp );
 
     /* We're at the start of the linked list in this bin. */
     if( next == cache->table[ bin ] ) {
@@ -194,6 +148,8 @@ void cache_set( addressCache cache, pageKey key, writeablePage wp, bool isWrite)
       last->next = newentry;
     }
   }
+
+  return newentry;
 }
 
 /* Retrieve a key-value pair from a hash table. */
@@ -205,33 +161,128 @@ cacheEntry cache_get( addressCache cache, pageKey key ) {
 
   /* Step through the bin, looking for our value. */
   pair = cache->table[ bin ];
-  while( pair != NULL && pair->key != NULL && strcmp( key, pair->key ) > 0 ) {
+  while( pair != NULL && pair->key != NULL && keyCmp(key, pair->key) > 0 ) {
     pair = pair->next;
   }
 
   /* Did we actually find anything? */
-  if( pair == NULL || pair->key == NULL || strcmp( key, pair->key ) != 0 ) {
+  if( pair == NULL || pair->key == NULL || keyCmp(key, pair->key) != 0 ) {
     return NULL;
 
   } else {
-    return pair->wp;
+    return pair;
   }
 }
 
+/*************************************************************
+ *
+ * LRU DATA PAGE LIST OPERATIONS
+ *
+ *************************************************************/
 
-int main( int argc, char **argv ) {
+/* Is only called when entry already exists in the LRU list 
+   Move an existing cacheEntry in the LRU Data List to the head */
+void cache_updateDataLruHead(addressCache cache, cacheEntry entry) {
+  // Move the entry to the head position
+  cacheEntry prev = entry->lruDataPrev;
+  cacheEntry next = entry->lruDataNext;
 
-  hashtable_t *hashtable = cache_create( 65536 );
+  if (prev != NULL) {
+    prev->lruDataNext = next;
+    prev->lruDataPrev = entry;
+  } else {
+    // Entry is already at head, so do nothing
+    return;
+  }
 
-  cache_set( hashtable, "key1", "inky" );
-  cache_set( hashtable, "key2", "pinky" );
-  cache_set( hashtable, "key3", "blinky" );
-  cache_set( hashtable, "key4", "floyd" );
+  // There's at least two entries 
+  if (next != NULL) {
+    next->lruDataPrev = prev;
+  } else {
+    // Entry is last, so update tail to be prev
+    cache->lruDataTail = prev;
+  }
 
-  printf( "%s\n", cache_get( hashtable, "key1" ) );
-  printf( "%s\n", cache_get( hashtable, "key2" ) );
-  printf( "%s\n", cache_get( hashtable, "key3" ) );
-  printf( "%s\n", cache_get( hashtable, "key4" ) );
+  entry->lruDataNext = cache->lruDataHead;
+  entry->lruDataPrev = NULL;
+  
+  cache->lruDataHead = entry;
+}
 
-  return 0;
+/* PRE: Is only called when entry does not already exist in LRU list 
+*  POST: Add a cacheEntry to the head of the LRU Data List */
+void cache_addDataPageToLru(addressCache cache, cacheEntry entry) {
+  // Add entry to the head of the LRU list
+  cacheEntry curHead = cache->lruDataHead;
+
+  entry->lruDataNext = curHead;
+  entry->lruDataPrev = NULL;
+
+  if (curHead == NULL) {
+    // List is empty, set tail
+    cache->lruDataTail = entry;
+  } else {
+    curHead->lruDataPrev = entry;
+  }
+  
+  cache->lruDataHead = entry;
+}
+
+/* Remove from global LRU Data List. Updates the pointers of neighbor cacheEntries. */
+cacheEntry cache_removeDataPageFromLru(addressCache cache, cacheEntry current) {
+  if (current == cache->lruDataHead) {
+    // If head, then change the head to point to next
+    cache->lruDataHead = current->lruDataNext;
+  } else {
+    // Otherwise bypass current
+    current->lruDataPrev->lruDataNext = current->lruDataNext;
+  }
+
+  if (current == cache->lruDataTail) {
+    // Change the last to point to previous link
+    cache->lruDataTail = current->lruDataPrev;
+  } else {
+    current->lruDataNext->lruDataPrev = current->lruDataPrev;
+  }
+
+  return current;
+}
+
+void cache_remove(addressCache cache, cacheEntry entry) {
+  pageKey key = entry->key;
+  int bin = cache_hash(cache, key);
+  
+  if (entry->key->levelsAbove == 0) {
+    //cache_removeDataPageFromLru(cache, entry);
+  }
+
+  // Remove the entry from the table
+  cacheEntry prev = NULL;
+  cacheEntry cur = cache->table[bin];
+  if (keyCmp(cur->key, key) == 0) {
+    // This entry is the first in the bin
+    cache->table[bin] = entry->next;
+
+  } else {
+    // The entry is in the middle, take it out
+    while (prev != NULL && prev->key != NULL &&
+	   keyCmp(key, cur->key) > 0) {
+      prev = cur;
+      cur = cur->next;
+    }
+
+    if (keyCmp(key, cur->key) == 0) {
+      prev->next = entry->next;
+    } else {
+      // Something is wrong
+      printf("ERROR");
+    }
+  }
+
+  free(entry);
+  cache->size--;
+}
+
+void cache_printSize(addressCache cache) {
+  printf("\nCache entries: %d\n", cache->size);
 }
