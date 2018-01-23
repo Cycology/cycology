@@ -50,11 +50,11 @@ typedef struct activeLog {
  * struct holding flag and openFile; stored in fi->fh
  *
  **************************************************************/
-/*
+
 typedef struct log_file_info{
   int flag;
   openFile oFile;
-  } *log_file_info; */
+  } *log_file_info;
 
 /**************************************************************
  *
