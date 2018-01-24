@@ -5,7 +5,7 @@
 #define BLOCKSIZE 16
 
 /* Size of each data page pointer in an indirect block */
-#define POINTER_SIZE 8;
+#define POINTER_SIZE 8
 
 /* The number of pointers to indirect pages that can fit into an extend descriptor page */
 /*            This must leave room for log and extent headers.                          */

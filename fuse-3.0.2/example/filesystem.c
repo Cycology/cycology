@@ -251,7 +251,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
 /* Return address of the first free page of the first free block [PUFL only] */
 int consumeFreeBlock(activeLog log, int preferCUFL) {
   
-  freeList lists = &state->lists;
+  freeList lists = NULL; //&state->lists;
   if (preferCUFL == 0) {
     // TODO: Add support for getting from completely free list
     // Normally, check CUFL then go to PUFL, but if this is set, vice versa
@@ -297,7 +297,7 @@ void secondToLastPageOps(writeablePage freePage, activeLog log) {
 
   // Update the log to reflect the addition of the new (last) block
   log->nextPage = firstPageOfNewBlock;
-  log->lastBlock = first/BLOCKSIZE;    
+  log->lastBlock = firstPageOfNewBlock/BLOCKSIZE;    
 }
 
 void lastPageOps(writeablePage freePage, activeLog log) {
@@ -305,7 +305,7 @@ void lastPageOps(writeablePage freePage, activeLog log) {
   log->nextPage = (log->lastBlock)*BLOCKSIZE + (BLOCKSIZE-2);
 
   // Update page metadata to point to next block (the last block of the log)
-  freePage->nandPage.nextLogBlock = (log->last)*BLOCKSIZE;
+  freePage->nandPage.nextLogBlock = (log->lastBlock)*BLOCKSIZE;
   freePage->nandPage.nextBlockErases = log->lastErases;    
 }
 
