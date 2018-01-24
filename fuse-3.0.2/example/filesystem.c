@@ -250,7 +250,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
 
 /* Return address of the first free page of the first free block [PUFL only] */
 int consumeFreeBlock(activeLog log, int preferCUFL) {
-  /*
+  
   freeList lists = &state->lists;
   if (preferCUFL == 0) {
     // TODO: Add support for getting from completely free list
@@ -271,9 +271,7 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
   lists->partialHead = lastPage.nextLogBlock;
   lists->partialHeadErases = lastPage.nextBlockErases;
     
-  return freeBlockAddr;
-  */
-  return 0;
+  return freeBlockAddr;  
 }
 
 void firstPageOps(writeablePage freePage, activeLog log) {
@@ -298,16 +296,16 @@ void secondToLastPageOps(writeablePage freePage, activeLog log) {
   freePage->nandPage.nextBlockErases = log->lastErases;
 
   // Update the log to reflect the addition of the new (last) block
-  //  log->nextPage = firstPageOfNewBlock;
-  //  log->last = first/BLOCKSIZE;    
+  log->nextPage = firstPageOfNewBlock;
+  log->lastBlock = first/BLOCKSIZE;    
 }
 
 void lastPageOps(writeablePage freePage, activeLog log) {
   // Last page: Next free page is the 2nd-to-last page in the next block
-  //  log->nextPage = (log->last)*BLOCKSIZE + (BLOCKSIZE-2);
+  log->nextPage = (log->lastBlock)*BLOCKSIZE + (BLOCKSIZE-2);
 
   // Update page metadata to point to next block (the last block of the log)
-  //  freePage->nandPage.nextLogBlock = (log->last)*BLOCKSIZE;
+  freePage->nandPage.nextLogBlock = (log->last)*BLOCKSIZE;
   freePage->nandPage.nextBlockErases = log->lastErases;    
 }
 
@@ -317,7 +315,6 @@ void allocateFreePage(writeablePage freePage, activeLog log) {
   freePage->address = log->nextPage;
 
   // Update freeList structs to reflect changes
-  /*
   if (freePage->address % BLOCKSIZE == 0) {
     firstPageOps(freePage, log);    
   } else if ((freePage->address + 3) % BLOCKSIZE == 0) {
@@ -330,7 +327,6 @@ void allocateFreePage(writeablePage freePage, activeLog log) {
     // Middle pages: Next free page is the next physical page
     log->nextPage++;
   }
-  */
 
   // Increment number of active pages in log
   log->log.active++;
@@ -356,15 +352,12 @@ void fs_updateParentPage(pageKey childKey, page_addr childAddress, int dirty) {
   }
 
   // Update the child pointer address in the parent
-  //  int indexToUpdate = (((childKey->dataOffset - parentKey->dataOffset) /
-  //		       POINTER_SIZE) * POINTER_SIZE);
-  //  parentPage->wp->nandPage.contents[indexToUpdate] = childAddress;
+  int indexToUpdate = (((childKey->dataOffset - parentKey->dataOffset) /
+			POINTER_SIZE) * POINTER_SIZE);
+  memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, sizeof(page_addr));
 
   // Mark the parent page as dirty
   parentPage->dirty = dirty;
-  
-  // Technically redundant because we already add all metadata pages in getPage(). 
-  //openFile_addMetadataPage(childkey->file, parentPage);
 }
 
 /* Write the given data to the offset in the file */ 
@@ -427,7 +420,7 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	cache_remove(cache, current);
 
 	// Update the parent page with the written information
-	// fs_updateParentPage(current->key, current->wp->address, current->dirty);
+	fs_updateParentPage(current->key, current->wp->address, current->dirty);
       }
       
       current = next;
