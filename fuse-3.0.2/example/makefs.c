@@ -6,6 +6,7 @@
 
 #include "loggingDiskFormats.h"
 #include "fuseLogging.h"
+#include "cacheStructs.h"
 #include "vNANDlib.h"
 
 static struct superPage superBlock;

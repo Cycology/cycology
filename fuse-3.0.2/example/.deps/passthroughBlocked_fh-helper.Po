@@ -51,8 +51,8 @@ passthroughBlocked_fh-helper.o: helper.c /usr/include/stdc-predef.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/sys/time.h \
  /usr/include/x86_64-linux-gnu/sys/xattr.h \
- /usr/include/x86_64-linux-gnu/sys/file.h vNANDlib.h fuseLogging.h \
- loggingDiskFormats.h helper.h
+ /usr/include/x86_64-linux-gnu/sys/file.h loggingDiskFormats.h \
+ fuseLogging.h vNANDlib.h helper.h
 
 /usr/include/stdc-predef.h:
 
@@ -196,10 +196,10 @@ passthroughBlocked_fh-helper.o: helper.c /usr/include/stdc-predef.h \
 
 /usr/include/x86_64-linux-gnu/sys/file.h:
 
-vNANDlib.h:
+loggingDiskFormats.h:
 
 fuseLogging.h:
 
-loggingDiskFormats.h:
+vNANDlib.h:
 
 helper.h:

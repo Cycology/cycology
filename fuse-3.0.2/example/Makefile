@@ -176,7 +176,10 @@ am_passthroughBlocked_fh_OBJECTS =  \
 	passthroughBlocked_fh-passthroughBlocked_fh.$(OBJEXT) \
 	passthroughBlocked_fh-helper.$(OBJEXT) \
 	passthroughBlocked_fh-logs.$(OBJEXT) \
-	passthroughBlocked_fh-vNANDlib.$(OBJEXT)
+	passthroughBlocked_fh-vNANDlib.$(OBJEXT) \
+	passthroughBlocked_fh-filesystem.$(OBJEXT) \
+	passthroughBlocked_fh-openFile.$(OBJEXT) \
+	passthroughBlocked_fh-cache.$(OBJEXT)
 passthroughBlocked_fh_OBJECTS = $(am_passthroughBlocked_fh_OBJECTS)
 passthroughBlocked_fh_LDADD = $(LDADD)
 passthroughBlocked_fh_DEPENDENCIES = ../lib/libfuse3.la
@@ -438,15 +441,15 @@ AM_CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declaration
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
 passthroughBlocked_fhdir = .
-passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c 
+passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h filesystem.h openFile.h cache.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c filesystem.c openFile.c cache.c
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
 showNAND_SOURCES = showNAND.c vNANDlib.c
 LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la 
 passthroughBlocked_fh_CPPFLAGS = -O0
-passthroughBlocked_fh_LDFLAGS = -O0
+passthroughBlocked_fh_LDFLAGS = -O0 -lm
 ioctl_client_CPPFLAGS = 
 ioctl_client_LDFLAGS = 
 ioctl_client_LDADD = 
@@ -592,8 +595,11 @@ include ./$(DEPDIR)/notify_inval_inode.Po
 include ./$(DEPDIR)/notify_store_retrieve.Po
 include ./$(DEPDIR)/null.Po
 include ./$(DEPDIR)/passthrough.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-cache.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-filesystem.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-helper.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-logs.Po
+include ./$(DEPDIR)/passthroughBlocked_fh-openFile.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-passthroughBlocked_fh.Po
 include ./$(DEPDIR)/passthroughBlocked_fh-vNANDlib.Po
 include ./$(DEPDIR)/passthrough_fh.Po
@@ -696,6 +702,48 @@ passthroughBlocked_fh-vNANDlib.obj: vNANDlib.c
 #	$(AM_V_CC)source='vNANDlib.c' object='passthroughBlocked_fh-vNANDlib.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-vNANDlib.obj `if test -f 'vNANDlib.c'; then $(CYGPATH_W) 'vNANDlib.c'; else $(CYGPATH_W) '$(srcdir)/vNANDlib.c'; fi`
+
+passthroughBlocked_fh-filesystem.o: filesystem.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-filesystem.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-filesystem.Tpo -c -o passthroughBlocked_fh-filesystem.o `test -f 'filesystem.c' || echo '$(srcdir)/'`filesystem.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-filesystem.Tpo $(DEPDIR)/passthroughBlocked_fh-filesystem.Po
+#	$(AM_V_CC)source='filesystem.c' object='passthroughBlocked_fh-filesystem.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-filesystem.o `test -f 'filesystem.c' || echo '$(srcdir)/'`filesystem.c
+
+passthroughBlocked_fh-filesystem.obj: filesystem.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-filesystem.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-filesystem.Tpo -c -o passthroughBlocked_fh-filesystem.obj `if test -f 'filesystem.c'; then $(CYGPATH_W) 'filesystem.c'; else $(CYGPATH_W) '$(srcdir)/filesystem.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-filesystem.Tpo $(DEPDIR)/passthroughBlocked_fh-filesystem.Po
+#	$(AM_V_CC)source='filesystem.c' object='passthroughBlocked_fh-filesystem.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-filesystem.obj `if test -f 'filesystem.c'; then $(CYGPATH_W) 'filesystem.c'; else $(CYGPATH_W) '$(srcdir)/filesystem.c'; fi`
+
+passthroughBlocked_fh-openFile.o: openFile.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-openFile.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-openFile.Tpo -c -o passthroughBlocked_fh-openFile.o `test -f 'openFile.c' || echo '$(srcdir)/'`openFile.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-openFile.Tpo $(DEPDIR)/passthroughBlocked_fh-openFile.Po
+#	$(AM_V_CC)source='openFile.c' object='passthroughBlocked_fh-openFile.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-openFile.o `test -f 'openFile.c' || echo '$(srcdir)/'`openFile.c
+
+passthroughBlocked_fh-openFile.obj: openFile.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-openFile.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-openFile.Tpo -c -o passthroughBlocked_fh-openFile.obj `if test -f 'openFile.c'; then $(CYGPATH_W) 'openFile.c'; else $(CYGPATH_W) '$(srcdir)/openFile.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-openFile.Tpo $(DEPDIR)/passthroughBlocked_fh-openFile.Po
+#	$(AM_V_CC)source='openFile.c' object='passthroughBlocked_fh-openFile.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-openFile.obj `if test -f 'openFile.c'; then $(CYGPATH_W) 'openFile.c'; else $(CYGPATH_W) '$(srcdir)/openFile.c'; fi`
+
+passthroughBlocked_fh-cache.o: cache.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-cache.o -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-cache.Tpo -c -o passthroughBlocked_fh-cache.o `test -f 'cache.c' || echo '$(srcdir)/'`cache.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-cache.Tpo $(DEPDIR)/passthroughBlocked_fh-cache.Po
+#	$(AM_V_CC)source='cache.c' object='passthroughBlocked_fh-cache.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-cache.o `test -f 'cache.c' || echo '$(srcdir)/'`cache.c
+
+passthroughBlocked_fh-cache.obj: cache.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT passthroughBlocked_fh-cache.obj -MD -MP -MF $(DEPDIR)/passthroughBlocked_fh-cache.Tpo -c -o passthroughBlocked_fh-cache.obj `if test -f 'cache.c'; then $(CYGPATH_W) 'cache.c'; else $(CYGPATH_W) '$(srcdir)/cache.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/passthroughBlocked_fh-cache.Tpo $(DEPDIR)/passthroughBlocked_fh-cache.Po
+#	$(AM_V_CC)source='cache.c' object='passthroughBlocked_fh-cache.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(passthroughBlocked_fh_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o passthroughBlocked_fh-cache.obj `if test -f 'cache.c'; then $(CYGPATH_W) 'cache.c'; else $(CYGPATH_W) '$(srcdir)/cache.c'; fi`
 
 poll_client-poll_client.o: poll_client.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(poll_client_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT poll_client-poll_client.o -MD -MP -MF $(DEPDIR)/poll_client-poll_client.Tpo -c -o poll_client-poll_client.o `test -f 'poll_client.c' || echo '$(srcdir)/'`poll_client.c

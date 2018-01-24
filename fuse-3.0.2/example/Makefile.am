@@ -3,8 +3,8 @@ AM_CFLAGS = -Wall -W -Wno-sign-compare -Wstrict-prototypes -Wmissing-declaration
 AM_CPPFLAGS = -I$(top_srcdir)/include -D_REENTRANT
 noinst_HEADERS = ioctl.h
 passthroughBlocked_fhdir = .
-passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h
-passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c 
+passthroughBlocked_fh_HEADERS = helper.h vNANDlib.h fuseLogging.h loggingDiskFormats.h logs.h filesystem.h openFile.h cache.h
+passthroughBlocked_fh_SOURCES = passthroughBlocked_fh.c helper.c logs.c vNANDlib.c filesystem.c openFile.c cache.c
 makefs_SOURCES = makefs.c vNANDlib.c
 makeVirtualNAND_SOURCES = makeVirtualNAND.c vNANDlib.c
 showNAND_SOURCES = showNAND.c vNANDlib.c
@@ -18,7 +18,7 @@ LDADD = ../lib/libfuse3.la
 passthrough_fh_LDADD = ../lib/libfuse3.la @passthrough_fh_libs@
 
 passthroughBlocked_fh_CPPFLAGS = -O0
-passthroughBlocked_fh_LDFLAGS = -O0
+passthroughBlocked_fh_LDFLAGS = -O0 -lm
 
 ioctl_client_CPPFLAGS =
 ioctl_client_LDFLAGS =

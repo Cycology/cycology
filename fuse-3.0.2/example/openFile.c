@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "loggingDiskFormats.h"
+#include "fuseLogging.h"
 #include "cacheStructs.h"
 #include "cache.h"
 

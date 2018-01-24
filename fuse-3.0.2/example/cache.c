@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "loggingDiskFormats.h"
+#include "fuseLogging.h"
 #include "cacheStructs.h"
 
 /* Create a new hashtable. */

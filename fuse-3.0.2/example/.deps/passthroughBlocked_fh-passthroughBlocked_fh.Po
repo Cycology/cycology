@@ -58,8 +58,8 @@ passthroughBlocked_fh-passthroughBlocked_fh.o: passthroughBlocked_fh.c \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/sys/time.h \
  /usr/include/x86_64-linux-gnu/sys/xattr.h \
- /usr/include/x86_64-linux-gnu/sys/file.h vNANDlib.h fuseLogging.h \
- loggingDiskFormats.h helper.h logs.h
+ /usr/include/x86_64-linux-gnu/sys/file.h loggingDiskFormats.h \
+ fuseLogging.h filesystem.h cacheStructs.h vNANDlib.h helper.h logs.h
 
 /usr/include/stdc-predef.h:
 
@@ -223,11 +223,15 @@ passthroughBlocked_fh-passthroughBlocked_fh.o: passthroughBlocked_fh.c \
 
 /usr/include/x86_64-linux-gnu/sys/file.h:
 
-vNANDlib.h:
+loggingDiskFormats.h:
 
 fuseLogging.h:
 
-loggingDiskFormats.h:
+filesystem.h:
+
+cacheStructs.h:
+
+vNANDlib.h:
 
 helper.h:
 

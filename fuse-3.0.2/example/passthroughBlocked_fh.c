@@ -55,6 +55,7 @@
 //.h files of our own
 #include "loggingDiskFormats.h"
 #include "fuseLogging.h"
+#include "filesystem.h"
 #include "cacheStructs.h"
 #include "vNANDlib.h"
 #include "helper.h"
@@ -426,7 +427,7 @@ static int xmp_unlink(const char *path)
   page_vaddr fileID = readStubFile(fullPath);
 
   //check if there is any openFile
-  openFile oFile = state->cache->openFileTable[fileID];
+  openFile oFile = state->file_cache->openFileTable[fileID];
 
   //last link to file, no openFile
   if (oFile == NULL) {
@@ -666,7 +667,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
   openFile oFile = (openFile) malloc(sizeof (struct openFile));
   (theLog->log.content.file.fInode.i_links_count)++;
   initOpenFile(oFile, theLog, &(theLog->log.content.file.fInode), fileID);
-  state->cache->openFileTable[fileID] = oFile;
+  state->file_cache->openFileTable[fileID] = oFile;
 	
   //create stub file (WITHOUT KEEPING TRACK OF FD)
   char *fullPath = makePath(path);
@@ -693,10 +694,10 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
   //Write the logHeader to virtual NAND
   writeablePage buf = getFreePage(&(state->lists),theLog);
 	
-  memcpy(buf->page.contents, &(theLog->log), sizeof (struct logHeader));
-  buf->page.pageType = PTYPE_INODE;
+  memcpy(buf->nandPage.contents, &(theLog->log), sizeof (struct logHeader));
+  buf->nandPage.pageType = PTYPE_INODE;
 
-  writeNAND( &(buf->page), buf->address, 0);
+  writeNAND( &(buf->nandPage), buf->address, 0);
 	
   // I HAVE A FEELING THERE SHOULD BE A free(buf) HERE!!! - Tom 9/12/17
 	
@@ -723,7 +724,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
   /*check if there is an existing openFile for the file
    *if not, create new openFile
    */
-  openFile oFile = state->cache->openFileTable[fileID];
+  openFile oFile = state->file_cache->openFileTable[fileID];
   if (oFile == NULL) {
     //plug in file id no into vaddr map; retrieve logHeader then inode
     page_addr logHeaderAddr = state->vaddrMap->map[fileID];
@@ -736,7 +737,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
 
     //check if activeLog exists for log containing this file
-    activeLog log = (activeLog)state->cache->openFileTable[logID];
+    activeLog log = (activeLog)state->file_cache->openFileTable[logID];
     if (log == NULL) {
 
       //locate address of last written logHeader
@@ -744,7 +745,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	    
       activeLog log = (activeLog) malloc(sizeof (struct activeLog));
       initActiveLog(log, lastHeaderAddr + 1);
-      state->cache->openFileTable[logID] = (openFile) log;	  
+      state->file_cache->openFileTable[logID] = (openFile) log;	  
 
       //read in lastHeaderAddr
       if(lastHeaderAddr != logHeaderAddr) {
@@ -763,7 +764,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
     initOpenFile(oFile, log, &ind, fileID);
 
     //update openFileTable
-    state->cache->openFileTable[fileID] = oFile;
+    state->file_cache->openFileTable[fileID] = oFile;
   }
 	
   oFile->currentOpens++;
@@ -781,7 +782,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   // Since we now have access to the inode, we can check to see if the size requested is greater
   // than the file's size. If so, then replace the bytes requested with the max bytes in file, 
   // so that getPage() will always work.
-  openFile file = fi->fh->oFile;
+  openFile file = ((log_file_info) fi->fh)->oFile;
   if (size > file->inode.i_size) {
     size = file->inode.i_size;
   }  
@@ -794,8 +795,6 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     free(fullPath);
   }
 	
-  size_t res = 0;                        //return value
-  size_t bytesRead;                      //bytes read in for a single page
   //struct stat stBuf;                     //space for file info
 
   //verify if the file has read permission
@@ -818,25 +817,23 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
   // Init variables
   pageKey key = malloc (sizeof (struct pageKey) );
-  int bytesLeft = size;
-  int bytesRead = 0;
-  int bytesInPage = 0;
+  size_t bytesLeft = size;
+  size_t bytesRead = 0;
+  size_t bytesInPage = 0;
   
   // Prepare the first page
-  {
-    int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
-    int relativeOffset = offset - pageStartOffset;
+    unsigned int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
+    unsigned int relativeOffset = offset - pageStartOffset;
     bytesInPage = PAGESIZE - relativeOffset;
 
     key->file = file;
     key->dataOffset = pageStartOffset;
     key->levelsAbove = 0;    
-  }
   
   // Read in the next pages
   while (bytesLeft > 0) {
     // Get the next page
-    cacheEntry entry = getPage(key);
+    cacheEntry entry = fs_getPage(key);
 
     // Read into the buf
     memcpy(buf[bytesRead], entry->wp->nandPage.contents[relativeOffset], bytesInPage);
@@ -863,7 +860,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   free(key);
   key = NULL;
   
-	
+  /*	
   if (bytesRead == PAGESIZE || bytesRead >= size) {
     if (size <= PAGESIZE - offset) {                      //if we only have to read this page
       memcpy(buf, tempBuf + offset, size);
@@ -906,7 +903,9 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   }
 
   fprintf(stderr,"READ %d BYTES\n", (int) res);
-  return res;
+  */
+  
+  return bytesRead;
 }
 
 static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
@@ -997,6 +996,58 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     finalFileSize = offset + size;
   else
     finalFileSize = fileSize;
+
+  /* MY CODE */
+
+  size_t bytesToWrite = size;
+  size_t bytesWritten = 0;
+  size_t relativeOffset = offset % PAGESIZE;
+  size_t startPageOffset = (offset / PAGESIZE) * PAGESIZE;
+
+  pageKey key = malloc( sizeof( struct pageKey ) );
+  key->file = ((log_file_info) fi->fh)->oFile;
+  key->dataOffset = startPageOffset;
+  key->levelsAbove = 0;
+
+  // Write out the first page
+  size_t writeableBytesInPage = PAGESIZE - relativeOffset;
+  cacheEntry page = fs_getPage(key);
+  memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+  memcpy(tempBuf, buf, writeableBytesInPage);
+
+  fs_writeData(key, tempBuf);
+  
+  bytesToWrite -= writeableBytesInPage;
+  bytesWritten += writeableBytesInPage;
+  key->dataOffset += PAGESIZE;
+  
+  // Write out the middle pages
+  while (bytesToWrite > 0) {
+    page = fs_getPage(key);
+
+    // Save the page's old contents in tempBuf if necessary
+    if (bytesToWrite >= PAGESIZE) {
+      // Middle pages
+      writeableBytesInPage = PAGESIZE;
+
+    } else {
+      // Last page
+      memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+      writeableBytesInPage = bytesToWrite;
+    }
+
+    // Write out the updated information to tempBuf
+    memcpy(tempBuf, buf, writeableBytesInPage);
+    
+    fs_writeData(key, tempBuf);
+
+    // Update for the next page
+    bytesToWrite -= writeableBytesInPage;
+    bytesWritten += writeableBytesInPage;
+    key->dataOffset += PAGESIZE;
+  }
+
+  /* END CODE */
 
   int startOffset = offset % PAGESIZE;
   int endOffset;
@@ -1110,7 +1161,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   //retrieve CYCstate
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
-  openFile releasedFile = state->cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no];
+  openFile releasedFile = state->file_cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no];
 
   if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
     /*a function to make sure all metadata (eg. the logheader) is written to NAND

@@ -1,4 +1,6 @@
 //#include "fuseLogging.h"
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
 #include "vNANDlib.h"
 #include "logs.h"
 #include <string.h>
