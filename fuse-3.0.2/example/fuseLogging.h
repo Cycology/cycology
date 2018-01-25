@@ -53,7 +53,7 @@ typedef struct activeLog {
  *
  * Descriptor kept for each open file
  *
- ***********************************************************/
+hel ***********************************************************/
 typedef struct openFile {
   int currentOpens;   /* Count of number of active opens */
 

@@ -170,7 +170,7 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
   writeablePage wp = malloc( sizeof (struct writeablePage) );
 
   // Read from disk into page
-  if (address != 0) {
+  if (address != 0) { // TODO: Can addresses be 0?
     // TODO: Handle read errors 
     readNAND(wp->nandPage, address);
 
@@ -184,6 +184,9 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
     } else if (address = 2) {
 
     } */
+  } else {
+    // TODO: Return a newly initialized writeablePage if nothing
+    memset(wp->nandPage->contents, 0, PAGESIZE * sizeof(char));
   }
 
   return wp;
