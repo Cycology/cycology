@@ -11,13 +11,6 @@
 #include "cache.h"
 #include "openFile.h"
 
-// The file cache
-addressCache cache;
-
-// Global LRU openFiles list
-struct openFile* lruFileHead;       
-struct openFile* lruFileTail;
-
 /*************************************************************
  *
  * LRU FILE LIST OPERATIONS
@@ -26,7 +19,7 @@ struct openFile* lruFileTail;
 
 /* Only called when file already exists in the LRU file list 
    Move an existing openFile to the head of the LRU File List */
-void updateLruFileHead(addressCache cache, openFile file) {
+void updateLruFileHead(addressCache cache, fileCache fCache, openFile file) {
   openFile prev = file->lruFilePrev;
   openFile next = file->lruFileNext;
   
@@ -43,19 +36,19 @@ void updateLruFileHead(addressCache cache, openFile file) {
     next->lruFilePrev = prev;
   } else {
     // File was last, so update tail to be prev
-    lruFileTail = prev;
+    fCache->lruFileTail = prev;
   }
 
-  file->lruFileNext = lruFileHead;
+  file->lruFileNext = fCache->lruFileHead;
   file->lruFilePrev = NULL;
   
-  lruFileHead = file;
+  fCache->lruFileHead = file;
 }
 
 /* Only called when file doesn't exist in the LRU file list 
    Add an openFile to the head of the LRU File List */
-void addFileToLru(addressCache cache, openFile file) {
-  openFile curHead = lruFileHead;
+void addFileToLru(addressCache cache, fileCache fCache, openFile file) {
+  openFile curHead = fCache->lruFileHead;
   file->lruFileNext = curHead;
   file->lruFilePrev = NULL;
       
@@ -63,10 +56,10 @@ void addFileToLru(addressCache cache, openFile file) {
     curHead->lruFilePrev = file;
   } else {
     // List is empty, set tail
-    lruFileTail = file;
+    fCache->lruFileTail = file;
   }
   
-  lruFileHead = file;
+  fCache->lruFileHead = file;
 }
 
 /* Check if the LRU File list contains the given file */
@@ -85,32 +78,35 @@ int lruContains(openFile head, openFile file) {
 
 /* OpenFile may or may not be in the LRU list 
    Brings the given file to the head of the LRU File List */
-void fs_updateFileInLru(addressCache cache, openFile file) {
-  if (lruContains(lruFileHead, file) == 1) {
-    updateLruFileHead(cache, file);
+void fs_updateFileInLru(CYCstate state, openFile file) {
+  addressCache addrCache = state->addr_cache;
+  fileCache fCache = state->file_cache;
+  
+  if (lruContains(fCache->lruFileHead, file) == 1) {
+    updateLruFileHead(addrCache, fCache, file);
   } else {
-    addFileToLru(cache, file);
+    addFileToLru(addrCache, fCache, file);
   }
 }
 
 /* Remove an openFile from the LRU File list */
-void fs_removeFileFromLru(addressCache cache, openFile file) {
+void fs_removeFileFromLru(fileCache fCache, openFile file) {
   openFile next = file->lruFileNext;
-  openFile lruFile = lruFileTail;
+  openFile lruFile = fCache->lruFileTail;
 
   // Remove from global LRU File List
-  if (file == lruFileHead) {
+  if (file == fCache->lruFileHead) {
     // If head, then change the head to point to next
-    lruFileHead = next;
+    fCache->lruFileHead = next;
   } else {
     // Otherwise bypass current
     file->lruFilePrev->lruFileNext = next;
   }
 
-  if (file == lruFileTail) {
+  if (file == fCache->lruFileTail) {
     // Change the last to point to previous link
     // TODO: Will this change the saved lruFile pointer as well? 
-    lruFileTail = file->lruFilePrev;
+    fCache->lruFileTail = file->lruFilePrev;
   } else {
     next->lruFilePrev = file->lruFilePrev;
   }
@@ -143,7 +139,7 @@ pageKey getParentKey(pageKey childKey) {
 }
 
 /* Adds entry to the cache and updates metadata lists */
-cacheEntry putPageIntoCache(writeablePage page, pageKey key) {
+cacheEntry putPageIntoCache(addressCache cache, writeablePage page, pageKey key) {
   // Add/update to cache
   cacheEntry entry = cache_set(cache, key, page);
   int isData = key->levelsAbove == 0;
@@ -176,9 +172,9 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
   // Read from disk into page
   if (address != 0) {
     // TODO: Handle read errors 
-    //readNAND(wp->nandPage, address);
+    readNAND(wp->nandPage, address);
 
-    /* TESTING */
+    /* TESTING 
     if (address == 300) {
       wp->nandPage.contents[0] = (char) 1;
     } else if (address == 600) {
@@ -187,7 +183,7 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
       wp->nandPage.contents[0] = (char) 3;
     } else if (address = 2) {
 
-    }
+    } */
   }
 
   return wp;
@@ -196,7 +192,6 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
 int getIndexInInode(int childOffset, int fileHeight) {
   // TODO
   return ( (childOffset) / ((DIRECT_PAGES) * ((INDIRECT_PAGES) ^ (fileHeight - 2))) );
-
 }
   
 /* Get the index of the given data page from the parent indirect page's contents array */
@@ -205,7 +200,7 @@ int getIndexInParent(int childOffset, int parentOffset) {
 }
 
 /* Return the requested page from cache memory */
-cacheEntry fs_getPage(pageKey desiredKey) {
+cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
   int maxFileHeight = desiredKey->file->inode.treeHeight;
 
   if (desiredKey->levelsAbove >= maxFileHeight) {
@@ -226,7 +221,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
     } else {
       // Get the lowest-level parent metadata page that is currently cached
       pageKey parentKey = getParentKey(desiredKey);
-      cacheEntry parent = fs_getPage(parentKey);
+      cacheEntry parent = fs_getPage(cache, parentKey);
 
       int isInode = 0;
       int desiredIndex =
@@ -235,7 +230,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
     }
    
     writeablePage wp = readWpFromDisk(desiredAddr, desiredKey);
-    desired = putPageIntoCache(wp, desiredKey);
+    desired = putPageIntoCache(cache, wp, desiredKey);
   }
 
   return desired;
@@ -251,7 +246,7 @@ cacheEntry fs_getPage(pageKey desiredKey) {
 /* Return address of the first free page of the first free block [PUFL only] */
 int consumeFreeBlock(activeLog log, int preferCUFL) {
   
-  freeList lists = NULL; //&state->lists;
+  freeList lists = &((CYCstate) fuse_get_context()->private_data)->lists;
   if (preferCUFL == 0) {
     // TODO: Add support for getting from completely free list
     // Normally, check CUFL then go to PUFL, but if this is set, vice versa
@@ -265,13 +260,15 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
 
   // Read in the nextLogBlock and nextBlockErases from the last page of the block 
   struct fullPage lastPage;
-  //readNAND(&lastPage, lists->partialHead);
+  readNAND(&lastPage, lists->partialHead);
 
   // Update the list head pointer to next free block
   lists->partialHead = lastPage.nextLogBlock;
   lists->partialHeadErases = lastPage.nextBlockErases;
     
-  return freeBlockAddr;  
+  return freeBlockAddr;
+
+  return 0;
 }
 
 void firstPageOps(writeablePage freePage, activeLog log) {
@@ -280,6 +277,8 @@ void firstPageOps(writeablePage freePage, activeLog log) {
 
   // Set the erase count from the stored erase count
   freePage->nandPage.eraseCount = log->lastErases;
+
+  return 0;
 }
 
 void thirdToLastPageOps(writeablePage freePage, activeLog log) {
@@ -342,10 +341,10 @@ writeablePage prepareWriteablePage(pageKey key, char* data) {
 }
 
 /* Write the physical address of a page to its parent indirect page */
-void fs_updateParentPage(pageKey childKey, page_addr childAddress, int dirty) {
+void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAddress, int dirty) {
   // Get the parent page
   pageKey parentKey = getParentKey(childKey);
-  cacheEntry parentPage = fs_getPage(parentKey);
+  cacheEntry parentPage = fs_getPage(cache, parentKey);
   
   if (parentPage == NULL) {
     return;
@@ -361,14 +360,14 @@ void fs_updateParentPage(pageKey childKey, page_addr childAddress, int dirty) {
 }
 
 /* Write the given data to the offset in the file */ 
-writeablePage fs_writeData(pageKey dataKey, char * data) {
+writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
   writeablePage dataPage = prepareWriteablePage(dataKey, data);
 
-  //writeNAND(&dataPage->nandPage, dataPage->address, 0); // TODO: Error checking
+  writeNAND(&dataPage->nandPage, dataPage->address, 0); // TODO: Error checking
 
-  putPageIntoCache(dataPage, dataKey);
+  putPageIntoCache(cache, dataPage, dataKey);
   int dirty = 1;
-  fs_updateParentPage(dataKey, dataPage->address, dirty);
+  fs_updateParentPage(cache, dataKey, dataPage->address, dirty);
 
   return dataPage;
 }
@@ -411,7 +410,7 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	if (current->dirty) {
 	  writeablePage wp = current->wp;
 	  allocateFreePage(wp, current->key->file->mainExtentLog);
-	  //writeNAND(&wp->nandPage, wp->address, 0);
+	  writeNAND(&wp->nandPage, wp->address, 0);
 	}
     
 	// Remove current metadata page from openFile
@@ -420,7 +419,7 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	cache_remove(cache, current);
 
 	// Update the parent page with the written information
-	fs_updateParentPage(current->key, current->wp->address, current->dirty);
+	fs_updateParentPage(cache, current->key, current->wp->address, current->dirty);
       }
       
       current = next;
@@ -429,8 +428,8 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 }
 
 /* Evict the LRU file from the cache */
-void fs_evictLruFile( addressCache cache ) {
-  openFile lruFile = lruFileTail;
+void fs_evictLruFile( addressCache cache, fileCache fCache ) {
+  openFile lruFile = fCache->lruFileTail;
 
   // Flush out data pages
   fs_flushDataPages(cache, lruFile);
@@ -439,6 +438,6 @@ void fs_evictLruFile( addressCache cache ) {
   fs_flushMetadataPages(cache, lruFile);
   
   // Remove file from LRU file list
-  fs_removeFileFromLru(cache, lruFile);
+  fs_removeFileFromLru(fCache, lruFile);
 }
 

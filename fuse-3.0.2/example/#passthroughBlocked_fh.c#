@@ -89,7 +89,6 @@ static void *xmp_init(struct fuse_conn_info *conn,
   state->rootPath = ROOT_PATH;
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
-  state->addr_cache = cache_create(1000); //TODO: Change the size
 
   //initialize other fields in state
   initCYCstate(state);
@@ -783,9 +782,6 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   // Since we now have access to the inode, we can check to see if the size requested is greater
   // than the file's size. If so, then replace the bytes requested with the max bytes in file, 
   // so that getPage() will always work.
-  CYCstate state = fuse_get_context()->private_data;
-  addressCache addrCache = state->addr_cache;
-  
   openFile file = ((log_file_info) fi->fh)->oFile;
   if (size > file->inode.i_size) {
     size = file->inode.i_size;
@@ -837,7 +833,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   // Read in the next pages
   while (bytesLeft > 0) {
     // Get the next page
-    cacheEntry entry = fs_getPage(addrCache, key);
+    cacheEntry entry = fs_getPage(key);
 
     // Read into the buf
     memcpy(buf[bytesRead], entry->wp->nandPage.contents[relativeOffset], bytesInPage);
@@ -971,9 +967,6 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
-  CYCstate state = fuse_get_context()->private_data;
-  addressCache addrCache = state->addr_cache;
-  
   (void) path;
 
   //verify if the file has read permission
@@ -1017,11 +1010,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   // Write out the first page
   size_t writeableBytesInPage = PAGESIZE - relativeOffset;
-  cacheEntry page = fs_getPage(addrCache, key);
+  cacheEntry page = fs_getPage(key);
   memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
   memcpy(tempBuf, buf, writeableBytesInPage);
 
-  fs_writeData(addrCache, key, tempBuf);
+  fs_writeData(key, tempBuf);
   
   bytesToWrite -= writeableBytesInPage;
   bytesWritten += writeableBytesInPage;
@@ -1029,7 +1022,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   
   // Write out the middle pages
   while (bytesToWrite > 0) {
-    page = fs_getPage(addrCache, key);
+    page = fs_getPage(key);
 
     // Save the page's old contents in tempBuf if necessary
     if (bytesToWrite >= PAGESIZE) {
@@ -1045,7 +1038,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     // Write out the updated information to tempBuf
     memcpy(tempBuf, buf, writeableBytesInPage);
     
-    fs_writeData(addrCache, key, tempBuf);
+    fs_writeData(key, tempBuf);
 
     // Update for the next page
     bytesToWrite -= writeableBytesInPage;
