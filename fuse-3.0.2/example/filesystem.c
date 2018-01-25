@@ -354,7 +354,7 @@ void fs_updateParentPage(pageKey childKey, page_addr childAddress, int dirty) {
   // Update the child pointer address in the parent
   int indexToUpdate = (((childKey->dataOffset - parentKey->dataOffset) /
 			POINTER_SIZE) * POINTER_SIZE);
-  memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, sizeof(page_addr));
+  memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, POINTER_SIZE);
 
   // Mark the parent page as dirty
   parentPage->dirty = dirty;

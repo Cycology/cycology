@@ -967,7 +967,6 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
-  unimplemented();
   (void) path;
 
   //verify if the file has read permission
@@ -1047,8 +1046,10 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     key->dataOffset += PAGESIZE;
   }
 
-  /* END CODE */
+  return bytesWritten;
 
+  /* END CODE */
+  /*
   int startOffset = offset % PAGESIZE;
   int endOffset;
   int startPage = offset / PAGESIZE;                               //starting page
@@ -1088,6 +1089,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	
   fprintf(stderr, "WRITE RETURNING %d\n", res);
   return res;
+  */
 }
 
 static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
