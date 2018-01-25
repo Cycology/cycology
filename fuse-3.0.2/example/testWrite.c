@@ -24,9 +24,12 @@ int main(int argc, char *argv[])
     if (fd == -1) {
       perror("ERROR IN CREATING FILE");
       return 0;
-    } else {
-      close( fd );
     }
+
+    char buf[10] = "abcdefgh";
+    int bytesWritten = write(fd, buf, 10);
+    printf("BYTES WRITTEN = %d\n", bytesWritten);
+    close( fd );
   }
   
   return 0;

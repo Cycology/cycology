@@ -1,6 +1,10 @@
 // Tom Murtagh
 // Joseph Oh
 
+#define FUSE_USE_VERSION 30
+
+#include <fuse.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -191,7 +195,7 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
 
 int getIndexInInode(int childOffset, int fileHeight) {
   // TODO
-  return ( (childOffset) / ((DIRECT_PAGES) * ((INDIRECT_PAGES) ^ (fileHeight - 2))) );
+  return ( (childOffset) / ((DIRECT_PAGES) * ((INDIRECT_PAGES) ^ (fileHeight - 2)) ) );
 }
   
 /* Get the index of the given data page from the parent indirect page's contents array */
@@ -212,11 +216,12 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
   // Page is not in cache
   if (desired == NULL) {
     page_addr desiredAddr = 0;
-    if (desiredKey->levelsAbove == maxFileHeight - 1) {
+    if ((maxFileHeight == 2 && desiredKey->levelsAbove == 0) ||
+	desiredKey->levelsAbove == maxFileHeight - 1) {
       // If the top-level metadata page doesn't exist, should read it in from disk
-      struct inode parent = desiredKey->file->inode;
+      struct inode ind = desiredKey->file->inode;
       int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
-      desiredAddr = parent.directPage[desiredIndex];
+      desiredAddr = ind.directPage[desiredIndex];
       	
     } else {
       // Get the lowest-level parent metadata page that is currently cached
