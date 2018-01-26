@@ -190,7 +190,7 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
     } */
   } else {
     // TODO: Return a newly initialized writeablePage if nothing
-    memset(wp->nandPage->contents, 0, PAGESIZE * sizeof(char));
+    memset(wp->nandPage.contents, 0, PAGESIZE * sizeof(char));
   }
 
   return wp;
@@ -369,6 +369,7 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
 
 /* Write the given data to the offset in the file */ 
 writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
+
   writeablePage dataPage = prepareWriteablePage(dataKey, data);
 
   writeNAND(&dataPage->nandPage, dataPage->address, 0); // TODO: Error checking

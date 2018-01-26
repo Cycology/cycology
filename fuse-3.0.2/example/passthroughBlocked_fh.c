@@ -721,10 +721,8 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
   //verify access rights
 	
-
   /*check if there is an existing openFile for the file
-   *if not, create new openFile
-   */
+   *if not, create new openFile */
   openFile oFile = state->file_cache->openFileTable[fileID];
   if (oFile == NULL) {
     //plug in file id no into vaddr map; retrieve logHeader then inode
@@ -735,8 +733,6 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
     inode ind = &(logH->content.file.fInode);
     page_vaddr logID = ind->i_log_no;
 		    
-
-
     //check if activeLog exists for log containing this file
     activeLog log = (activeLog)state->file_cache->openFileTable[logID];
     if (log == NULL) {
@@ -749,7 +745,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       state->file_cache->openFileTable[logID] = (openFile) log;	  
 
       //read in lastHeaderAddr
-      if(lastHeaderAddr != logHeaderAddr) {
+      if (lastHeaderAddr != logHeaderAddr) {
 	struct fullPage page2;
 	readNAND( & page2,lastHeaderAddr);
 	logHeader logH2 = (logHeader) & (page2.contents);
@@ -1018,7 +1014,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   // Write out the first page
   size_t writeableBytesInPage = PAGESIZE - relativeOffset;
   cacheEntry page = fs_getPage(addrCache, key);
-  memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+  // memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
   memcpy(tempBuf, buf, writeableBytesInPage);
 
   fs_writeData(addrCache, key, tempBuf);

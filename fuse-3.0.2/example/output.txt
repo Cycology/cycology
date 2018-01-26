@@ -1,0 +1,8 @@
+Map size = 254 Allocation size = 1024 
+CYCstate:
+ rootPath: /home/parallels/cycology/fuse-3.0.2/example/rootdir/root
+ storePath: /home/parallels/cycology/fuse-3.0.2/example/rootdir/virtualNAND
+ numBlocks: 8
+ memSize: 134216
+ vaddrMap.freePtr: 1
+WE GOT TO XMP_CREATE with mode 100700 
