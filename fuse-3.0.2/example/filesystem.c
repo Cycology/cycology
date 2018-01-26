@@ -82,7 +82,8 @@ int lruContains(openFile head, openFile file) {
 
 /* OpenFile may or may not be in the LRU list 
    Brings the given file to the head of the LRU File List */
-void fs_updateFileInLru(CYCstate state, openFile file) {
+void fs_updateFileInLru(openFile file) {
+  CYCstate state = fuse_get_context()->private_data;
   addressCache addrCache = state->addr_cache;
   fileCache fCache = state->file_cache;
   
@@ -94,7 +95,10 @@ void fs_updateFileInLru(CYCstate state, openFile file) {
 }
 
 /* Remove an openFile from the LRU File list */
-void fs_removeFileFromLru(fileCache fCache, openFile file) {
+void fs_removeFileFromLru(openFile file) {
+  CYCstate state = fuse_get_context()->private_data;
+  fileCache fCache = state->file_cache;  
+  
   openFile next = file->lruFileNext;
   openFile lruFile = fCache->lruFileTail;
 
@@ -157,7 +161,7 @@ cacheEntry putPageIntoCache(addressCache cache, writeablePage page, pageKey key)
   }
   
   // Update global LRU File List
-  fs_updateFileInLru(cache, key->file);
+  fs_updateFileInLru(key->file);
 
   return entry;
 }
@@ -437,14 +441,17 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 }
 
 /* Evict the LRU file from the cache */
-void fs_evictLruFile( addressCache cache, fileCache fCache ) {
+void fs_evictLruFile() {
+  CYCstate state = fuse_get_context()->private_data;
+  addressCache addrCache = state->addr_cache;
+  fileCache fCache = state->file_cache;
   openFile lruFile = fCache->lruFileTail;
 
   // Flush out data pages
-  fs_flushDataPages(cache, lruFile);
+  fs_flushDataPages(addrCache, lruFile);
 
   // Flush out metadata pages
-  fs_flushMetadataPages(cache, lruFile);
+  fs_flushMetadataPages(addrCache, lruFile);
   
   // Remove file from LRU file list
   fs_removeFileFromLru(fCache, lruFile);
