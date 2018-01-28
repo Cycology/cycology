@@ -9,11 +9,11 @@ writeablePage fs_writeData(addressCache cache, pageKey dataKey, char* data);
 
 void fs_updateFileInLru(openFile file);
 
-void fs_removeFileFromLru(openFile file);
+void fs_removeFileFromLru(CYCstate state, openFile file);
 
 
 void fs_flushMetadataPages(addressCache cache, openFile file);
 
 void fs_flushDataPages(addressCache cache, openFile file);
 
-void fs_evictLruFile();
+void fs_evictLruFile(CYCstate state);
