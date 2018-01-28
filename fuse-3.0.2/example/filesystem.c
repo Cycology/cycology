@@ -120,7 +120,7 @@ void fs_removeFileFromLru(openFile file) {
   }
 
   // TODO: Check free pointers
-  free(lruFile);
+  // free(lruFile);
 }
 
 /*************************************************************
@@ -432,20 +432,24 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
   }
 }
 
-/* Evict the LRU file from the cache */
-void fs_evictLruFile() {
-  CYCstate state = fuse_get_context()->private_data;
+
+void fs_closeFile(CYCstate state, openFile file) {
   addressCache addrCache = state->addr_cache;
   fileCache fCache = state->file_cache;
-  openFile lruFile = fCache->lruFileTail;
 
   // Flush out data pages
-  fs_flushDataPages(addrCache, lruFile);
+  fs_flushDataPages(addrCache, file);
 
   // Flush out metadata pages
-  fs_flushMetadataPages(addrCache, lruFile);
+  fs_flushMetadataPages(addrCache, file);
   
   // Remove file from LRU file list
-  fs_removeFileFromLru(lruFile);
+  fs_removeFileFromLru(file);
+}
+
+/* Evict the LRU file from the cache */
+void fs_evictLruFile(CYCstate state) {
+  openFile lruFile = state->file_cache->lruFileTail;
+  fs_closeFile(state, lruFile);
 }
 
