@@ -740,7 +740,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       //locate address of last written logHeader
       page_addr lastHeaderAddr = state->vaddrMap->map[logID];
 	    
-      activeLog log = (activeLog) malloc(sizeof (struct activeLog));
+      log = (activeLog) malloc(sizeof (struct activeLog));
       initActiveLog(log, lastHeaderAddr + 1);
       state->file_cache->openFileTable[logID] = (openFile) log;	  
 
@@ -791,7 +791,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
   if (path != NULL) {
     char *fullPath = makePath(path);
-    fprintf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
+    printf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
     free(fullPath);
   }
 	
@@ -902,7 +902,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     }
   }
 
-  fprintf(stderr,"READ %d BYTES\n", (int) res);
+  printf(stderr,"READ %d BYTES\n", (int) res);
   */
   
   return bytesRead;
@@ -914,7 +914,7 @@ static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
   unimplemented();
   struct fuse_bufvec *src;
 
-  fprintf(stderr, "IN xmp_read_buf\n");
+  printf(stderr, "IN xmp_read_buf\n");
 	
   (void) path;
 
@@ -939,7 +939,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
   
   //if new page, unused parts before/after used buffer space should be 0s
   if (pageNo >= fileSizeInPages) {
-    fprintf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
+    printf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
     memset(buf, 0, startOffset);
     memset(buf + endOffset, 0, PAGESIZE - endOffset);
 
@@ -988,7 +988,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   int statRes = 0; // fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
   if (statRes == -1)
     return -errno;
-  fprintf(stderr, "STAT RESULT IN xmp_write:\n %d\n", statRes);
+  printf(stderr, "STAT RESULT IN xmp_write:\n %d\n", statRes);
 
   int fileSize = stBuf.st_size;
   int fileSizeInPages = (fileSize + PAGESIZE - 1) / PAGESIZE;
@@ -1017,14 +1017,22 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   // memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
   memcpy(tempBuf, buf, writeableBytesInPage);
 
+  printf("\n**XMP_WRITE: First Page. BytesToWrite: %d\n", bytesToWrite);
   fs_writeData(addrCache, key, tempBuf);
-  
-  bytesToWrite -= writeableBytesInPage;
-  bytesWritten += writeableBytesInPage;
+
+  if (bytesToWrite < writeableBytesInPage) {
+    bytesWritten = bytesToWrite;
+    bytesToWrite = 0;
+  } else {
+    bytesWritten += writeableBytesInPage;
+    bytesToWrite -= writeableBytesInPage;
+  }
+
   key->dataOffset += PAGESIZE;
   
   // Write out the middle pages
   while (bytesToWrite > 0) {
+    printf("**XMP_WRITE: Middle pages. BytesToWrite: %d\n", bytesToWrite);
     page = fs_getPage(addrCache, key);
 
     // Save the page's old contents in tempBuf if necessary
@@ -1049,6 +1057,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     key->dataOffset += PAGESIZE;
   }
 
+  printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
   return bytesWritten;
 
   /* END CODE */
@@ -1077,11 +1086,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
       toWrite = PAGESIZE;
 
     //Now we can write the page
-    fprintf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
+    printf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
     int written = 0; // pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
     // TODO: Replace this with writeData() - (fi->fh->openFile)
     if (written != toWrite) {
-      fprintf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
+      printf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
       return -errno;
     }
 
@@ -1090,7 +1099,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     startOffset = 0;
   }
 	
-  fprintf(stderr, "WRITE RETURNING %d\n", res);
+  printf(stderr, "WRITE RETURNING %d\n", res);
   return res;
   */
 }
@@ -1160,7 +1169,9 @@ static int xmp_flush(const char *path, struct fuse_file_info *fi)
 
 static int xmp_release(const char *path, struct fuse_file_info *fi)
 {
-
+  // This is akin to xmp_close(), if that were to exist
+  // This is where we flush out LRU files
+  // TODO: Write a function to flush a file when it is closed
   (void) path;
 
   //retrieve CYCstate
@@ -1184,6 +1195,9 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   }
 
   free((log_file_info) fi->fh);
+
+  printf("\nFILE CLOSED\n");
+  
   return 0;
 }
 

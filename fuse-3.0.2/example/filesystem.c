@@ -181,17 +181,6 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
   if (address != 0) { // TODO: Can addresses be 0?
     // TODO: Handle read errors 
     readNAND(wp->nandPage, address);
-
-    /* TESTING 
-    if (address == 300) {
-      wp->nandPage.contents[0] = (char) 1;
-    } else if (address == 600) {
-      wp->nandPage.contents[1016] = (char) 2;
-    } else if (address == 1) {
-      wp->nandPage.contents[0] = (char) 3;
-    } else if (address = 2) {
-
-    } */
   } else {
     // TODO: Return a newly initialized writeablePage if nothing
     memset(wp->nandPage.contents, 0, PAGESIZE * sizeof(char));
@@ -279,8 +268,6 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
   lists->partialHeadErases = lastPage.nextBlockErases;
     
   return freeBlockAddr;
-
-  return 0;
 }
 
 void firstPageOps(writeablePage freePage, activeLog log) {
@@ -365,7 +352,12 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
   // Update the child pointer address in the parent
   int indexToUpdate = (((childKey->dataOffset - parentKey->dataOffset) /
 			POINTER_SIZE) * POINTER_SIZE);
-  memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, POINTER_SIZE);
+  if (indexToUpdate > 1016 || indexToUpdate < 0) {
+    // Error
+  } else {
+    // TODO: Find out how to write the address (int) into the array (char*)
+    // memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, POINTER_SIZE);
+  }
 
   // Mark the parent page as dirty
   parentPage->dirty = dirty;
@@ -454,6 +446,6 @@ void fs_evictLruFile() {
   fs_flushMetadataPages(addrCache, lruFile);
   
   // Remove file from LRU file list
-  fs_removeFileFromLru(fCache, lruFile);
+  fs_removeFileFromLru(lruFile);
 }
 

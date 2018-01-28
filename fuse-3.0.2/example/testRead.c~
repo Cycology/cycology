@@ -6,7 +6,7 @@
 #include <sys/statvfs.h>
 
 /*
- * Tests xmp_write
+ * Tests xmp_read
  */
 
 int main(int argc, char *argv[])
@@ -20,15 +20,15 @@ int main(int argc, char *argv[])
   char name[200];
   for ( int i = 1; i < argc; i++ ) {
     sprintf( name, "mntdir/%s", argv[i] );
-    int fd = open(name, O_CREAT | O_RDWR, S_IRWXU);
+    int fd = open(name, O_RDWR);
     if (fd == -1) {
-      perror("ERROR IN CREATING FILE");
+      perror("ERROR IN READING FILE");
       return 0;
     }
 
-    char buf[10] = "abcdefgh";
-    int bytesWritten = write(fd, buf, 10);
-    printf("BYTES WRITTEN = %d\n", bytesWritten);
+    lseek(fd, 0, SEEK_SET);
+    read(fd, buf, 10);
+    printf("PRINTING WHAT IS WRITTEN: %s\n", buf);
     close( fd );
   }
   
