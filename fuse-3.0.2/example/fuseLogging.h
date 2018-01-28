@@ -45,7 +45,7 @@ typedef struct activeLog {
   int lastErases;        /* erase count of the last block allocated 
 			    to this log */
   struct logHeader log;  /* Mirror of log header from store */
-  int fileCount;         /* The number of files held in this log */
+  int activeFileCount;   /* The number of files in this log that are active */
 } * activeLog;
 
 
