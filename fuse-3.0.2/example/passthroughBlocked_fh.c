@@ -1177,12 +1177,17 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   //retrieve CYCstate
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
-  openFile releasedFile = state->file_cache->openFileTable[((log_file_info) fi->fh)->oFile->inode.i_file_no];
+  int fileNo = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
+  openFile releasedFile = state->file_cache->openFileTable[fileNo];
 
+  // Decrement the number of opens (bc we never dec. anywhere else)
+  releasedFile->currentOpens--;
+  
   if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
     /*a function to make sure all metadata (eg. the logheader) is written to NAND
       will be here, after we figure out what change in metadata
       can occur during read/write*/
+    fs_
 
     //if the file has been modified
     //write the most current logHeader from cache to the NAND memory
@@ -1191,7 +1196,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 	  
     //remove openFile from cache since it's not referenced anymore
     releasedFile = NULL;
-
+    // TODO: Do we have to free() the pointer as well?
   }
 
   free((log_file_info) fi->fh);
