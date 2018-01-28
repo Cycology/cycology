@@ -16,4 +16,6 @@ void fs_flushMetadataPages(addressCache cache, openFile file);
 
 void fs_flushDataPages(addressCache cache, openFile file);
 
+void fs_closeFile(CYCstate state, openFile file);
+
 void fs_evictLruFile(CYCstate state);

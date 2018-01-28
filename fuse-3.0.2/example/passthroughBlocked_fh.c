@@ -751,10 +751,10 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	logHeader logH2 = (logHeader) & (page2.contents);
 	//not sure what to read in if ind is already gotten
       }
+    }
 
-      //increment activelog reference count
-      log->fileCount++;
-    }	  
+    //increment activelog reference count
+    log->activeFileCount++;
 	
     //make a new openFile
     oFile = (openFile) malloc(sizeof (struct openFile));
@@ -1187,7 +1187,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     /*a function to make sure all metadata (eg. the logheader) is written to NAND
       will be here, after we figure out what change in metadata
       can occur during read/write*/
-    fs_
+    fs_closeFile(state, releasedFile);
 
     //if the file has been modified
     //write the most current logHeader from cache to the NAND memory
