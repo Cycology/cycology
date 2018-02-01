@@ -233,8 +233,10 @@ static int xmp_getattr(const char *path, struct stat *stbuf,
       res = lstat(fullPath, stbuf);
       free(fullPath);
     }
+
   if (res == -1)
     return -errno;
+
   return 0;
 }
 
