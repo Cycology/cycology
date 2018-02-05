@@ -79,7 +79,7 @@ int cache_hash( addressCache cache, pageKey page_key ) {
 
 
 /* Create a key-value pair. */
-cacheEntry cache_newEntry( addressCache cache, pageKey key, writeablePage wp ) {
+cacheEntry cache_newEntry( addressCache cache, pageKey page_key, writeablePage wp ) {
   cacheEntry newentry;
 
   if ( cache->size >= cache->MAX_SIZE ) {
@@ -91,6 +91,11 @@ cacheEntry cache_newEntry( addressCache cache, pageKey key, writeablePage wp ) {
   }
 
   // Initialize data fields
+  pageKey key = malloc( sizeof(struct pageKey) );
+  key->file = page_key->openFile;
+  key->dataOffset = page_key->dataOffset;
+  key->levelsAbove = page_key->levelsAbove;
+  
   newentry->key = key;
   newentry->wp = wp;
   newentry->next = NULL;
@@ -280,6 +285,7 @@ void cache_remove(addressCache cache, cacheEntry entry) {
     }
   }
 
+  // TODO: Should I free() here????
   free(entry);
   cache->size--;
 }

@@ -131,7 +131,7 @@ void fs_removeFileFromLru(openFile file) {
 
 /* Return new key with levelsAbove incremented by 1 */
 pageKey getParentKey(pageKey childKey) {
-  // TODO: Check malloc() call here
+  // TODO: Check malloc() here!!!!
   pageKey parentKey = malloc( sizeof (struct pageKey) );
 
   parentKey->file = childKey->file;
@@ -209,27 +209,48 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
   
   cacheEntry desired = cache_get(cache, desiredKey);
 
-  // Page is not in cache
+  // Page is not in cache, so get the NAND address of the page and read it in
   if (desired == NULL) {
     page_addr desiredAddr = 0;
-    if ((maxFileHeight == 2 && desiredKey->levelsAbove == 0) ||
-	desiredKey->levelsAbove == maxFileHeight - 1) {
-      // If the top-level metadata page doesn't exist, should read it in from disk
-      struct inode ind = desiredKey->file->inode;
-      int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
-      desiredAddr = ind.directPage[desiredIndex];
-      	
+    
+    if (maxFileHeight == 2) {
+      // When the file has no indirect pages; only data and the inode
+      if (desiredKey->levelsAbove == 0) {
+	// Parent page is the inode
+	struct inode ind = desiredKey->file->inode;
+	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
+	desiredAddr = ind.directPage[desiredIndex];
+	
+      } else if (desiredKey->levelsAbove == 1) {
+	// Looking for the inode
+	return NULL;
+	
+      } else {
+	// Error
+	return NULL;
+      }
+      
     } else {
-      // Get the lowest-level parent metadata page that is currently cached
-      pageKey parentKey = getParentKey(desiredKey);
-      cacheEntry parent = fs_getPage(cache, parentKey);
+      // There's at least 1 level of indirect pages
+      if (desiredKey->levelsAbove == maxFileHeight - 1) {
+	// The parent page is the inode
+	struct inode ind = desiredKey->file->inode;
+	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
+	desiredAddr = ind.directPage[desiredIndex];
+      	
+      } else {
+	// Get the lowest-level parent metadata page that is currently cached
+	pageKey parentKey = getParentKey(desiredKey);
+	cacheEntry parent = fs_getPage(cache, parentKey);
 
-      int isInode = 0;
-      int desiredIndex =
-	getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset);
-      desiredAddr = parent->wp->nandPage.contents[desiredIndex];
+	int isInode = 0;
+	int desiredIndex =
+	  getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset);
+	desiredAddr = parent->wp->nandPage.contents[desiredIndex];
+      }
     }
-   
+
+    // Read in the desired page from the disk
     writeablePage wp = readWpFromDisk(desiredAddr, desiredKey);
     desired = putPageIntoCache(cache, wp, desiredKey);
   }
@@ -366,10 +387,17 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
 /* Write the given data to the offset in the file */ 
 writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
 
+  // Write out to NAND
   writeablePage dataPage = prepareWriteablePage(dataKey, data);
+  writeNAND(&dataPage->nandPage, dataPage->address, 0);
+  dataKey->file->modified = 1;
 
-  writeNAND(&dataPage->nandPage, dataPage->address, 0); // TODO: Error checking
+  // Increase the size of the file if necessary
+  if (dataKey->dataOffset + PAGESIZE - 1 > dataKey->file->inode.i_size) {
+    dataKey->file->inode.i_size = dataKey->dataOffset + PAGESIZE - 1;
+  }
 
+  // Update metadata in cache
   putPageIntoCache(cache, dataPage, dataKey);
   int dirty = 1;
   fs_updateParentPage(cache, dataKey, dataPage->address, dirty);
@@ -437,12 +465,13 @@ void fs_closeFile(CYCstate state, openFile file) {
   addressCache addrCache = state->addr_cache;
   fileCache fCache = state->file_cache;
 
-  // Flush out data pages
-  fs_flushDataPages(addrCache, file);
+  // Only flush file to NAND if dirty
+  if (file->modified == 1) {
+    fs_flushDataPages(addrCache, file);
+    fs_flushMetadataPages(addrCache, file);
+    // TODO: Write out inode to NAND as well
+  }
 
-  // Flush out metadata pages
-  fs_flushMetadataPages(addrCache, file);
-  
   // Remove file from LRU file list
   fs_removeFileFromLru(file);
 }

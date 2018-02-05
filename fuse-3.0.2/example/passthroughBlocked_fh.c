@@ -778,47 +778,36 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
-  // Since we now have access to the inode, we can check to see if the size requested is greater
-  // than the file's size. If so, then replace the bytes requested with the max bytes in file, 
-  // so that getPage() will always work.
   CYCstate state = fuse_get_context()->private_data;
   addressCache addrCache = state->addr_cache;
-  
+
+  // Only read up to the max amount of data in the file
   openFile file = ((log_file_info) fi->fh)->oFile;
-  if (size > file->inode.i_size) {
+  if (size == 0) {
+    printf("\nFILE HAS NO DATA\n");
+    return;
+  } else if (size > file->inode.i_size) {
     size = file->inode.i_size;
-  }  
+  }
   
   (void) path;
-
   if (path != NULL) {
     char *fullPath = makePath(path);
     printf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
     free(fullPath);
-  }
-	
-  //struct stat stBuf;                     //space for file info
+  }	
 
-  //verify if the file has read permission
+  // Verify if the file has read permission
   int flag = ((log_file_info) fi->fh)->flag;
   printf("FLAG IN xmp_read: %x\n", flag);
   if ((flag & O_WRONLY) != 0) {
     perror("FILE IS NOT READABLE");
     return -1;
-  }
-	
-  /* save file info into stBuf */
-  /* int statRes = fstat(((blocked_file_info) fi->fh)->fd, &stBuf); */
-  /* if (statRes == -1) */
-  /*   return -errno; */
-
-  /* if (offset > stBuf.st_size)              //offset > file size, no byte read */
-  /*   return 0; */
-  /* else if (offset + size > stBuf.st_size)  //make sure only reading within file size */
-  /*   size = stBuf.st_size - offset; */
+  }	
 
   // Init variables
-  pageKey key = malloc (sizeof (struct pageKey) );
+  struct pageKey key_s;
+  pageKey key = &key_s;
   size_t bytesLeft = size;
   size_t bytesRead = 0;
   size_t bytesInPage = 0;
@@ -856,57 +845,9 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   }
 
   if (bytesLeft < 0) {
-    // ERROR HERE
+    printf("\nERROR: Read more bytes than given\n");
   }
-
-  free(key);
-  key = NULL;
-  
-  /*	
-  if (bytesRead == PAGESIZE || bytesRead >= size) {
-    if (size <= PAGESIZE - offset) {                      //if we only have to read this page
-      memcpy(buf, tempBuf + offset, size);
-      res = size;//try return size here, and put size -= res inside other case
-    } else {                                              //if there are more pages to read
-      memcpy(buf, tempBuf + offset, PAGESIZE - offset);
-      res = PAGESIZE - offset;
-      buf += res;                  
-    }
-    size -= res;                           
-  } else {
-    perror("ERROR IN READING 1ST PAGE IN xmp_read\n");   //SHOULD NEVER HAPPEN
-    return -1;
-  }
-	
-  //read in pages in-between
-  while (size >= PAGESIZE) {
-    pageNo++;
-    bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, PAGESIZE, pageNo*PAGESIZE);
-    if (bytesRead == PAGESIZE) {
-      res += PAGESIZE;
-      buf += PAGESIZE;
-      size -= PAGESIZE;
-    } else {
-      perror("ERROR IN READING MIDDLE PAGES IN xmp_read\n");   //SHOULD NEVER HAPPEN
-      return -1;
-    }
-  }
-
-  //read in last page
-  if (size > 0) {
-    pageNo++;
-    bytesRead = 0;// pread(((blocked_file_info) fi->fh)->fd, buf, size, pageNo*PAGESIZE);
-    if (bytesRead == size) {
-      return res + size;
-    } else {
-      perror("ERROR IN READING LAST PAGE IN xmp_read\n");
-      return -1;
-    }
-  }
-
-  printf(stderr,"READ %d BYTES\n", (int) res);
-  */
-  
+    
   return bytesRead;
 }
 
@@ -969,6 +910,11 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
+  if (size == 0) {
+    printf("\nERROR: XMP_WRITE SIZE = 0\n");
+    return;
+  }
+  
   CYCstate state = fuse_get_context()->private_data;
   addressCache addrCache = state->addr_cache;
   
@@ -982,34 +928,29 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     return -1;
   }
   
-  int res = 0;              //return value
-  char tempBuf[PAGESIZE];   //Space for one page being written
-  struct stat stBuf;        //space for file info
-	
-  //save file info into stBuf
-  int statRes = 0; // fstat(((blocked_file_info) fi->fh)->fd, &stBuf);
-  if (statRes == -1)
-    return -errno;
-  printf(stderr, "STAT RESULT IN xmp_write:\n %d\n", statRes);
-
-  int fileSize = stBuf.st_size;
-  int fileSizeInPages = (fileSize + PAGESIZE - 1) / PAGESIZE;
-  int finalFileSize;
-
-  if (offset + size > fileSize)
-    finalFileSize = offset + size;
-  else
-    finalFileSize = fileSize;
-
-  /* MY CODE */
+  // Init variables
+  char tempBuf[PAGESIZE];
+  openFile oFile = ((log_file_info) fi->fh)->oFile;
+  int fileSize = oFile->inode.i_size;
 
   size_t bytesToWrite = size;
   size_t bytesWritten = 0;
   size_t relativeOffset = offset % PAGESIZE;
   size_t startPageOffset = (offset / PAGESIZE) * PAGESIZE;
 
-  pageKey key = malloc( sizeof( struct pageKey ) );
-  key->file = ((log_file_info) fi->fh)->oFile;
+  // Modify the size 
+  int finalFileSize = offset + bytesToWrite;
+  if (finalFileSize > fileSize) {
+    int remainder = finalFileSize % PAGESIZE;
+    finalFileSize += PAGESIZE - remainder;
+  } else {
+    finalFileSize = fileSize;
+  }
+
+  // Create the key for the first page
+  struct pageKey key_s;
+  pageKey key = &key_s;
+  key->file = oFile;
   key->dataOffset = startPageOffset;
   key->levelsAbove = 0;
 
@@ -1017,9 +958,9 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   size_t writeableBytesInPage = PAGESIZE - relativeOffset;
   cacheEntry page = fs_getPage(addrCache, key);
   // memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
-  memcpy(tempBuf, buf, writeableBytesInPage);
-
+  memcpy(tempBuf[relativeOffset], buf, writeableBytesInPage);
   printf("\n**XMP_WRITE: First Page. BytesToWrite: %d\n", bytesToWrite);
+
   fs_writeData(addrCache, key, tempBuf);
 
   if (bytesToWrite < writeableBytesInPage) {
@@ -1059,51 +1000,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     key->dataOffset += PAGESIZE;
   }
 
+  if (finalFileSize != 
+
   printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
+
   return bytesWritten;
-
-  /* END CODE */
-  /*
-  int startOffset = offset % PAGESIZE;
-  int endOffset;
-  int startPage = offset / PAGESIZE;                               //starting page
-  int numPages = (startOffset + size + PAGESIZE - 1) / PAGESIZE;   //#pages being written
-
-  for (int i = 0; i < numPages; i++) {
-
-    if (i == numPages - 1)                         //if writing last page of segment
-      endOffset = (offset + size) % PAGESIZE;
-    else
-      endOffset = PAGESIZE;
-
-    char *bufPtr = prepBuffer(tempBuf, fi, startPage + i,
-			      startOffset, endOffset, fileSizeInPages, fileSize);
-    int dataToMove = endOffset - startOffset;
-    memcpy(bufPtr + startOffset, buf, dataToMove);          //dest and src are switched?
-
-    int toWrite;
-    if ((startPage + i + 1)*PAGESIZE > finalFileSize)       //if writing last page
-      toWrite = finalFileSize - (startPage + i)*PAGESIZE;
-    else
-      toWrite = PAGESIZE;
-
-    //Now we can write the page
-    printf(stderr, "WRITING %d BYTES AT %d\n", toWrite, (startPage + i)*PAGESIZE);
-    int written = 0; // pwrite(((blocked_file_info) fi->fh)->fd, bufPtr, toWrite, (startPage + i)*PAGESIZE);
-    // TODO: Replace this with writeData() - (fi->fh->openFile)
-    if (written != toWrite) {
-      printf(stderr, "UNEXPECTED WRITE RETURN VALUE IN xmp_write\n");
-      return -errno;
-    }
-
-    res += dataToMove;
-    buf += dataToMove;
-    startOffset = 0;
-  }
-	
-  printf(stderr, "WRITE RETURNING %d\n", res);
-  return res;
-  */
 }
 
 static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
