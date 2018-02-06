@@ -286,6 +286,8 @@ void cache_remove(addressCache cache, cacheEntry entry) {
   }
 
   // TODO: Should I free() here????
+  free(entry->key);
+  free(entry->wp);
   free(entry);
   cache->size--;
 }

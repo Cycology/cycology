@@ -131,7 +131,7 @@ void fs_removeFileFromLru(openFile file) {
 
 /* Return new key with levelsAbove incremented by 1 */
 pageKey getParentKey(pageKey childKey) {
-  // TODO: Check malloc() here!!!!
+  // TODO: Check malloc() here!!!! SHOULD NOT BE MALLOC
   pageKey parentKey = malloc( sizeof (struct pageKey) );
 
   parentKey->file = childKey->file;
@@ -445,14 +445,16 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	  allocateFreePage(wp, current->key->file->mainExtentLog);
 	  writeNAND(&wp->nandPage, wp->address, 0);
 	}
-    
+
+	// Update the parent page with the written information
+	if (current->dirty == 1) {
+	  fs_updateParentPage(cache, current->key, current->wp->address, current->dirty);
+	}
+	
 	// Remove current metadata page from openFile
 	printf("Removed page at level: %d\n", current->key->levelsAbove);
 	openFile_removeMetadataPage(file, current);
 	cache_remove(cache, current);
-
-	// Update the parent page with the written information
-	fs_updateParentPage(cache, current->key, current->wp->address, current->dirty);
       }
       
       current = next;

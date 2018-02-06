@@ -1000,8 +1000,8 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     key->dataOffset += PAGESIZE;
   }
 
-  if (finalFileSize != 
-
+  // TODO: Check final file size against actual file size afterwards
+  
   printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
 
   return bytesWritten;
@@ -1086,20 +1086,20 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   // Decrement the number of opens (bc we never dec. anywhere else)
   releasedFile->currentOpens--;
   
-  if (--(((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
-    /*a function to make sure all metadata (eg. the logheader) is written to NAND
-      will be here, after we figure out what change in metadata
-      can occur during read/write*/
-    fs_closeFile(state, releasedFile);
-
+  if ((((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
+    // Flush all data/metadata pages
+    fs_flushDataPages(addrCache, releasedFile);
+    fs_flushMetadataPages(addrCache, releasedFile);
+    fs_removeFileFromLru(releasedFile);
+    
     //if the file has been modified
     //write the most current logHeader from cache to the NAND memory
     if (releasedFile->modified == 1)
       writeCurrLogHeader(releasedFile, &(state->lists));
 	  
     //remove openFile from cache since it's not referenced anymore
-    releasedFile = NULL;
-    // TODO: Do we have to free() the pointer as well?
+    free(state->file_cache->openFileTable[fileNo]);
+    state->file_cache->openFileTable[fileNo] = NULL;
   }
 
   free((log_file_info) fi->fh);
