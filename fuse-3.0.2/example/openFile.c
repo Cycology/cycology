@@ -28,11 +28,6 @@ int containsDataPage(openFile file, cacheEntry entry) {
 
 /* Add the entry to the tail of the data file list */ 
 void openFile_addDataPage(openFile file, cacheEntry entry) {
-<<<<<<< HEAD
-  // Only add if this entry is not already in the list
-  if (entry->fileDataNext == NULL && entry->fileDataPrev == NULL) {
-    cacheEntry tail = file->dataTail;    
-=======
   // Don't add if already included
   if (containsDataPage(file, entry))
     return;
@@ -41,7 +36,6 @@ void openFile_addDataPage(openFile file, cacheEntry entry) {
     
   entry->fileDataPrev = tail;
   entry->fileDataNext = NULL;
->>>>>>> 76cef1331f642be018903b146fd5a4561806e839
 
   if (tail == NULL) {
     // List was empty, set head
