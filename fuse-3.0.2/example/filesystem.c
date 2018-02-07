@@ -189,14 +189,16 @@ writeablePage readWpFromDisk(page_addr address, pageKey key) {
   return wp;
 }
 
+/* Get the index of the direct page in the inode responsible for the childOffset's page */
 int getIndexInInode(int childOffset, int fileHeight) {
-  // TODO
-  return ( (childOffset) / ((DIRECT_PAGES) * ((INDIRECT_PAGES) ^ (fileHeight - 2)) ) );
+  int directPageSize = (INDIRECT_PAGES ^ (fileHeight - 2)) * PAGESIZE;
+  int index = childOffset / directPageSize;
+  return index;   
 }
   
 /* Get the index of the given data page from the parent indirect page's contents array */
 int getIndexInParent(int childOffset, int parentOffset) {
-  return ((childOffset - parentOffset) / INDIRECT_PAGES);
+  return ((childOffset - parentOffset) / POINTER_SIZE) * POINTER_SIZE;
 }
 
 /* Return the requested page from cache memory */
@@ -204,6 +206,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
   int maxFileHeight = desiredKey->file->inode.treeHeight;
 
   if (desiredKey->levelsAbove >= maxFileHeight) {
+    printf("\nERROR: Looking for page at invalid height \n");
     return NULL;
   }
   
@@ -215,39 +218,48 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     
     if (maxFileHeight == 2) {
       // When the file has no indirect pages; only data and the inode
-      if (desiredKey->levelsAbove == 0) {
+      if (desiredKey->levelsAbove == 1) {
+	// Looking for the inode
+	return NULL;
+
+      } else if (desiredKey->levelsAbove == 0) {
 	// Parent page is the inode
 	struct inode ind = desiredKey->file->inode;
 	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
-	desiredAddr = ind.directPage[desiredIndex];
-	
-      } else if (desiredKey->levelsAbove == 1) {
-	// Looking for the inode
-	return NULL;
+	desiredAddr = ind.directPage[desiredIndex];	
 	
       } else {
 	// Error
+	printf("\nERROR: Looking for invalid page\n");
 	return NULL;
       }
       
-    } else {
+    } else if (maxFileHeight > 2) {
       // There's at least 1 level of indirect pages
       if (desiredKey->levelsAbove == maxFileHeight - 1) {
-	// The parent page is the inode
+	// Looking for the inode
+	return NULL;
+	
+      } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
+	// Looking for the highest level indirect page; parent is the inode
 	struct inode ind = desiredKey->file->inode;
 	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
 	desiredAddr = ind.directPage[desiredIndex];
-      	
+	
       } else {
 	// Get the lowest-level parent metadata page that is currently cached
 	pageKey parentKey = getParentKey(desiredKey);
 	cacheEntry parent = fs_getPage(cache, parentKey);
 
-	int isInode = 0;
 	int desiredIndex =
 	  getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset);
 	desiredAddr = parent->wp->nandPage.contents[desiredIndex];
       }
+      
+    } else {
+      // ERROR
+      printf("\nERROR: File height is less than 2\n");
+      return NULL;
     }
 
     // Read in the desired page from the disk
@@ -367,21 +379,30 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
   cacheEntry parentPage = fs_getPage(cache, parentKey);
   
   if (parentPage == NULL) {
-    return;
-  }
-
-  // Update the child pointer address in the parent
-  int indexToUpdate = (((childKey->dataOffset - parentKey->dataOffset) /
-			POINTER_SIZE) * POINTER_SIZE);
-  if (indexToUpdate > 1016 || indexToUpdate < 0) {
-    // Error
+    // Check if NULL because we were looking for the inode
+    int maxFileHeight = childKey->file->inode.maxFileHeight;
+    if ( (maxFileHeight == 2 && childKey->levelsAbove == 1) ||
+	 maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 1) {
+      // Update the inode's direct pages
+      int indexToUpdate = getIndexInInode(childKey->dataOffset, maxFileHeight);
+      childKey->file->inode.directPage[indexToUpdate] = childAddress;
+    }
+    
   } else {
-    // TODO: Find out how to write the address (int) into the array (char*)
-    // memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, POINTER_SIZE);
-  }
+    // Update the child pointer address in the parent
+    int indexToUpdate = getIndexInParent(childKey->dataOffset, parentKey->dataOffset);    
+    if (indexToUpdate > 1016 || indexToUpdate < 0) {
+      // Error
+      printf("\nERROR: Tried to update at invalid index\n");
 
-  // Mark the parent page as dirty
-  parentPage->dirty = dirty;
+    } else {
+      // TODO: Find out how to write the address (int) into the array (char*)
+      // memcpy(parentPage->wp->nandPage.contents[indexToUpdate], childAddress, POINTER_SIZE);
+    }
+
+    // Mark the parent page as dirty
+    parentPage->dirty = dirty;
+  }
 }
 
 /* Write the given data to the offset in the file */ 
@@ -460,22 +481,6 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
       current = next;
     }
   }
-}
-
-
-void fs_closeFile(CYCstate state, openFile file) {
-  addressCache addrCache = state->addr_cache;
-  fileCache fCache = state->file_cache;
-
-  // Only flush file to NAND if dirty
-  if (file->modified == 1) {
-    fs_flushDataPages(addrCache, file);
-    fs_flushMetadataPages(addrCache, file);
-    // TODO: Write out inode to NAND as well
-  }
-
-  // Remove file from LRU file list
-  fs_removeFileFromLru(file);
 }
 
 /* Evict the LRU file from the cache */
