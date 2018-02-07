@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     char buf[10] = "abcdefgh";
     int bytesWritten = write(fd, buf, 10);
     printf("BYTES WRITTEN = %d\n", bytesWritten);
-    //close( fd );
+    close( fd );
   }
   
   return 0;
