@@ -380,7 +380,7 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
   
   if (parentPage == NULL) {
     // Check if NULL because we were looking for the inode
-    int maxFileHeight = childKey->file->inode.maxFileHeight;
+    int maxFileHeight = childKey->file->inode.treeHeight;
     if ( (maxFileHeight == 2 && childKey->levelsAbove == 1) ||
 	 maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 1) {
       // Update the inode's direct pages
@@ -482,10 +482,3 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
     }
   }
 }
-
-/* Evict the LRU file from the cache */
-void fs_evictLruFile(CYCstate state) {
-  openFile lruFile = state->file_cache->lruFileTail;
-  fs_closeFile(state, lruFile);
-}
-

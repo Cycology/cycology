@@ -306,8 +306,7 @@ int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
 		goto out2;
 	}
 
-c
-  if (fuse_daemonize(opts.foreground) != 0) {
+	if (fuse_daemonize(opts.foreground) != 0) {
 		res = 1;
 		goto out3;
 	}
