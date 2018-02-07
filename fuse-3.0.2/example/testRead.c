@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     lseek(fd, 0, SEEK_SET);
     read(fd, buf, 10);
     printf("PRINTING WHAT IS WRITTEN: %s\n", buf);
-    //close( fd );
+    close( fd );
   }
   
   return 0;
