@@ -393,8 +393,8 @@ writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
   dataKey->file->modified = 1;
 
   // Increase the size of the file if necessary
-  if (dataKey->dataOffset + PAGESIZE - 1 > dataKey->file->inode.i_size) {
-    dataKey->file->inode.i_size = dataKey->dataOffset + PAGESIZE - 1;
+  if (dataKey->dataOffset + PAGESIZE > dataKey->file->inode.i_size) {
+    dataKey->file->inode.i_size = dataKey->dataOffset + PAGESIZE;
   }
 
   // Update metadata in cache

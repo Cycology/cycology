@@ -727,42 +727,44 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
    *if not, create new openFile */
   openFile oFile = state->file_cache->openFileTable[fileID];
   if (oFile == NULL) {
-    //plug in file id no into vaddr map; retrieve logHeader then inode
+    // Get the file's inode
     page_addr logHeaderAddr = state->vaddrMap->map[fileID];
     struct fullPage page;
     readNAND( & page, logHeaderAddr);
-    logHeader logH = (logHeader) &(page.contents);
-    inode ind = &(logH->content.file.fInode);
+    logHeader fileLogHeader = (logHeader) &(page.contents);
+    inode ind = &(fileLogHeader->content.file.fInode);
     page_vaddr logID = ind->i_log_no;
 		    
-    //check if activeLog exists for log containing this file
-    activeLog log = (activeLog)state->file_cache->openFileTable[logID];
-    if (log == NULL) {
+    // Check if the file's log is already active
+    activeLog actLog = (activeLog) state->file_cache->openFileTable[logID];
 
-      //locate address of last written logHeader
+    if (actLog == NULL) {
+      // Get the last written logHeader
+      logHeader lastHeader;
       page_addr lastHeaderAddr = state->vaddrMap->map[logID];
-	    
-      log = (activeLog) malloc(sizeof (struct activeLog));
-      initActiveLog(log, lastHeaderAddr + 1);
-      state->file_cache->openFileTable[logID] = (openFile) log;	  
-
-      //read in lastHeaderAddr
       if (lastHeaderAddr != logHeaderAddr) {
 	struct fullPage page2;
 	readNAND( & page2,lastHeaderAddr);
-	logHeader logH2 = (logHeader) & (page2.contents);
-	//not sure what to read in if ind is already gotten
+	lastHeader = (logHeader) &(page2.contents);
+      } else {
+	lastHeader = fileLogHeader;
       }
+
+      // Initialize the active log with the most recent header
+      actLog = (activeLog) malloc(sizeof (struct activeLog));
+      actLog->log = *(lastHeader);      
+      initActiveLog(actLog, lastHeaderAddr); // TODO: + 1);
+      state->file_cache->openFileTable[logID] = (openFile) actLog;	
     }
 
-    //increment activelog reference count
-    log->activeFileCount++;
+    // Increment activelog reference count
+    actLog->activeFileCount++;
 	
-    //make a new openFile
+    // Make a new openFile
     oFile = (openFile) malloc(sizeof (struct openFile));
-    initOpenFile(oFile, log, &ind, fileID);
+    initOpenFile(oFile, actLog, &ind, fileID);
 
-    //update openFileTable
+    // Update the openFileTable
     state->file_cache->openFileTable[fileID] = oFile;
   }
 	
@@ -783,7 +785,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
   // Only read up to the max amount of data in the file
   openFile file = ((log_file_info) fi->fh)->oFile;
-  if (size == 0) {
+  if (file->inode.i_size == 0) {
     printf("\nFILE HAS NO DATA\n");
     return;
   } else if (size > file->inode.i_size) {
@@ -827,7 +829,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     cacheEntry entry = fs_getPage(addrCache, key);
 
     // Read into the buf
-    memcpy(buf[bytesRead], entry->wp->nandPage.contents[relativeOffset], bytesInPage);
+    memcpy(buf+bytesRead, entry->wp->nandPage.contents+relativeOffset, bytesInPage);
 
     // Set up for the next page
     key->dataOffset += PAGESIZE;
@@ -908,7 +910,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
 }
 
 static int xmp_write(const char *path, const char *buf, size_t size,
-		     off_t offset, struct fuse_file_info *fi)
+		        off_t offset, struct fuse_file_info *fi)
 {
   if (size == 0) {
     printf("\nERROR: XMP_WRITE SIZE = 0\n");
@@ -956,11 +958,15 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   // Write out the first page
   size_t writeableBytesInPage = PAGESIZE - relativeOffset;
+  if (writeableBytesInPage > sizeof(buf)) {
+    writeableBytesInPage = sizeof(buf);
+    bytesToWrite = writeableBytesInPage;
+  }
   cacheEntry page = fs_getPage(addrCache, key);
-  // memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
-  memcpy(tempBuf[relativeOffset], buf, writeableBytesInPage);
+  memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+  memcpy(tempBuf+relativeOffset, buf, writeableBytesInPage);
+  
   printf("\n**XMP_WRITE: First Page. BytesToWrite: %d\n", bytesToWrite);
-
   fs_writeData(addrCache, key, tempBuf);
 
   if (bytesToWrite < writeableBytesInPage) {
@@ -1080,8 +1086,10 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   //retrieve CYCstate
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
-  int fileNo = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
-  openFile releasedFile = state->file_cache->openFileTable[fileNo];
+  addressCache addrCache = state->addr_cache;
+  page_vaddr fileID = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
+  page_vaddr logID = ((log_file_info) fi->fh)->oFile->inode.i_log_no;
+  openFile releasedFile = state->file_cache->openFileTable[fileID];
 
   // Decrement the number of opens (bc we never dec. anywhere else)
   releasedFile->currentOpens--;
@@ -1092,14 +1100,25 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     fs_flushMetadataPages(addrCache, releasedFile);
     fs_removeFileFromLru(releasedFile);
     
-    //if the file has been modified
-    //write the most current logHeader from cache to the NAND memory
-    if (releasedFile->modified == 1)
-      writeCurrLogHeader(releasedFile, &(state->lists));
+    // Write the most current logHeader from cache to NAND 
+    if (releasedFile->modified == 1) {
+      // Copy the current inode into the logHeader
+      memcpy(&releasedFile->mainExtentLog->log.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
+
+      // Write out the logHeader to NAND
+      writeablePage buf = getFreePage(&(state->lists), releasedFile->mainExtentLog);
+      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->log), sizeof (struct logHeader));
+      writeNAND( &(buf->nandPage), buf->address, 0);
+
+      // TODO: free() buf!!!
+      // Update the vAddr Map
+      state->vaddrMap->map[fileID] = buf->address;
+      state->vaddrMap->map[logID] = buf->address;
+    }
 	  
     //remove openFile from cache since it's not referenced anymore
-    free(state->file_cache->openFileTable[fileNo]);
-    state->file_cache->openFileTable[fileNo] = NULL;
+    free(state->file_cache->openFileTable[fileID]);
+    state->file_cache->openFileTable[fileID] = NULL;
   }
 
   free((log_file_info) fi->fh);

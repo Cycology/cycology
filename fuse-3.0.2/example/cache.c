@@ -92,7 +92,7 @@ cacheEntry cache_newEntry( addressCache cache, pageKey page_key, writeablePage w
 
   // Initialize data fields
   pageKey key = malloc( sizeof(struct pageKey) );
-  key->file = page_key->openFile;
+  key->file = page_key->file;
   key->dataOffset = page_key->dataOffset;
   key->levelsAbove = page_key->levelsAbove;
   
