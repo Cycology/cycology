@@ -14,9 +14,27 @@
 
 /* Add the entry to the tail of the data file list */ 
 void openFile_addDataPage(openFile file, cacheEntry entry) {
+<<<<<<< HEAD
   // Only add if this entry is not already in the list
   if (entry->fileDataNext == NULL && entry->fileDataPrev == NULL) {
     cacheEntry tail = file->dataTail;    
+=======
+  // Don't add if already included
+  if (containsDataPage(file, entry))
+    return;
+  
+  cacheEntry tail = file->dataTail;
+    
+  entry->fileDataPrev = tail;
+  entry->fileDataNext = NULL;
+
+  if (tail == NULL) {
+    // List was empty, set head
+    file->dataHead = entry;
+  } else {
+    tail->fileDataNext = entry;
+  }
+>>>>>>> 316d4b18489bac8e72331c6bb63354cde405bb43
 
     entry->fileDataPrev = tail;
     entry->fileDataNext = NULL;
