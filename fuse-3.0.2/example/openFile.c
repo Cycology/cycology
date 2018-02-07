@@ -1,3 +1,5 @@
+// Joseph Oh
+
 #include <stdlib.h>
 #include <stdio.h>
 
