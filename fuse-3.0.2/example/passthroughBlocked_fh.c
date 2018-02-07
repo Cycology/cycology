@@ -644,43 +644,6 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 }
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /************************************************************
  *
  * RIGHT NOW WE'RE ASSIGNING 1 FILE PER LOG, BUT WE MAY WANT
@@ -890,6 +853,61 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   return bytesRead;
 }
 
+static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
+			size_t size, off_t offset, struct fuse_file_info *fi)
+{
+  unimplemented();
+  struct fuse_bufvec *src;
+
+  printf(stderr, "IN xmp_read_buf\n");
+	
+  (void) path;
+
+  src = malloc(sizeof(struct fuse_bufvec));
+  if (src == NULL)
+    return -ENOMEM;
+
+  *src = FUSE_BUFVEC_INIT(size);
+
+  src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+  src->buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
+  src->buf[0].pos = offset;
+
+  *bufp = src;
+
+  return 0;
+}
+
+static char *prepBuffer(char *buf, struct fuse_file_info *fi,
+			int pageNo, int startOffset, int endOffset,
+			int fileSizeInPages, int fileSize) {
+  
+  //if new page, unused parts before/after used buffer space should be 0s
+  if (pageNo >= fileSizeInPages) {
+    printf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
+    memset(buf, 0, startOffset);
+    memset(buf + endOffset, 0, PAGESIZE - endOffset);
+
+    //if existing page not completely overwritten, read and store it
+  } else if (startOffset > 0 || endOffset < PAGESIZE) {
+    int toRead;
+    if (pageNo == fileSizeInPages - 1)          //page being written is last page
+      toRead = fileSize - pageNo*PAGESIZE;
+    else
+      toRead = PAGESIZE;
+
+    //store page in buffer
+    int bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
+    if (bytesRead != toRead) {
+      perror("ERROR IN PREPARING BUFFER FOR xmp_write");
+      return NULL;
+    }
+
+    memset(buf + bytesRead, 0, PAGESIZE - bytesRead);   //set any bytes not obtained from file to 0s
+  }
+
+  return buf;     //later on this will be part of cache
+}
 
 static int xmp_write(const char *path, const char *buf, size_t size,
 		        off_t offset, struct fuse_file_info *fi)
@@ -995,122 +1013,6 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   return bytesWritten;
 }
 
-
-static int xmp_release(const char *path, struct fuse_file_info *fi)
-{
-  // This is akin to xmp_close(), if that were to exist
-  // This is where we flush out LRU files
-  // TODO: Write a function to flush a file when it is closed
-  (void) path;
-
-  //retrieve CYCstate
-  struct fuse_context *context = fuse_get_context();
-  CYCstate state = context->private_data;
-  addressCache addrCache = state->addr_cache;
-  page_vaddr fileID = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
-  page_vaddr logID = ((log_file_info) fi->fh)->oFile->inode.i_log_no;
-  openFile releasedFile = state->file_cache->openFileTable[fileID];
-
-  // Decrement the number of opens (bc we never dec. anywhere else)
-  releasedFile->currentOpens--;
-  
-  if ((((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
-    // Flush all data/metadata pages
-    fs_flushDataPages(addrCache, releasedFile);
-    fs_flushMetadataPages(addrCache, releasedFile);
-    fs_removeFileFromLru(releasedFile);
-    
-    // Write the most current logHeader from cache to NAND 
-    if (releasedFile->modified == 1) {
-      // Copy the current inode into the logHeader
-      memcpy(&releasedFile->mainExtentLog->log.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
-
-      // Write out the logHeader to NAND
-      writeablePage buf = getFreePage(&(state->lists), releasedFile->mainExtentLog);
-      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->log), sizeof (struct logHeader));
-      writeNAND( &(buf->nandPage), buf->address, 0);
-
-      // TODO: free() buf!!!
-      // Update the vAddr Map
-      state->vaddrMap->map[fileID] = buf->address;
-      state->vaddrMap->map[logID] = buf->address;
-    }
-	  
-    //remove openFile from cache since it's not referenced anymore
-    free(state->file_cache->openFileTable[fileID]);
-    state->file_cache->openFileTable[fileID] = NULL;
-  }
-
-  free((log_file_info) fi->fh);
-
-  printf("\nFILE CLOSED\n");
-  
-  return 0;
-}
-
-
-
-/****************************************************************
- ****************************************************************
- ****************************************************************/
-
-
-static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
-			size_t size, off_t offset, struct fuse_file_info *fi)
-{
-  unimplemented();
-  struct fuse_bufvec *src;
-
-  printf(stderr, "IN xmp_read_buf\n");
-	
-  (void) path;
-
-  src = malloc(sizeof(struct fuse_bufvec));
-  if (src == NULL)
-    return -ENOMEM;
-
-  *src = FUSE_BUFVEC_INIT(size);
-
-  src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-  src->buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
-  src->buf[0].pos = offset;
-
-  *bufp = src;
-
-  return 0;
-}
-
-static char *prepBuffer(char *buf, struct fuse_file_info *fi,
-			int pageNo, int startOffset, int endOffset,
-			int fileSizeInPages, int fileSize) {
-  
-  //if new page, unused parts before/after used buffer space should be 0s
-  if (pageNo >= fileSizeInPages) {
-    printf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
-    memset(buf, 0, startOffset);
-    memset(buf + endOffset, 0, PAGESIZE - endOffset);
-
-    //if existing page not completely overwritten, read and store it
-  } else if (startOffset > 0 || endOffset < PAGESIZE) {
-    int toRead;
-    if (pageNo == fileSizeInPages - 1)          //page being written is last page
-      toRead = fileSize - pageNo*PAGESIZE;
-    else
-      toRead = PAGESIZE;
-
-    //store page in buffer
-    int bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
-    if (bytesRead != toRead) {
-      perror("ERROR IN PREPARING BUFFER FOR xmp_write");
-      return NULL;
-    }
-
-    memset(buf + bytesRead, 0, PAGESIZE - bytesRead);   //set any bytes not obtained from file to 0s
-  }
-
-  return buf;     //later on this will be part of cache
-}
-
 static int xmp_write_buf(const char *path, struct fuse_bufvec *buf,
 			 off_t offset, struct fuse_file_info *fi)
 {
@@ -1174,6 +1076,57 @@ static int xmp_flush(const char *path, struct fuse_file_info *fi)
   return 0;
 }
 
+static int xmp_release(const char *path, struct fuse_file_info *fi)
+{
+  // This is akin to xmp_close(), if that were to exist
+  // This is where we flush out LRU files
+  // TODO: Write a function to flush a file when it is closed
+  (void) path;
+
+  //retrieve CYCstate
+  struct fuse_context *context = fuse_get_context();
+  CYCstate state = context->private_data;
+  addressCache addrCache = state->addr_cache;
+  page_vaddr fileID = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
+  page_vaddr logID = ((log_file_info) fi->fh)->oFile->inode.i_log_no;
+  openFile releasedFile = state->file_cache->openFileTable[fileID];
+
+  // Decrement the number of opens (bc we never dec. anywhere else)
+  releasedFile->currentOpens--;
+  
+  if ((((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
+    // Flush all data/metadata pages
+    fs_flushDataPages(addrCache, releasedFile);
+    fs_flushMetadataPages(addrCache, releasedFile);
+    fs_removeFileFromLru(releasedFile);
+    
+    // Write the most current logHeader from cache to NAND 
+    if (releasedFile->modified == 1) {
+      // Copy the current inode into the logHeader
+      memcpy(&releasedFile->mainExtentLog->log.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
+
+      // Write out the logHeader to NAND
+      writeablePage buf = getFreePage(&(state->lists), releasedFile->mainExtentLog);
+      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->log), sizeof (struct logHeader));
+      writeNAND( &(buf->nandPage), buf->address, 0);
+
+      // TODO: free() buf!!!
+      // Update the vAddr Map
+      state->vaddrMap->map[fileID] = buf->address;
+      state->vaddrMap->map[logID] = buf->address;
+    }
+	  
+    //remove openFile from cache since it's not referenced anymore
+    free(state->file_cache->openFileTable[fileID]);
+    state->file_cache->openFileTable[fileID] = NULL;
+  }
+
+  free((log_file_info) fi->fh);
+
+  printf("\nFILE CLOSED\n");
+  
+  return 0;
+}
 
 static int xmp_fsync(const char *path, int isdatasync,
 		     struct fuse_file_info *fi)

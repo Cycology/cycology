@@ -7,5 +7,5 @@ Name: fuse
 Description: Filesystem in Userspace
 Version: 3.0.2
 Libs: -L${libdir} -lfuse3 -pthread
-Libs.private:  -liconv
+Libs.private: -ldl  
 Cflags: -I${includedir}/fuse3
