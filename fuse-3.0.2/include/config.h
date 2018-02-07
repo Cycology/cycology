@@ -29,10 +29,10 @@
 #define HAVE_OPENAT 1
 
 /* Define to 1 if you have the `pipe2' function. */
-#define HAVE_PIPE2 1
+/* #undef HAVE_PIPE2 */
 
 /* Define to 1 if you have the `posix_fallocate' function. */
-#define HAVE_POSIX_FALLOCATE 1
+/* #undef HAVE_POSIX_FALLOCATE */
 
 /* Define to 1 if you have the `readlinkat' function. */
 #define HAVE_READLINKAT 1
@@ -41,7 +41,7 @@
 #define HAVE_SETXATTR 1
 
 /* Define to 1 if you have the `splice' function. */
-#define HAVE_SPLICE 1
+/* #undef HAVE_SPLICE */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -56,10 +56,10 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if `st_atim' is a member of `struct stat'. */
-#define HAVE_STRUCT_STAT_ST_ATIM 1
+/* #undef HAVE_STRUCT_STAT_ST_ATIM */
 
 /* Define to 1 if `st_atimespec' is a member of `struct stat'. */
-/* #undef HAVE_STRUCT_STAT_ST_ATIMESPEC */
+#define HAVE_STRUCT_STAT_ST_ATIMESPEC 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -71,10 +71,10 @@
 #define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `utimensat' function. */
-#define HAVE_UTIMENSAT 1
+/* #undef HAVE_UTIMENSAT */
 
 /* Define to 1 if you have the `vmsplice' function. */
-#define HAVE_VMSPLICE 1
+/* #undef HAVE_VMSPLICE */
 
 /* Define as const if the declaration of iconv() needs const. */
 #define ICONV_CONST 
