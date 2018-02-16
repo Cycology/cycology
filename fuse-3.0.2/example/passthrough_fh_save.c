@@ -57,7 +57,6 @@ static void *xmp_init(struct fuse_conn_info *conn,
 	(void) conn;
 	cfg->use_ino = 1;
 	cfg->nullpath_ok = 1;
-	cfg->direct_io = 1;
 
 	/* Pick up changes from lower filesystem right away. This is
 	   also necessary for better hardlink support. When the kernel
@@ -588,9 +587,9 @@ static struct fuse_operations xmp_oper = {
 	.create		= xmp_create,
 	.open		= xmp_open,
 	.read		= xmp_read,
-	//	.read_buf	= xmp_read_buf,
+	.read_buf	= xmp_read_buf,
 	.write		= xmp_write,
-	//	.write_buf	= xmp_write_buf,
+	.write_buf	= xmp_write_buf,
 	.statfs		= xmp_statfs,
 	.flush		= xmp_flush,
 	.release	= xmp_release,

@@ -56,6 +56,7 @@
 #include "loggingDiskFormats.h"
 #include "fuseLogging.h"
 #include "filesystem.h"
+#include "cache.h"
 #include "cacheStructs.h"
 #include "vNANDlib.h"
 #include "helper.h"
@@ -85,13 +86,15 @@ static char *makePath(const char *path)
 static void *xmp_init(struct fuse_conn_info *conn,
 		      struct fuse_config *cfg)
 {
+  // Make the FUSE system calls correspond 1:1 with our system calls
+  cfg->direct_io = 1;
+  
+  // Initialize the state
   CYCstate state = (CYCstate) malloc(sizeof (struct CYCstate));
   state->rootPath = ROOT_PATH;
   state->storePath = STORE_PATH;
   state->nFeatures = initNAND();
   state->addr_cache = cache_create(1000); //TODO: Change the size
-
-  //initialize other fields in state
   initCYCstate(state);
 
   //print CYCstate content
@@ -100,23 +103,6 @@ static void *xmp_init(struct fuse_conn_info *conn,
   
   //keep CYCstate
   return state;
-  
-  /* (void) conn; */
-  /* cfg->use_ino = 1; */
-  /* cfg->nullpath_ok = 1; */
-
-  /* /\* Pick up changes from lower filesystem right away. This is *\/ */
-  /* /\*    also necessary for better hardlink support. When the kernel *\/ */
-  /* /\*    calls the unlink() handler, it does not know the inode of *\/ */
-  /* /\*    the to-be-removed entry and can therefore not invalidate *\/ */
-  /* /\*    the cache of the associated inode - resulting in an *\/ */
-  /* /\*    incorrect st_nlink value being reported for any remaining *\/ */
-  /* /\*    hardlinks to this inode. *\/ */
-  /* cfg->entry_timeout = 0; */
-  /* cfg->attr_timeout = 0; */
-  /* cfg->negative_timeout = 0; */
-
-  /* return NULL; */
 }
 
 static void xmp_destroy(void *private_data)
@@ -740,8 +726,11 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
     if (actLog == NULL) {
       // Get the last written logHeader
+      actLog = (activeLog) malloc(sizeof (struct activeLog));
       logHeader lastHeader;
       page_addr lastHeaderAddr = state->vaddrMap->map[logID];
+
+      // Check if there is a more recent header
       if (lastHeaderAddr != logHeaderAddr) {
 	struct fullPage page2;
 	readNAND( & page2,lastHeaderAddr);
@@ -751,10 +740,9 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       }
 
       // Initialize the active log with the most recent header
-      actLog = (activeLog) malloc(sizeof (struct activeLog));
       actLog->log = *(lastHeader);      
       initActiveLog(actLog, lastHeaderAddr); // TODO: + 1);
-      state->file_cache->openFileTable[logID] = (openFile) actLog;	
+      state->file_cache->openFileTable[logID] = (openFile) actLog;
     }
 
     // Increment activelog reference count
@@ -762,7 +750,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	
     // Make a new openFile
     oFile = (openFile) malloc(sizeof (struct openFile));
-    initOpenFile(oFile, actLog, &ind, fileID);
+    initOpenFile(oFile, actLog, ind, fileID);
 
     // Update the openFileTable
     state->file_cache->openFileTable[fileID] = oFile;
@@ -787,10 +775,10 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   openFile file = ((log_file_info) fi->fh)->oFile;
   if (file->inode.i_size == 0) {
     printf("\nFILE HAS NO DATA\n");
-    return;
+    return -1;
   } else if (size > file->inode.i_size) {
     size = file->inode.i_size;
-  }
+  } 
   
   (void) path;
   if (path != NULL) {
@@ -810,21 +798,25 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   // Init variables
   struct pageKey key_s;
   pageKey key = &key_s;
-  size_t bytesLeft = size;
+  int bytesLeft = size;
   size_t bytesRead = 0;
   size_t bytesInPage = 0;
   
   // Prepare the first page
-    unsigned int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
-    unsigned int relativeOffset = offset - pageStartOffset;
-    bytesInPage = PAGESIZE - relativeOffset;
+  unsigned int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
+  unsigned int relativeOffset = offset - pageStartOffset;
+  bytesInPage = PAGESIZE - relativeOffset;
+  key->file = file;
+  key->dataOffset = pageStartOffset;
+  key->levelsAbove = 0;    
 
-    key->file = file;
-    key->dataOffset = pageStartOffset;
-    key->levelsAbove = 0;    
+  // In case we need to read less than a full page
+  if (bytesLeft < bytesInPage) {
+    bytesInPage = bytesLeft;
+  }
   
   // Read in the next pages
-  while (bytesLeft > 0) {
+  while (bytesLeft > 0) {    
     // Get the next page
     cacheEntry entry = fs_getPage(addrCache, key);
 
@@ -914,7 +906,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 {
   if (size == 0) {
     printf("\nERROR: XMP_WRITE SIZE = 0\n");
-    return;
+    return -1;
   }
   
   CYCstate state = fuse_get_context()->private_data;
@@ -1080,10 +1072,9 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 {
   // This is akin to xmp_close(), if that were to exist
   // This is where we flush out LRU files
-  // TODO: Write a function to flush a file when it is closed
   (void) path;
 
-  //retrieve CYCstate
+  // Retrieve CYCstate
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
   addressCache addrCache = state->addr_cache;
@@ -1091,9 +1082,11 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   page_vaddr logID = ((log_file_info) fi->fh)->oFile->inode.i_log_no;
   openFile releasedFile = state->file_cache->openFileTable[fileID];
 
-  // Decrement the number of opens (bc we never dec. anywhere else)
+  // Decrement open counts
   releasedFile->currentOpens--;
-  
+  releasedFile->mainExtentLog->activeFileCount--;
+
+  // Release the File if no more opens  
   if ((((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
     // Flush all data/metadata pages
     fs_flushDataPages(addrCache, releasedFile);
@@ -1119,6 +1112,13 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     //remove openFile from cache since it's not referenced anymore
     free(state->file_cache->openFileTable[fileID]);
     state->file_cache->openFileTable[fileID] = NULL;
+  }
+
+  // Release the log if no more files open
+  activeLog aLog = state->file_cache->openFileTable[logID];
+  if (aLog != NULL && aLog->activeFileCount == 0) {
+    free(state->file_cache->openFileTable[logID]);
+    state->file_cache->openFileTable[logID] = NULL;
   }
 
   free((log_file_info) fi->fh);

@@ -26,10 +26,21 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    char* buf;
+    int bytesRead = 0;
+    char buf[200];
     lseek(fd, 0, SEEK_SET);
-    read(fd, buf, 10);
-    printf("PRINTING WHAT IS WRITTEN: %s\n", buf);
+    bytesRead = read(fd, buf, 4);
+    if (bytesRead > 0) {
+      printf("1. PRINTING WHAT IS WRITTEN: %s, %d\n", buf, bytesRead);
+    }
+
+    lseek(fd, 4, SEEK_SET);
+    bytesRead += read(fd, buf, 4);
+    if (bytesRead > 0) {
+      buf[bytesRead] = '\0';
+      printf("2. PRINTING WHAT IS WRITTEN: %s, %d\n", buf, bytesRead);
+    }
+
     close( fd );
   }
   

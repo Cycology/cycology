@@ -14,6 +14,7 @@
 #include "cacheStructs.h"
 #include "cache.h"
 #include "openFile.h"
+#include "vNANDlib.h"
 
 /*************************************************************
  *
@@ -23,7 +24,7 @@
 
 /* Only called when file already exists in the LRU file list 
    Move an existing openFile to the head of the LRU File List */
-void updateLruFileHead(addressCache cache, fileCache fCache, openFile file) {
+void updateLruFileHead(fileCache fCache, openFile file) {
   openFile prev = file->lruFilePrev;
   openFile next = file->lruFileNext;
   
@@ -51,7 +52,7 @@ void updateLruFileHead(addressCache cache, fileCache fCache, openFile file) {
 
 /* Only called when file doesn't exist in the LRU file list 
    Add an openFile to the head of the LRU File List */
-void addFileToLru(addressCache cache, fileCache fCache, openFile file) {
+void addFileToLru(fileCache fCache, openFile file) {
   openFile curHead = fCache->lruFileHead;
   file->lruFileNext = curHead;
   file->lruFilePrev = NULL;
@@ -88,9 +89,9 @@ void fs_updateFileInLru(openFile file) {
   fileCache fCache = state->file_cache;
   
   if (lruContains(fCache->lruFileHead, file) == 1) {
-    updateLruFileHead(addrCache, fCache, file);
+    updateLruFileHead(fCache, file);
   } else {
-    addFileToLru(addrCache, fCache, file);
+    addFileToLru(fCache, file);
   }
 }
 
@@ -100,7 +101,6 @@ void fs_removeFileFromLru(openFile file) {
   fileCache fCache = state->file_cache;  
   
   openFile next = file->lruFileNext;
-  openFile lruFile = fCache->lruFileTail;
 
   // Remove from global LRU File List
   if (file == fCache->lruFileHead) {
@@ -118,9 +118,6 @@ void fs_removeFileFromLru(openFile file) {
   } else {
     next->lruFilePrev = file->lruFilePrev;
   }
-
-  // TODO: Check free pointers
-  // free(lruFile);
 }
 
 /*************************************************************
@@ -174,13 +171,13 @@ cacheEntry putPageIntoCache(addressCache cache, writeablePage page, pageKey key)
  *************************************************************/
 
 /* Return a writeablePage with the contents of the given NAND address */
-writeablePage readWpFromDisk(page_addr address, pageKey key) {
+writeablePage readWpFromDisk(page_addr address) {
   writeablePage wp = malloc( sizeof (struct writeablePage) );
 
   // Read from disk into page
   if (address != 0) { // TODO: Can addresses be 0?
     // TODO: Handle read errors 
-    readNAND(wp->nandPage, address);
+    readNAND(&(wp->nandPage), address);
   } else {
     // TODO: Return a newly initialized writeablePage if nothing
     memset(wp->nandPage.contents, 0, PAGESIZE * sizeof(char));
@@ -263,8 +260,9 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     }
 
     // Read in the desired page from the disk
-    writeablePage wp = readWpFromDisk(desiredAddr, desiredKey);
+    writeablePage wp = readWpFromDisk(desiredAddr);
     desired = putPageIntoCache(cache, wp, desiredKey);
+    printf("Hello: %d", desired->wp->address);
   }
 
   return desired;
@@ -309,11 +307,9 @@ void firstPageOps(writeablePage freePage, activeLog log) {
 
   // Set the erase count from the stored erase count
   freePage->nandPage.eraseCount = log->lastErases;
-
-  return 0;
 }
 
-void thirdToLastPageOps(writeablePage freePage, activeLog log) {
+void thirdToLastPageOps( activeLog log) {
   // Next free page is the last page of the previous block
   log->nextPage = (log->log.prev)*BLOCKSIZE + (BLOCKSIZE-1);
 }
@@ -349,7 +345,7 @@ void allocateFreePage(writeablePage freePage, activeLog log) {
   if (freePage->address % BLOCKSIZE == 0) {
     firstPageOps(freePage, log);    
   } else if ((freePage->address + 3) % BLOCKSIZE == 0) {
-    thirdToLastPageOps(freePage, log);  
+    thirdToLastPageOps(log);  
   } else if((freePage->address + 2) % BLOCKSIZE == 0) {
     secondToLastPageOps(freePage, log);    
   } else if((freePage->address + 1) % BLOCKSIZE == 0) {
@@ -381,8 +377,8 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
   if (parentPage == NULL) {
     // Check if NULL because we were looking for the inode
     int maxFileHeight = childKey->file->inode.treeHeight;
-    if ( (maxFileHeight == 2 && childKey->levelsAbove == 1) ||
-	 maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 1) {
+    if ( (maxFileHeight == 2 && childKey->levelsAbove == 0) ||
+	 (maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 1)) {
       // Update the inode's direct pages
       int indexToUpdate = getIndexInInode(childKey->dataOffset, maxFileHeight);
       childKey->file->inode.directPage[indexToUpdate] = childAddress;

@@ -14,3 +14,4 @@ void cache_addDataPageToLru(addressCache cache, cacheEntry entry);
 
 cacheEntry cache_removeDataPageFromLru(addressCache cache, cacheEntry current);
 
+void cache_remove(addressCache cache, cacheEntry entry);
