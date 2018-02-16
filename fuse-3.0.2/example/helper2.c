@@ -123,6 +123,14 @@ void initOpenFile(openFile oFile, struct activeLog *log,
   oFile->mainExtentLog = log;
   oFile->inode = *ind;
   oFile->address = fileID;
+  oFile->modified = 0;
+
+  oFile->dataHead = NULL;
+  oFile->dataTail = NULL;
+  oFile->metadataHead = NULL;
+  oFile->metadataTail = NULL;
+  oFile->lruFileNext = NULL;
+  oFile->lruFilePrev = NULL;
 }
 
 /* /\* */
@@ -312,16 +320,19 @@ writeablePage getFreePage(freeList lists, activeLog log)
 activeLog getLogForFile(CYCstate state, page_vaddr fileID,page_addr *logHeaderPage, mode_t mode)
 {
   activeLog theLog = (activeLog) malloc(sizeof (struct activeLog));
+
+  // Initialize the file count
+  theLog->activeFileCount = 1;
   
-  //create inode for the new file
+  // Create inode for the new file
   page_vaddr logID = getFreePtr(state->vaddrMap); //will already have logID if log exists
   inode ind = &(theLog->log.content.file.fInode);
   initInode(ind, mode, fileID, logID);
   
-  //create the logHeader of the log containing this file
+  // Create the logHeader of the log containing this file
   initLogHeader(&(theLog->log), logID, LTYPE_FILES);
   
-  //The logHeader containing the inode should be in the first unused page of a newly allocated block
+  // The logHeader containing the inode should be in the first unused page of a newly allocated block
   theLog->log.firstErases = getFreeBlock(&(state->lists), logHeaderPage, 1);
   theLog->log.erases = theLog->log.firstErases;
   theLog->log.first = *logHeaderPage/BLOCKSIZE;
@@ -333,7 +344,8 @@ activeLog getLogForFile(CYCstate state, page_vaddr fileID,page_addr *logHeaderPa
    */
   theLog->log.content.file.fileCount = 1;
   theLog->log.content.file.fileId[0] = fileID;
-  
+
+  // Save the log and vaddress in the CYCstate
   state->file_cache->openFileTable[logID] = (openFile) theLog;
   state->vaddrMap->map[logID] = *logHeaderPage;
 
@@ -358,20 +370,4 @@ page_vaddr readStubFile(char *fullPath)
   
   close(stubfd);
   return fileID;
-}
-
-//write the most current log header to virtualNAND
-void writeCurrLogHeader(openFile oFile, freeList lists)
-{
-  writeablePage buf = getFreePage(lists, oFile->mainExtentLog);
-  memcpy(buf->nandPage.contents, &(oFile->mainExtentLog->log), sizeof (struct logHeader));
-  writeNAND( &(buf->nandPage), buf->address, 0);
-
-  
-  //struct fullPage buf;
-  // getPageFields(page, *(buf->eraseCount), *(buf->nextLogBlock),*(buf->nextBlockErases));
-  //is this the right page type?
-  //buf->pageType = PTYPE_INODE;
-  //memcpy(buf, &logH, sizeof (struct logHeader));
-  //writeNAND(buf, page, 0);
 }
