@@ -185,10 +185,28 @@ cacheEntry cache_get( addressCache cache, pageKey key ) {
  * LRU DATA PAGE LIST OPERATIONS
  *
  *************************************************************/
+int dataLruContains(addressCache cache, cacheEntry entry) {
+  cacheEntry cur = cache->lruDataHead;
+  while (cur != NULL) {
+    if (entry == cur) {
+      return 1;
+    } else {
+      cur = cur->lruDataNext;
+    }
+  }
+
+  return 0;
+}
+
 
 /* Is only called when entry already exists in the LRU list 
    Move an existing cacheEntry in the LRU Data List to the head */
 void cache_updateDataLruHead(addressCache cache, cacheEntry entry) {
+  // Don't do anything if it doesn't exist
+  if (dataLruContains(cache, entry) == 0) {
+    return;
+  }
+
   // Move the entry to the head position
   cacheEntry prev = entry->lruDataPrev;
   cacheEntry next = entry->lruDataNext;
@@ -218,6 +236,11 @@ void cache_updateDataLruHead(addressCache cache, cacheEntry entry) {
 /* PRE: Is only called when entry does not already exist in LRU list 
 *  POST: Add a cacheEntry to the head of the LRU Data List */
 void cache_addDataPageToLru(addressCache cache, cacheEntry entry) {
+  // Don't do anything if already exists
+  if (dataLruContains(cache, entry) == 1) {
+    return;
+  }
+  
   // Add entry to the head of the LRU list
   cacheEntry curHead = cache->lruDataHead;
 
@@ -259,7 +282,7 @@ void cache_remove(addressCache cache, cacheEntry entry) {
   int bin = cache_hash(cache, key);
   
   if (entry->key->levelsAbove == 0) {
-    //cache_removeDataPageFromLru(cache, entry);
+    cache_removeDataPageFromLru(cache, entry);
   }
 
   // Remove the entry from the table

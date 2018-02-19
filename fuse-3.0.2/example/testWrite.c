@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
     char* buf;
     buf = "abcdefghijklmnop";
-    int bytesWritten = write(fd, buf, 10);
+    int bytesWritten = write(fd, buf, 15);
     printf("BYTES WRITTEN = %d\n", bytesWritten);
     close( fd );
   }

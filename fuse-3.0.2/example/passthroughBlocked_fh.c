@@ -916,7 +916,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   //verify if the file has read permission
   int flag = ((log_file_info) fi->fh)->flag;
-  printf("FLAG IN xmp_write: %x\n", flag);
+  // TODO: REMOVE printf("FLAG IN xmp_write: %x\n", flag);
   if ((flag & (O_RDWR | O_WRONLY)) == 0) {
     perror("FILE IS NOT WRITEABLE\n");
     return -1;
@@ -950,15 +950,15 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   // Write out the first page
   size_t writeableBytesInPage = PAGESIZE - relativeOffset;
-  if (writeableBytesInPage > sizeof(buf)) {
-    writeableBytesInPage = sizeof(buf);
+  if (writeableBytesInPage > size) {
+    writeableBytesInPage = size;
     bytesToWrite = writeableBytesInPage;
   }
   cacheEntry page = fs_getPage(addrCache, key);
   memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
   memcpy(tempBuf+relativeOffset, buf, writeableBytesInPage);
   
-  printf("\n**XMP_WRITE: First Page. BytesToWrite: %d\n", bytesToWrite);
+  // TODO: REMOVE printf("\n**XMP_WRITE: First Page. BytesToWrite: %d\n", bytesToWrite);
   fs_writeData(addrCache, key, tempBuf);
 
   if (bytesToWrite < writeableBytesInPage) {
@@ -973,7 +973,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   
   // Write out the middle pages
   while (bytesToWrite > 0) {
-    printf("**XMP_WRITE: Middle pages. BytesToWrite: %d\n", bytesToWrite);
+    // TODO: REMOVE printf("**XMP_WRITE: Middle pages. BytesToWrite: %d\n", bytesToWrite);
     page = fs_getPage(addrCache, key);
 
     // Save the page's old contents in tempBuf if necessary
@@ -1000,7 +1000,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   // TODO: Check final file size against actual file size afterwards
   
-  printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
+  // TODO: REMOVE printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
 
   return bytesWritten;
 }
@@ -1123,7 +1123,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 
   free((log_file_info) fi->fh);
 
-  printf("\nFILE CLOSED\n");
+  // TODO: REMOVE printf("\nFILE CLOSED\n");
   
   return 0;
 }

@@ -262,7 +262,6 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     // Read in the desired page from the disk
     writeablePage wp = readWpFromDisk(desiredAddr);
     desired = putPageIntoCache(cache, wp, desiredKey);
-    printf("Hello: %d", desired->wp->address);
   }
 
   return desired;
@@ -469,7 +468,6 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	}
 	
 	// Remove current metadata page from openFile
-	printf("Removed page at level: %d\n", current->key->levelsAbove);
 	openFile_removeMetadataPage(file, current);
 	cache_remove(cache, current);
       }
