@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
       return 0;
     }
 
+    lseek(fd, 17000, SEEK_SET);
+
     char* buf;
     buf = "abcdefghijklmnop";
     int bytesWritten = write(fd, buf, 15);

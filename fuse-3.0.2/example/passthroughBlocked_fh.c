@@ -797,6 +797,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
   // Init variables
   struct pageKey key_s;
+
   pageKey key = &key_s;
   int bytesLeft = size;
   size_t bytesRead = 0;
@@ -988,7 +989,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     }
 
     // Write out the updated information to tempBuf
-    memcpy(tempBuf, buf, writeableBytesInPage);
+    memcpy(tempBuf, buf + bytesWritten, writeableBytesInPage);
     
     fs_writeData(addrCache, key, tempBuf);
 

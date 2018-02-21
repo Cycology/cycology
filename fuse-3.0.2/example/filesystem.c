@@ -134,7 +134,7 @@ pageKey getParentKey(pageKey childKey) {
   parentKey->file = childKey->file;
   
   // Recalculate dataOffset of the parent
-  int parentDataRange = PAGESIZE * (INDIRECT_PAGES ^ (childKey->levelsAbove + 1));
+  int parentDataRange = PAGESIZE * power(INDIRECT_PAGES, childKey->levelsAbove + 1);
   int parentStartOffset = (childKey->dataOffset / parentDataRange) * POINTER_SIZE;
   parentKey->dataOffset = parentStartOffset;
   
@@ -185,17 +185,11 @@ writeablePage readWpFromDisk(page_addr address) {
 
   return wp;
 }
-
-/* Get the index of the direct page in the inode responsible for the childOffset's page */
-int getIndexInInode(int childOffset, int fileHeight) {
-  int directPageSize = (INDIRECT_PAGES ^ (fileHeight - 2)) * PAGESIZE;
-  int index = childOffset / directPageSize;
-  return index;   
-}
   
 /* Get the index of the given data page from the parent indirect page's contents array */
-page_vaddr getIndexInParent(int childOffset, int parentOffset) {
-  return ((childOffset - parentOffset) / POINTER_SIZE) * POINTER_SIZE;
+page_vaddr getIndexInParent(int childOffset, int levelsAbove, int parentOffset) {
+  int childPageSize = power(INDIRECT_PAGES, levelsAbove) * PAGESIZE;
+  return (childOffset - parentOffset) / childPageSize;
 }
 
 /* Return the requested page from cache memory */
@@ -222,7 +216,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
       } else if (desiredKey->levelsAbove == 0) {
 	// Parent page is the inode
 	struct inode ind = desiredKey->file->inode;
-	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
+	int desiredIndex = getIndexInParent(desiredKey->dataOffset, maxFileHeight-2, 0);
 	desiredAddr = ind.directPage[desiredIndex];	
 	
       } else {
@@ -240,7 +234,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
       } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
 	// Looking for the highest level indirect page; parent is the inode
 	struct inode ind = desiredKey->file->inode;
-	int desiredIndex = getIndexInInode(desiredKey->dataOffset, maxFileHeight);
+	int desiredIndex = getIndexInParent(desiredKey->dataOffset, maxFileHeight-2, 0);
 	desiredAddr = ind.directPage[desiredIndex];
 	
       } else {
@@ -249,7 +243,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
 	cacheEntry parent = fs_getPage(cache, parentKey);
 
 	page_vaddr desiredIndex =
-	  getIndexInParent(desiredKey->dataOffset, parentKey->dataOffset);
+	  getIndexInParent(desiredKey->dataOffset, desiredKey->levelsAbove, parentKey->dataOffset);
 	desiredAddr = ((page_vaddr *) parent->wp->nandPage.contents)[desiredIndex];
       }
       
@@ -377,21 +371,21 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
     // Check if NULL because we were looking for the inode
     int maxFileHeight = childKey->file->inode.treeHeight;
     if ( (maxFileHeight == 2 && childKey->levelsAbove == 0) ||
-	 (maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 1)) {
+	 (maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 2)) {
       // Update the inode's direct pages
-      int indexToUpdate = getIndexInInode(childKey->dataOffset, maxFileHeight);
+      int indexToUpdate = getIndexInParent(childKey->dataOffset, maxFileHeight-2, 0);
       childKey->file->inode.directPage[indexToUpdate] = childAddress;
     }
     
   } else {
-    // Update the child pointer address in the parent
-    int indexToUpdate = getIndexInParent(childKey->dataOffset, parentKey->dataOffset);    
-    if (indexToUpdate > 1016 || indexToUpdate < 0) {
+    // Update the child pointer address in the parent indirect page
+    int indexToUpdate = getIndexInParent(childKey->dataOffset, childKey->levelsAbove, parentKey->dataOffset);    
+    if (indexToUpdate >= INDIRECT_PAGES || indexToUpdate < 0) {
       printf("\nERROR: Tried to update at invalid index\n");
       
     } else {
-      page_vaddr* indirectAddresses = (page_vaddr *) parentPage->wp->nandPage.contents;
-      memcpy(indirectAddresses[indexToUpdate], childAddress, POINTER_SIZE);
+      page_addr* indirectAddresses = (page_addr *) parentPage->wp->nandPage.contents;
+      indirectAddresses[indexToUpdate] = childAddress;
     }
 
     // Mark the parent page as dirty
@@ -408,14 +402,14 @@ writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
   dataKey->file->modified = 1;
 
   // Increase the size of the file if necessary
-  int newDataOffset = dataKey->dataOffset + PAGESIZE - 1;
-  if (newDataOffset > dataKey->file->inode.i_size) {
+  int newDataOffset = dataKey->dataOffset;
+  if (newDataOffset >= dataKey->file->inode.i_size) {
     // Check if a new level needs to be added
-    while (needsNewLevel(file->inode.treeHeight, newDataOffset)) {
+    while (needsNewLevel(dataKey->file->inode.treeHeight, newDataOffset)) {
       addIndirectLevel(cache, dataKey->file);
     }
 
-    dataKey->file->inode.i_size = newDataOffset;
+    dataKey->file->inode.i_size = newDataOffset + PAGESIZE;
   }
 
   // Update metadata in cache
@@ -426,27 +420,46 @@ writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
   return dataPage;
 }
 
-/* Returns true if the maxOffset is larger than current treeHeight supports */
+/* Returns true if the maxOffset is larger than current treeHeight supports. The maxOffset is the largest offset currently supported. */
 int needsNewLevel(int treeHeight, int dataOffset) {
-  int maxOffset = (DIRECT_PAGES * (INDIRECT_PAGES ^ (treeHeight-2)) * PAGESIZE) - PAGESIZE - 1;
-  return maxOffset > dataOffset;
+  int maxOffset = DIRECT_PAGES;
+  maxOffset *= power(INDIRECT_PAGES, treeHeight-2) * PAGESIZE;
+  maxOffset -= PAGESIZE;
+  return dataOffset > maxOffset;
+}
+
+int power(int x, int y) {
+  if (y < 0) {
+    return -1;
+  } else if (y == 0) {
+    return 1;
+  }
+
+  int result = 1;
+  while(y > 0) {
+    result *= x;
+    y--;
+  }
+  
+  return result;
 }
 
 /* Increases the tree height of the file by 1 */
 void addIndirectLevel(addressCache cache, openFile file) {
   // Create and initialize a new indirect page to hold prev. inode's directPages
   writeablePage indirectPage = malloc( sizeof( struct writeablePage ) );
-  page_addr* indirectContents = (page_addr *) indirectPage.nandPage.contents;
+  page_addr* indirectContents = (page_addr *) indirectPage->nandPage.contents;
   memset(indirectContents, 0, INDIRECT_PAGES*sizeof(page_addr));
-  memcpy(indirectContents, inode.directPage, DIRECT_PAGES);
+  memcpy(indirectContents, file->inode.directPage, DIRECT_PAGES);
   // indirectPage.nandPage.pageType = PTYPE_INDIRECT;
 
   // Recalibrate the inode
   file->inode.treeHeight++;
-  memset(inode.directPage, 0, DIRECT_PAGES*sizeof(page_addr));
+  memset(file->inode.directPage, 0, DIRECT_PAGES*sizeof(page_addr));
 
   // Add to cache
-  pageKey indirectKey;
+  struct pageKey key_s;
+  pageKey indirectKey = &key_s;
   indirectKey->file = file;
   indirectKey->levelsAbove = file->inode.treeHeight - 2;
   indirectKey->dataOffset = 0;
