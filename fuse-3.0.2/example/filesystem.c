@@ -290,7 +290,7 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
   // Update the list head pointer to next free block
   lists->partialHead = lastPage.nextLogBlock;
   lists->partialHeadErases = lastPage.nextBlockErases;
-    
+  
   return freeBlockAddr;
 }
 

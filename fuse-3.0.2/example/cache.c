@@ -45,6 +45,11 @@ addressCache cache_create( int size ) {
 }
 
 int keyCmp(pageKey key1, pageKey key2) {
+  if (key1 == NULL || key2 == NULL || key1->file == NULL || key2->file == NULL) {
+    printf("\n\n******ERROR: KEYCMP KEYS OR FILES ARE NULL*******\n\n");
+    return -1;
+  }
+  
   int num1 = key1->file->address + key1->dataOffset + key1->levelsAbove;
   int length1 = (int)((ceil(log10(num1))+1)*sizeof(char));
   char str1[length1];

@@ -11,6 +11,11 @@
 
 int main(int argc, char *argv[])
 {
+  if (argc != 2) {
+    perror("INVALID ARGS");
+    return 0;
+  }
+  
   char* name;
   name = "mntdir/test123";
   int fd = open(name, O_RDWR);
@@ -19,10 +24,13 @@ int main(int argc, char *argv[])
     return 0;
   }
 
+  int readSize = atoi(argv[1]);
+  readSize++;
+  
   int bytesRead = 0;
-  char buf[17001];
+  char buf[readSize];
   lseek(fd, 0, SEEK_SET);
-  bytesRead = read(fd, buf, 17001);
+  bytesRead = read(fd, buf, readSize);
 
   if (bytesRead > 0) {
     buf[bytesRead] = '\0';

@@ -11,7 +11,11 @@
 
 int main(int argc, char *argv[])
 {
- 
+  if (argc != 2) {
+    perror("INVALID ARGS");
+    return 0;
+  }
+
   char* name;
   name = "mntdir/test123";
   int fd = open(name, O_CREAT | O_RDWR, S_IRWXU);
@@ -19,13 +23,15 @@ int main(int argc, char *argv[])
     perror("ERROR IN CREATING FILE");
     return 0;
   }
-    
-  char buf[17001];
+
+  int writeSize = atoi(argv[1]);
+  writeSize++;
+
+  char buf[writeSize];
   int offset = 0;
   int i = 0;
-  while (offset < 17000) {
+  while (offset < writeSize) {
     char intbuf[8];
-    memset(intbuf, '_', 7);
     sprintf(intbuf, "%7d", i);
     intbuf[7] = '\n';
 
@@ -33,9 +39,9 @@ int main(int argc, char *argv[])
     offset += 8;
     i++;
   }
-  buf[17000] = '\0';
+  buf[writeSize-1] = '\0';
 
-  int bytesWritten = write(fd, buf, 17001);
+  int bytesWritten = write(fd, buf, writeSize);
   printf("BYTES WRITTEN = %d\n", bytesWritten);
   close( fd );
   
