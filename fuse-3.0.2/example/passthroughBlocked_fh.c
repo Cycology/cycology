@@ -657,6 +657,9 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
   (theLog->log.content.file.fInode.i_links_count)++;
   initOpenFile(oFile, theLog, &(theLog->log.content.file.fInode), fileID);
   state->file_cache->openFileTable[fileID] = oFile;
+
+  // Increment the openFile Count
+  oFile->currentOpens++;
 	
   //create stub file (WITHOUT KEEPING TRACK OF FD)
   char *fullPath = makePath(path);

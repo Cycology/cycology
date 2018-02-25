@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
   int bytesRead = 0;
   char buf[17001];
   lseek(fd, 0, SEEK_SET);
-  bytesRead = read(fd, buf, 170001);
+  bytesRead = read(fd, buf, 17001);
 
   if (bytesRead > 0) {
     buf[bytesRead] = '\0';

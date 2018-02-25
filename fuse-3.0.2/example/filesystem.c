@@ -450,7 +450,7 @@ void addIndirectLevel(addressCache cache, openFile file) {
   writeablePage indirectPage = malloc( sizeof( struct writeablePage ) );
   page_addr* indirectContents = (page_addr *) indirectPage->nandPage.contents;
   memset(indirectContents, 0, INDIRECT_PAGES*sizeof(page_addr));
-  memcpy(indirectContents, file->inode.directPage, DIRECT_PAGES);
+  memcpy(indirectContents, file->inode.directPage, DIRECT_PAGES*sizeof(page_addr));
   // indirectPage.nandPage.pageType = PTYPE_INDIRECT;
 
   // Recalibrate the inode
