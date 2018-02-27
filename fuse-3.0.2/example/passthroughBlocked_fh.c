@@ -408,38 +408,36 @@ static int xmp_unlink(const char *path)
    *(openFile does not exist if file is not open)
    */
 
-  //retrieve CYCstate
+  // Retrieve CYCstate
   struct fuse_context *context = fuse_get_context();
   CYCstate state = context->private_data;
 	
-  //read stub file for fileID
+  // Read stub file for fileID
   page_vaddr fileID = readStubFile(fullPath);
 
-  //check if there is any openFile
+  // Check if there is any openFile
   openFile oFile = state->file_cache->openFileTable[fileID];
 
-  //last link to file, no openFile
+  // Last link to file, no openFile
   if (oFile == NULL) {
-    //Go to logHeader of this file
+    // Get the logHeader of this file
     page_addr logHeaderAddr = state->vaddrMap->map[fileID];
     struct fullPage page;
     readNAND( & page, logHeaderAddr);
-    logHeader logH = (logHeader) &page;
+    logHeader logH = (logHeader) &(page.contents); // TODO: Double check
 
-    //Go to last written logHeader
+    // Get the most recent logHeader
     page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
     struct fullPage  page2;
     readNAND( &page2, lastHeaderAddr);
-    logHeader lastLogH = (logHeader) &page2;
+    logHeader lastLogH = (logHeader) &(page2.contents);
 
-    /*remove fileID from log's ID list.
-     *Always remove from index 0 since for now,
-     *there's only 1 file per log
-     */
+    // Remove fileID from log's ID list.
+    // Always remove from index 0 since for now, since there's only 1 file per log
     lastLogH->content.file.fileCount--;
     lastLogH->content.file.fileId[0] = 0;
 
-    //if there's no more file in the log, recycle!
+    //if there's no more files in the log, recycle!
     if (lastLogH->content.file.fileCount == 0) {
       logs_recycle( lastLogH, lastHeaderAddr, page2.eraseCount, state );
     } else {
@@ -454,7 +452,7 @@ static int xmp_unlink(const char *path)
     return 0;	
 	  
   } else {
-    // The file is currently open so we need to flag it for removal
+    // TODO: The file is currently open so we need to flag it for removal
     // when all opens are closed.
   }
 	

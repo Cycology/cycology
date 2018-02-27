@@ -206,54 +206,49 @@ typedef struct superPage {
 //				      triple indirect page.				   */
 
 typedef struct fullPage {
+  /* The actual data of the nand page */
   char contents[PAGEDATASIZE];
-  int eraseCount;           /* This field will
-			       hold the erase count for the block */
+  
+  /* This field holds the erase count for the block */
+  int eraseCount;           
 
-  page_addr nextLogBlock;   /* In last and next to last pages of a block (completely
-			       used free list), or somewhere in the middle (partially 
-			       used free list), this field will hold the address of a
-			       page in the next block of a log or one of
-			       of the free lists.
+  /* In last and next to last pages of a block (completely used free list), or somewhere in 
+     the middle (partially used free list), this field will hold the address of a page in 
+     the next block of a log or one of of the free lists.
 				     
-			       The tricky part is that this is a page address
-			       rather than a block address. The question
-			       is what page within the next block should it
-			       point to.
+     The tricky part is that this is a page address rather than a block address. The question
+     is what page within the next block should it point to.
 
-			       In an active log, it should point to the
-			       first page of data within the block that
-			       belongs to the current log. For blocks
-			       allocated to the log form the completely used
-			       free list, this will be page 0 of the block.
-			       For blocks allocated off the partially used
-			       free list, this will be the first page unused
-			       at the point the block was allocated.
-			       Note that this convention means that the
-			       recovery process can use these pointers to
-			       skip pages in a block that are inactive.
+     In an active log, it should point to the first page of data within the block that
+     belongs to the current log. For blocks allocated to the log form the completely used
+     free list, this will be page 0 of the block. For blocks allocated off the partially used
+     free list, this will be the first page unused at the point the block was allocated.
+     Note that this convention means that the recovery process can use these pointers to
+     skip pages in a block that are inactive.
 
-			       In the completely used block free list, the
-			       exact page address should not matter. When
-			       used, the address should be rounded down to
-			       the 0th page of its block.
+     In the completely used block free list, the exact page address should not matter. When
+     used, the address should be rounded down to the 0th page of its block.
 
-			       On the other hand, in the partially used
-			       block freelist, this value of this pointer
-			       held in the last used page of one block
-			       in the free list should refer to the last
-			       used page of the next block of the
-			       partially used block free list.
+     On the other hand, in the partially used block freelist, this value of this pointer held 
+     in the last used page of one block in the free list should refer to the last used page 
+     of the next block of the partially used block free list.
 
+     ALSO: In every block in the PUFL except for the second-to-last block, nextLogBlock 
+     points to the last USED page of its next block. In the second-to-last block, 
+     nextLogBlock points to the first UNUSED page of the last block. This is because when a
+     new block is added to the PUFL, its address and erase count get stored in the metadata 
+     of the page pointed to by the old last block's nextLogBlock, making it the last 'used' 
+     page of that block (even though only its metadata fields are set). To account for this 
+     eventual using up of a page to store the next pointers, the next pointer of the 
+     last block is always set to the first UNUSED page of a new block whenever a block is 
+     added to the tail of the PUFL. */
+  page_addr nextLogBlock; 
 
-			    */
+  /* The number of times the block pointed to by nextLogBlock has been erased (this is used
+     to preserve this info against lost between the block's erasure and the writing of its
+     first page).*/
+  int nextBlockErases;    
 
-  int nextBlockErases;     /* The number of times the block pointed to by
-			      nextLogBlock has been erased (this is used
-			      to preserve this info against lost between
-			      the block's erasure and the writing of its
-			      first page).
-			   */
   union metaData {
     /* the contents of this union are determined by pageType's value */
     /* (At this point, it is not at all clear that it is worth having this union) */

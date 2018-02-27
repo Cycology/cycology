@@ -124,6 +124,7 @@ cacheEntry cache_set( addressCache cache, pageKey key, writeablePage wp) {
   cacheEntry next = NULL;
   cacheEntry last = NULL;
 
+  // TODO: Check whether we went over our size limit
   bin = cache_hash( cache, key );
 
   next = cache->table[ bin ];
@@ -135,7 +136,6 @@ cacheEntry cache_set( addressCache cache, pageKey key, writeablePage wp) {
 
   /* There's already a pair.  Let's replace that string. */
   if( next != NULL && next->key != NULL && keyCmp(key, next->key) == 0 ) {
-    // TODO: Check pointer assignment
     newentry = next;
     free( next->wp );
     next->wp = wp;
@@ -313,7 +313,6 @@ void cache_remove(addressCache cache, cacheEntry entry) {
     }
   }
 
-  // TODO: Should I free() here????
   free(entry->key);
   free(entry->wp);
   free(entry);

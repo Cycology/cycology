@@ -179,7 +179,6 @@ writeablePage readWpFromDisk(page_addr address) {
     // TODO: Handle read errors 
     readNAND(&(wp->nandPage), address);
   } else {
-    // TODO: Return a newly initialized writeablePage if nothing
     memset(wp->nandPage.contents, 0, PAGESIZE * sizeof(char));
   }
 
@@ -277,13 +276,19 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
     // Normally, check CUFL then go to PUFL, but if this is set, vice versa
   }
 
-  // Return the current head block of the free list
+  // Update the logHeader's block information
+  log->log.prev = log->lastBlock;
+  log->log.total++;
+
+  // Return the current head block of the free list (last page of old file)
   int freeBlockAddr = lists->partialHead + 1;
 
-  // Update the log's last block's number of erases 
+  // Update the activeLog's last block information
   log->lastErases = lists->partialHeadErases;
+  log->lastBlock = lists->partialHead;
 
-  // Read in the nextLogBlock and nextBlockErases from the last page of the block 
+  // Read in the nextLogBlock and nextBlockErases from the last page of the block
+  // TODO: Check if lastPage has garbled contents after read
   struct fullPage lastPage;
   readNAND(&lastPage, lists->partialHead);
 
@@ -303,30 +308,35 @@ void firstPageOps(writeablePage freePage, activeLog log) {
 }
 
 void thirdToLastPageOps( activeLog log) {
-  // Next free page is the last page of the previous block
-  log->nextPage = (log->log.prev)*BLOCKSIZE + (BLOCKSIZE-1);
+  // Check if file is only one block long
+  if (log->log.prev == -1 || log->lastBlock == log->log.first) {
+    log->nextPage++;
+  } else {
+    // Next free page is the last page of the previous block
+    log->nextPage = log->log.prev + (BLOCKSIZE-1);
+  }
 }
 
 void secondToLastPageOps(writeablePage freePage, activeLog log) {
   // Next free page is the first page of new block
-  page_addr firstPageOfNewBlock = consumeFreeBlock(log, 0);
+  int preferCUFL = 0;
+  page_addr firstPageOfNewBlock = consumeFreeBlock(log, preferCUFL);
 
   // Update metadata in current page to reflect addition of the new (last) block
   freePage->nandPage.nextLogBlock = firstPageOfNewBlock;
   freePage->nandPage.nextBlockErases = log->lastErases;
 
-  // Update the log to reflect the addition of the new (last) block
+  // Update the next page
   log->nextPage = firstPageOfNewBlock;
-  log->lastBlock = firstPageOfNewBlock/BLOCKSIZE;    
 }
 
 void lastPageOps(writeablePage freePage, activeLog log) {
   // Last page: Next free page is the 2nd-to-last page in the next block
-  log->nextPage = (log->lastBlock)*BLOCKSIZE + (BLOCKSIZE-2);
+  log->nextPage = log->lastBlock + (BLOCKSIZE-2);
 
   // Update page metadata to point to next block (the last block of the log)
-  freePage->nandPage.nextLogBlock = (log->lastBlock)*BLOCKSIZE;
-  freePage->nandPage.nextBlockErases = log->lastErases;    
+  freePage->nandPage.nextLogBlock = log->lastBlock;
+  freePage->nandPage.nextBlockErases = log->lastErases;
 }
 
 /* Allocate a free NAND address from the log into the given writeablePage */

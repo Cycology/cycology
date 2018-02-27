@@ -37,10 +37,10 @@ void printPageNumber(int blockPtr, int position) {
 }
 
 int markBlockStatistics(int freeListType, int freeBlockPtr) {
-  int blockType = blockStat[ freeBlockPtr/BLOCKSIZE];
+  int blockType = blockStat[ freeBlockPtr];
 
   if (blockType == UNMARKED) { // Mark as given free list
-    blockStat[ freeBlockPtr/BLOCKSIZE ] = freeListType;
+    blockStat[ freeBlockPtr ] = freeListType;
   } else if (blockType = freeListType) {  // Duplicate marking, error detected
     printf( "\n\n****** CYCLE DETECTED IN FREE BLOCK LIST!\n" );
     return 1;
