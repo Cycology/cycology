@@ -101,14 +101,14 @@ typedef struct inode {
    when to scan logs to recover unused/unusable space.
 */
 typedef struct logHeader {
-  unsigned long erases; /* Sum of erases of all blocks in log */
+  unsigned long totalErases; /* Sum of erases of all blocks in log */
   page_vaddr logId;     /* Logical page address of the page holding this header  */
-  page_addr prev;      /* Address of previous block allocated to this log */
-  int prevErases;
-  page_addr first;     /* Address of first block allocated to this log */
-  int firstErases;     /* Erase count of the first block in the log */
-  unsigned int active;  /* Total number of active pages holding file data */
-  unsigned int total;   /* Total number of blocks */
+  page_addr prevBlock;      /* Address of previous block allocated to this log */
+  int prevBlockErases;
+  page_addr firstBlock;     /* Address of first block allocated to this log */
+  int firstBlockErases;     /* Erase count of the first block in the log */
+  unsigned int activePages;  /* Total number of active pages holding file data */
+  unsigned int totalBlocks;   /* Total number of blocks */
   short logType;        /* Does this log hold, files, and extent, or meta-data */
 #define LTYPE_FILES 1
 #define LTYPE_EXTENT 2
