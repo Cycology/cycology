@@ -672,12 +672,6 @@ static int xmp_utimens(const char *path, const struct timespec ts[2],
 
 
 
-
-
-
-
-
-
 /************************************************************
  *
  * RIGHT NOW WE'RE ASSIGNING 1 FILE PER LOG, BUT WE MAY WANT
@@ -743,11 +737,6 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	
   return 0;
 }
-
-
-
-
-
 
 
 
@@ -942,6 +931,16 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
 
 
+
+
+
+
+
+
+
+
+
+
 static int xmp_write(const char *path, const char *buf, size_t size,
 		        off_t offset, struct fuse_file_info *fi)
 {
@@ -1045,6 +1044,35 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
   return bytesWritten;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
