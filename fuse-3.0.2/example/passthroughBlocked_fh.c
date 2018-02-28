@@ -652,8 +652,8 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 		  
   //Put activeLog in openFile and store it in cache
   openFile oFile = (openFile) malloc(sizeof (struct openFile));
-  (theLog->log.content.file.fInode.i_links_count)++;
-  initOpenFile(oFile, theLog, &(theLog->log.content.file.fInode), fileID);
+  (theLog->logH.content.file.fInode.i_links_count)++;
+  initOpenFile(oFile, theLog, &(theLog->logH.content.file.fInode), fileID);
   state->file_cache->openFileTable[fileID] = oFile;
 
   // Increment the openFile Count
@@ -684,7 +684,7 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
   //Write the logHeader to virtual NAND
   writeablePage buf = getFreePage(&(state->lists),theLog);
 	
-  memcpy(buf->nandPage.contents, &(theLog->log), sizeof (struct logHeader));
+  memcpy(buf->nandPage.contents, &(theLog->logH), sizeof (struct logHeader));
   buf->nandPage.pageType = PTYPE_INODE;
 
   writeNAND( &(buf->nandPage), buf->address, 0);
@@ -741,7 +741,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       }
 
       // Initialize the active log with the most recent header
-      actLog->log = *(lastHeader);      
+      actLog->logH = *(lastHeader);      
       initActiveLog(actLog, lastHeaderAddr); // TODO: + 1);
       state->file_cache->openFileTable[logID] = (openFile) actLog;
     }
@@ -1098,11 +1098,11 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     // Write the most current logHeader from cache to NAND 
     if (releasedFile->modified == 1) {
       // Copy the current inode into the logHeader
-      memcpy(&releasedFile->mainExtentLog->log.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
+      memcpy(&releasedFile->mainExtentLog->logH.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
 
       // Write out the logHeader to NAND
       writeablePage buf = getFreePage(&(state->lists), releasedFile->mainExtentLog);
-      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->log), sizeof (struct logHeader));
+      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->logH), sizeof (struct logHeader));
       writeNAND( &(buf->nandPage), buf->address, 0);
 
       // TODO: free() buf!!!

@@ -12,11 +12,11 @@
 // free page at the end of the log (if the log was active
 // at the time of removal with data written beyond the
 // position of the header).
-void logs_recycle( logHeader log, page_addr nextPage, int nextErases, CYCstate state ) {
+void logs_recycle( logHeader logH, page_addr nextPage, int nextErases, CYCstate state ) {
 
   // Must be set to point to the last block to be added to the
   // completely used free list or 0 if there is no such block.
-  block_addr lastFullBlock;
+  page_addr lastFullBlock;
 
   // If the last block of the log isn't full, place it in the partially used block list
   if (nextPage % BLOCKSIZE <= BLOCKSIZE - 3) {
@@ -41,8 +41,8 @@ void logs_recycle( logHeader log, page_addr nextPage, int nextErases, CYCstate s
     state->lists.partialTail = nextPage;
 
     // Set the last full block depending on how many blocks the log had
-    if ( nextPage != log->first ) {
-      lastFullBlock = log->prev;
+    if ( nextPage != logH->firstBlock ) {
+      lastFullBlock = logH->prevBlock;
     } else {
       lastFullBlock = 0;
     }
@@ -59,8 +59,8 @@ void logs_recycle( logHeader log, page_addr nextPage, int nextErases, CYCstate s
       // if the completely used free block list is not empty
       struct fullPage fPage;
       memset( &fPage, 0, sizeof( struct fullPage ) );
-      fPage.nextLogBlock = log->first;
-      fPage.nextBlockErases = log->firstErases;
+      fPage.nextLogBlock = logH->firstBlock;
+      fPage.nextBlockErases = logH->firstBlockErases;
 
       // The flag to allow non-sequential writes may need to be
       // set here for the case when the last block of the
@@ -71,8 +71,8 @@ void logs_recycle( logHeader log, page_addr nextPage, int nextErases, CYCstate s
       writeNAND( &fPage, state->lists.completeTail, 1);
       
     } else {
-      state->lists.completeHead = log->first;
-      state->lists.completeHeadErases = log->firstErases;
+      state->lists.completeHead = logH->firstBlock;
+      state->lists.completeHeadErases = logH->firstBlockErases;
     }
 
     // Set the CUFL tail to point to the last full block

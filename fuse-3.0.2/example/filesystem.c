@@ -277,14 +277,14 @@ int consumeFreeBlock(activeLog log, int preferCUFL) {
   }
 
   // Update the logHeader's block information
-  log->log.prev = log->lastBlock;
-  log->log.total++;
+  log->logH.prevBlock = log->lastBlock;
+  log->logH.totalBlocks++;
 
   // Return the current head block of the free list (last page of old file)
   int freeBlockAddr = lists->partialHead + 1;
 
   // Update the activeLog's last block information
-  log->lastErases = lists->partialHeadErases;
+  log->lastBlockErases = lists->partialHeadErases;
   log->lastBlock = lists->partialHead;
 
   // Read in the nextLogBlock and nextBlockErases from the last page of the block
@@ -304,16 +304,16 @@ void firstPageOps(writeablePage freePage, activeLog log) {
   log->nextPage++;
 
   // Set the erase count from the stored erase count
-  freePage->nandPage.eraseCount = log->lastErases;
+  freePage->nandPage.eraseCount = log->lastBlockErases;
 }
 
 void thirdToLastPageOps( activeLog log) {
   // Check if file is only one block long
-  if (log->log.prev == -1 || log->lastBlock == log->log.first) {
+  if (log->logH.prevBlock == -1 || log->lastBlock == log->logH.firstBlock) {
     log->nextPage++;
   } else {
     // Next free page is the last page of the previous block
-    log->nextPage = log->log.prev + (BLOCKSIZE-1);
+    log->nextPage = log->logH.prevBlock + (BLOCKSIZE-1);
   }
 }
 
@@ -324,7 +324,7 @@ void secondToLastPageOps(writeablePage freePage, activeLog log) {
 
   // Update metadata in current page to reflect addition of the new (last) block
   freePage->nandPage.nextLogBlock = firstPageOfNewBlock;
-  freePage->nandPage.nextBlockErases = log->lastErases;
+  freePage->nandPage.nextBlockErases = log->lastBlockErases;
 
   // Update the next page
   log->nextPage = firstPageOfNewBlock;
@@ -336,7 +336,7 @@ void lastPageOps(writeablePage freePage, activeLog log) {
 
   // Update page metadata to point to next block (the last block of the log)
   freePage->nandPage.nextLogBlock = log->lastBlock;
-  freePage->nandPage.nextBlockErases = log->lastErases;
+  freePage->nandPage.nextBlockErases = log->lastBlockErases;
 }
 
 /* Allocate a free NAND address from the log into the given writeablePage */
@@ -359,7 +359,7 @@ void allocateFreePage(writeablePage freePage, activeLog log) {
   }
 
   // Increment number of active pages in log
-  log->log.active++;
+  log->logH.activePages++;
 }
 
 /* Create a writeable page that is ready to be written to NAND */

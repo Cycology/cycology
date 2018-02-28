@@ -80,10 +80,10 @@ typedef struct inode {
   off_t              i_size;     /* File size in bytes */
 
   int                treeHeight;  /* Height of the file tree */
-
-  page_addr          indirect;   /* Address of single indirect block */
-  page_addr          doubleInd;  /* Address of double indirect block */
-  page_vaddr          tripleInd;  /* Address of triple indirect extent hdr */
+  
+  //page_addr          indirect;   /* Address of single indirect block */
+  //page_addr          doubleInd;  /* Address of double indirect block */
+  //page_vaddr          tripleInd;  /* Address of triple indirect extent hdr */
 
   /* address of first data pages for file */
   page_addr          directPage[DIRECT_PAGES];
@@ -124,7 +124,7 @@ typedef struct logHeader {
       page_vaddr fileId[MAX_FILES_IN_LOG];
       struct inode fInode;
     } file;
-    struct extentHeader extent;
+    // TODO: (REMOVE TODO) struct extentHeader extent;
   } content;
 
 } *logHeader;
