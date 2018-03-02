@@ -692,11 +692,11 @@ static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	
   //Get log for file; this also handles creating new inode & logHeader for file
   activeLog theLog = getLogForFile(state, fileID, &logHeaderPage, mode);
+  (theLog->logH.content.file.fInode.i_links_count)++;
   state->vaddrMap->map[fileID] = logHeaderPage;
 		  
   //Put activeLog in openFile and store it in cache
   openFile oFile = (openFile) malloc(sizeof (struct openFile));
-  (theLog->logH.content.file.fInode.i_links_count)++;
   initOpenFile(oFile, theLog, &(theLog->logH.content.file.fInode), fileID);
   state->file_cache->openFileTable[fileID] = oFile;
 
@@ -791,8 +791,9 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
       }
 
       // Initialize the active log with the most recent header
-      actLog->logH = *(lastHeader);      
-      initActiveLog(actLog, lastHeaderAddr); // TODO: + 1);
+      actLog->logH = *(lastHeader);
+      initActiveLog(actLog, lastHeaderAddr + 1);
+      // TODO: Set actLog's lastBlock and lastBlockErases!!!!!
       state->file_cache->openFileTable[logID] = (openFile) actLog;
     }
 

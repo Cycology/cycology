@@ -66,7 +66,7 @@ typedef struct openFile {
      NULL until an extent is referenced.
   */
   // TODO: CHECK THE POINTERS 
-  activeLog *(tripleExtents[EXTENT_PAGES]);
+  // TODO: UNCOMMENT  activeLog *(tripleExtents[EXTENT_PAGES]);
 
   /* Current inode for the associated file */
   struct inode inode;

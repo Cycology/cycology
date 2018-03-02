@@ -92,30 +92,33 @@ void initLogHeader(struct logHeader *logH,
   logH->activePages = 0;
   logH->totalBlocks = 1; // we remove one block from the pfree list
   logH->logType = logType;
+  logH->content.file.fileCount = 1;
+  memset(logH->content.file.fileId, 0, MAX_FILES_IN_LOG*sizeof(page_vaddr));
 }
 
 /*
  * Initializes the active log, given that a logHeader is already written
  */
-void initActiveLog(struct activeLog *theLog, page_addr headerPage)
+void initActiveLog(struct activeLog *theLog, page_addr nextFreePage)
 {
   // Initialize variables
   theLog->activeFileCount = 0;
   theLog->lastBlock = -1;
   theLog->lastBlockErases = 0;
+  theLog->nextPage = nextFreePage;
   
   // if headerPage is 3rd to last, set nextPage to last page of prev block
-  if((headerPage + 3) % BLOCKSIZE == 0) {
+  if((nextFreePage + 3) % BLOCKSIZE == 0) {
     theLog->nextPage = theLog->logH.prevBlock + (BLOCKSIZE-1);	
   }
   
   // if headerPage is 2nd to last, set nextPage to the first page of new block
-  else if((headerPage + 2) % BLOCKSIZE == 0) {
+  else if((nextFreePage + 2) % BLOCKSIZE == 0) {
     theLog->nextPage = theLog->lastBlock;
   }
   
   // if headerPage is last, set nextPage to 2nd to last page in next block
-  else if((headerPage + 1) % BLOCKSIZE == 0) {
+  else if((nextFreePage + 1) % BLOCKSIZE == 0) {
     theLog->nextPage = theLog->lastBlock + (BLOCKSIZE-2);
   }
   
@@ -248,33 +251,31 @@ writeablePage getFreePage(freeList lists, activeLog log)
 activeLog getLogForFile(CYCstate state, page_vaddr fileID,page_addr *logHeaderPage, mode_t mode)
 {
   activeLog theLog = (activeLog) malloc(sizeof (struct activeLog));
-
-  // Initialize the file count
-  theLog->activeFileCount = 1;
   
-  // Create inode for the new file
-  page_vaddr logID = getFreePtr(state->vaddrMap); //will already have logID if log exists
+  /* Create the logHeader of the log containing this file */
+  page_vaddr logID = getFreePtr(state->vaddrMap); 
+  initLogHeader(&(theLog->logH), logID, LTYPE_FILES);  
+
+  /* Create inode for the new file */
   inode ind = &(theLog->logH.content.file.fInode);
   initInode(ind, mode, fileID, logID);
-  
-  // Create the logHeader of the log containing this file
-  initLogHeader(&(theLog->logH), logID, LTYPE_FILES);
-  
+
+  /* Initialize the logHeader */
   // The logHeader containing the inode should be in the first unused page of a newly allocated block
-  theLog->logH.firstBlockErases = getFreeBlock(&(state->lists), logHeaderPage, 1);
+  // we put fileCount = 1 and index of fileID = 0 because for now, there's only 1 file per log
   theLog->logH.totalErases = theLog->logH.firstBlockErases;
   theLog->logH.firstBlock = *logHeaderPage;
-
-  /*we put fileCount = 1 and index of fileID = 0
-   *because for now, there's only 1 file per log
-   */
+  theLog->logH.firstBlockErases = getFreeBlock(&(state->lists), logHeaderPage, 1);
   theLog->logH.content.file.fileCount = 1;
   theLog->logH.content.file.fileId[0] = fileID;
 
+  /* Initialize activeLog's variables */
+  theLog->activeFileCount = 1;
   theLog->lastBlock = theLog->logH.firstBlock;
+  theLog->lastBlockErases = theLog->logH.firstBlockErases;
   theLog->nextPage = *logHeaderPage;
 
-  // Save the log and vaddress in the CYCstate
+  /* Save the log and vaddress in the CYCstate */
   state->file_cache->openFileTable[logID] = (openFile) theLog;
   state->vaddrMap->map[logID] = *logHeaderPage;
 
