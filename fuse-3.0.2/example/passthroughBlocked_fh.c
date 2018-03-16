@@ -1131,14 +1131,14 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     }
 	  
     //remove openFile from cache since it's not referenced anymore
-    free(state->file_cache->openFileTable[fileID]);
+    free((openFile) state->file_cache->openFileTable[fileID]);
     state->file_cache->openFileTable[fileID] = NULL;
   }
 
   // Release the log if no more files open
   activeLog aLog = state->file_cache->openFileTable[logID];
   if (aLog != NULL && aLog->activeFileCount == 0) {
-    free(state->file_cache->openFileTable[logID]);
+    free((activeLog) state->file_cache->openFileTable[logID]);
     state->file_cache->openFileTable[logID] = NULL;
   }
 

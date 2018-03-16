@@ -512,7 +512,7 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
       if (current->key->levelsAbove == level) {
 	// Write out current metadata page to NAND
 	if (current->dirty) {
-	  writeablePage wp = current->wp;
+	  writeablePage wp = current->wp;	  
 	  allocateFreePage(wp, current->key->file->mainExtentLog);
 	  writeNAND(&wp->nandPage, wp->address, 0);
 	}

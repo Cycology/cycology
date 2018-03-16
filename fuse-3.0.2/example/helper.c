@@ -49,7 +49,7 @@ void initCYCstate(CYCstate state)
   readNAND( &page, superBlock->latest_vaddr_map);
   addrMap map = (addrMap) &page;
   int size = sizeof (struct addrMap) + map->size*sizeof(page_addr);
-  // TODO: REMOVE printf("Map size = %d Allocation size = %d \n", map->size, size);
+  printf("Map size = %d Allocation size = %d \n", map->size, size);
   state->vaddrMap = (addrMap) malloc(size);
   memcpy(state->vaddrMap, &page, size);
 
