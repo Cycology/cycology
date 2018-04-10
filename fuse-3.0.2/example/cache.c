@@ -50,12 +50,12 @@ int keyCmp(pageKey key1, pageKey key2) {
     return -1;
   }
   
-  int num1 = key1->file->address + key1->dataOffset + key1->levelsAbove;
+  int num1 = key1->file->address + key1->siblingNum + key1->levelsAbove;
   int length1 = (int)((ceil(log10(num1))+1)*sizeof(char));
   char str1[length1];
   sprintf(str1, "%d", num1);
 
-  int num2 = key2->file->address + key2->dataOffset + key2->levelsAbove;
+  int num2 = key2->file->address + key2->siblingNum + key2->levelsAbove;
   int length2 = (int)((ceil(log10(num2))+1)*sizeof(char));
   char str2[length2];
   sprintf(str2, "%d", num2);
@@ -65,7 +65,7 @@ int keyCmp(pageKey key1, pageKey key2) {
 
 /* Hash a string for a particular hash table. */
 int cache_hash( addressCache cache, pageKey page_key ) {
-  int numKey = page_key->file->address + page_key->dataOffset + page_key->levelsAbove;
+  int numKey = page_key->file->address + page_key->siblingNum + page_key->levelsAbove;
   int length = (int)((ceil(log10(numKey))+1)*sizeof(char));
   char strKey[length];
   sprintf(strKey, "%d", numKey);
@@ -98,7 +98,7 @@ cacheEntry cache_newEntry( addressCache cache, pageKey page_key, writeablePage w
   // Initialize data fields
   pageKey key = malloc( sizeof(struct pageKey) );
   key->file = page_key->file;
-  key->dataOffset = page_key->dataOffset;
+  key->siblingNum = page_key->siblingNum;
   key->levelsAbove = page_key->levelsAbove;
   
   newentry->key = key;

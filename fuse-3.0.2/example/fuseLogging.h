@@ -102,7 +102,7 @@ typedef struct openFile {
 
 typedef struct pageKey {
   struct openFile* file;
-  int dataOffset;
+  int siblingNum;
   int levelsAbove;
   
 } *pageKey;

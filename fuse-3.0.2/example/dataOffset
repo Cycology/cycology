@@ -1,0 +1,1391 @@
+cache.c:  if( ( cache->table = malloc( sizeof( struct cacheEntry ) * size ) ) == NULL ) {
+cache.c:    cache->table[i] = NULL;
+cache.c:  cache->size = 0;
+cache.c:  cache->MAX_SIZE = size;
+cache.c:  cache->lruDataHead = NULL;
+cache.c:  cache->lruDataTail = NULL;
+cache.c:  if (key1 == NULL || key2 == NULL || key1->file == NULL || key2->file == NULL) {
+cache.c:    return -1;
+cache.c:  int num1 = key1->file->address + key1->dataOffset + key1->levelsAbove;
+cache.c:  int num2 = key2->file->address + key2->dataOffset + key2->levelsAbove;
+cache.c:  int numKey = page_key->file->address + page_key->dataOffset + page_key->levelsAbove;
+cache.c:  return hash % cache->MAX_SIZE;
+cache.c:/* Create a key-value pair. */
+cache.c:  if ( cache->size >= cache->MAX_SIZE ) {
+cache.c:  key->file = page_key->file;
+cache.c:  key->dataOffset = page_key->dataOffset;
+cache.c:  key->levelsAbove = page_key->levelsAbove;
+cache.c:  newentry->key = key;
+cache.c:  newentry->wp = wp;
+cache.c:  newentry->next = NULL;
+cache.c:  newentry->dirty = 0;
+cache.c:  newentry->lruDataNext = NULL;
+cache.c:  newentry->lruDataPrev = NULL;
+cache.c:  newentry->fileDataNext = NULL;
+cache.c:  newentry->fileDataPrev = NULL;
+cache.c:  newentry->fileMetadataNext = NULL;
+cache.c:  newentry->fileMetadataPrev = NULL;
+cache.c:  cache->size++;
+cache.c:/* Insert a key-value pair into a hash table. */
+cache.c:  next = cache->table[ bin ];
+cache.c:  while( next != NULL && next->key != NULL && keyCmp(key, next->key) > 0 ) {
+cache.c:    next = next->next;
+cache.c:  if( next != NULL && next->key != NULL && keyCmp(key, next->key) == 0 ) {
+cache.c:    free( next->wp );
+cache.c:    next->wp = wp;
+cache.c:    if( next == cache->table[ bin ] ) {
+cache.c:      newentry->next = next;
+cache.c:      cache->table[ bin ] = newentry;
+cache.c:      last->next = newentry;
+cache.c:      newentry->next = next;
+cache.c:      last->next = newentry;
+cache.c:/* Retrieve a key-value pair from a hash table. */
+cache.c:  pair = cache->table[ bin ];
+cache.c:  while( pair != NULL && pair->key != NULL && keyCmp(key, pair->key) > 0 ) {
+cache.c:    pair = pair->next;
+cache.c:  if( pair == NULL || pair->key == NULL || keyCmp(key, pair->key) != 0 ) {
+cache.c:  cacheEntry cur = cache->lruDataHead;
+cache.c:      cur = cur->lruDataNext;
+cache.c:  cacheEntry prev = entry->lruDataPrev;
+cache.c:  cacheEntry next = entry->lruDataNext;
+cache.c:    prev->lruDataNext = next;
+cache.c:    prev->lruDataPrev = entry;
+cache.c:    next->lruDataPrev = prev;
+cache.c:    cache->lruDataTail = prev;
+cache.c:  entry->lruDataNext = cache->lruDataHead;
+cache.c:  entry->lruDataPrev = NULL;
+cache.c:  cache->lruDataHead = entry;
+cache.c:  cacheEntry curHead = cache->lruDataHead;
+cache.c:  entry->lruDataNext = curHead;
+cache.c:  entry->lruDataPrev = NULL;
+cache.c:    cache->lruDataTail = entry;
+cache.c:    curHead->lruDataPrev = entry;
+cache.c:  cache->lruDataHead = entry;
+cache.c:  if (current == cache->lruDataHead) {
+cache.c:    cache->lruDataHead = current->lruDataNext;
+cache.c:    current->lruDataPrev->lruDataNext = current->lruDataNext;
+cache.c:  if (current == cache->lruDataTail) {
+cache.c:    cache->lruDataTail = current->lruDataPrev;
+cache.c:    current->lruDataNext->lruDataPrev = current->lruDataPrev;
+cache.c:  pageKey key = entry->key;
+cache.c:  if (entry->key->levelsAbove == 0) {
+cache.c:  cacheEntry cur = cache->table[bin];
+cache.c:  if (keyCmp(cur->key, key) == 0) {
+cache.c:    cache->table[bin] = entry->next;
+cache.c:    while (prev != NULL && prev->key != NULL &&
+cache.c:	   keyCmp(key, cur->key) > 0) {
+cache.c:      cur = cur->next;
+cache.c:    if (keyCmp(key, cur->key) == 0) {
+cache.c:      prev->next = entry->next;
+cache.c:  free(entry->key);
+cache.c:  free(entry->wp);
+cache.c:  cache->size--;
+cache.c:  printf("\nCache entries: %d\n", cache->size);
+cuse.c:  Copyright (C) 2008-2009  SUSE Linux Products GmbH
+cuse.c:  Copyright (C) 2008-2009  Tejun Heo <tj@kernel.org>
+cuse.c: *     cuse -f --name=mydevice
+cuse.c: *     gcc -Wall cuse.c `pkg-config fuse3 --cflags --libs` -o cuse
+cuse.c:"    --help|-h             print this help message\n"
+cuse.c:"    --maj=MAJ|-M MAJ      device major number\n"
+cuse.c:"    --min=MIN|-m MIN      device minor number\n"
+cuse.c:"    --name=NAME|-n NAME   device name (mandatory)\n"
+cuse.c:"    -d   -o debug         enable debug output (implies -f)\n"
+cuse.c:"    -f                    foreground operation\n"
+cuse.c:"    -s                    disable multi-threaded operation\n"
+cuse.c:		return -ENOMEM;
+cuse.c:		memset(new_buf + cusexmp_size, 0, new_size - cusexmp_size);
+cuse.c:	if (size > cusexmp_size - off)
+cuse.c:		size = cusexmp_size - off;
+cuse.c:	in_bufsz -= sizeof(*arg);
+cuse.c:	out_iov[0].iov_len = sizeof(arg->prev_size);
+cuse.c:	out_iov[1].iov_len = sizeof(arg->new_size);
+cuse.c:		out_iov[2].iov_base = arg->buf;
+cuse.c:		out_iov[2].iov_len = arg->size;
+cuse.c:		in_iov[1].iov_base = arg->buf;
+cuse.c:		in_iov[1].iov_len = arg->size;
+cuse.c:		if (arg->size && !in_bufsz) {
+cuse.c:		size_t off = arg->offset;
+cuse.c:		size_t size = arg->size;
+cuse.c:		if (size > cusexmp_size - off)
+cuse.c:			size = cusexmp_size - off;
+cuse.c:		if (cusexmp_expand(arg->offset + in_bufsz)) {
+cuse.c:		memcpy(cusexmp_buf + arg->offset, in_buf, in_bufsz);
+cuse.c:	CUSEXMP_OPT("-M %u",		major),
+cuse.c:	CUSEXMP_OPT("--maj=%u",		major),
+cuse.c:	CUSEXMP_OPT("-m %u",		minor),
+cuse.c:	CUSEXMP_OPT("--min=%u",		minor),
+cuse.c:	CUSEXMP_OPT("-n %s",		dev_name),
+cuse.c:	CUSEXMP_OPT("--name=%s",	dev_name),
+cuse.c:	FUSE_OPT_KEY("-h",		0),
+cuse.c:	FUSE_OPT_KEY("--help",		0),
+cuse.c:		param->is_help = 1;
+cuse.c:		return fuse_opt_add_arg(outargs, "-ho");
+cuse.c:		strncat(dev_name, param.dev_name, sizeof(dev_name) - 9);
+cuse_client.c: *     transferred 6 bytes (0 -> 6)
+cuse_client.c: *     transferred 6 bytes (6 -> 6)
+cuse_client.c: *     gcc -Wall cuse_client.c -o cuse_client
+cuse_client.c:		return -1;
+cuse_client.c:	argc -= 3;
+cuse_client.c:		fprintf(stderr, "transferred %d bytes (%zu -> %zu)\n",
+filesystem.c:  openFile prev = file->lruFilePrev;
+filesystem.c:  openFile next = file->lruFileNext;
+filesystem.c:    prev->lruFileNext = next;
+filesystem.c:    prev->lruFilePrev = file;
+filesystem.c:    next->lruFilePrev = prev;
+filesystem.c:    fCache->lruFileTail = prev;
+filesystem.c:  file->lruFileNext = fCache->lruFileHead;
+filesystem.c:  file->lruFilePrev = NULL;
+filesystem.c:  fCache->lruFileHead = file;
+filesystem.c:  openFile curHead = fCache->lruFileHead;
+filesystem.c:  file->lruFileNext = curHead;
+filesystem.c:  file->lruFilePrev = NULL;
+filesystem.c:    curHead->lruFilePrev = file;
+filesystem.c:    fCache->lruFileTail = file;
+filesystem.c:  fCache->lruFileHead = file;
+filesystem.c:      cur = cur->lruFileNext;
+filesystem.c:  CYCstate state = fuse_get_context()->private_data;
+filesystem.c:  addressCache addrCache = state->addr_cache;
+filesystem.c:  fileCache fCache = state->file_cache;
+filesystem.c:  if (lruContains(fCache->lruFileHead, file) == 1) {
+filesystem.c:  CYCstate state = fuse_get_context()->private_data;
+filesystem.c:  fileCache fCache = state->file_cache;  
+filesystem.c:  openFile next = file->lruFileNext;
+filesystem.c:  if (file == fCache->lruFileHead) {
+filesystem.c:    fCache->lruFileHead = next;
+filesystem.c:    file->lruFilePrev->lruFileNext = next;
+filesystem.c:  if (file == fCache->lruFileTail) {
+filesystem.c:    fCache->lruFileTail = file->lruFilePrev;
+filesystem.c:    next->lruFilePrev = file->lruFilePrev;
+filesystem.c:  parentKey->file = childKey->file;  
+filesystem.c:  parentKey->siblingNum = childKey->siblingNum / INDIRECT_PAGES;
+filesystem.c:  parentKey->levelsAbove = childKey->levelsAbove + 1;
+filesystem.c:  int isData = key->levelsAbove == 0;
+filesystem.c:    openFile_addDataPage(key->file, entry);
+filesystem.c:    openFile_addMetadataPage(key->file, entry);
+filesystem.c:  fs_updateFileInLru(key->file);
+filesystem.c:    readNAND(&(wp->nandPage), address);
+filesystem.c:    memset(wp->nandPage.contents, 0, PAGESIZE * sizeof(char));
+filesystem.c:  int maxFileHeight = desiredKey->file->inode.treeHeight;
+filesystem.c:  if (desiredKey->levelsAbove >= maxFileHeight) {
+filesystem.c:      if (desiredKey->levelsAbove == 1) {
+filesystem.c:      } else if (desiredKey->levelsAbove == 0) {
+filesystem.c:	struct inode ind = desiredKey->file->inode;
+filesystem.c:	int desiredIndex = getIndexInParent(desiredKey->siblingNum);
+filesystem.c:      if (desiredKey->levelsAbove == maxFileHeight - 1) {
+filesystem.c:      } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
+filesystem.c:	struct inode ind = desiredKey->file->inode;
+filesystem.c:	int desiredIndex = getIndexInParent(desiredKey->siblingNum);
+filesystem.c:	// Get the lowest-level parent metadata page that is currently cached
+filesystem.c:	  getIndexInParent(desiredKey->siblingNum);
+filesystem.c:	desiredAddr = ((page_vaddr *) parent->wp->nandPage.contents)[desiredIndex];
+filesystem.c:  freeList lists = &((CYCstate) fuse_get_context()->private_data)->lists;
+filesystem.c:  log->logH.prevBlock = log->lastBlock;
+filesystem.c:  log->logH.totalBlocks++;
+filesystem.c:  int freeBlockAddr = lists->partialHead + 1;
+filesystem.c:  log->lastBlockErases = lists->partialHeadErases;
+filesystem.c:  log->lastBlock = lists->partialHead;
+filesystem.c:  readNAND(&lastPage, lists->partialHead);
+filesystem.c:  lists->partialHead = lastPage.nextLogBlock;
+filesystem.c:  lists->partialHeadErases = lastPage.nextBlockErases;
+filesystem.c:  log->nextPage++;
+filesystem.c:  freePage->nandPage.eraseCount = log->lastBlockErases;
+filesystem.c:  if (log->logH.prevBlock == -1 || log->lastBlock == log->logH.firstBlock) {
+filesystem.c:    log->nextPage++;
+filesystem.c:    log->nextPage = log->logH.prevBlock + (BLOCKSIZE-1);
+filesystem.c:  freePage->nandPage.nextLogBlock = firstPageOfNewBlock;
+filesystem.c:  freePage->nandPage.nextBlockErases = log->lastBlockErases;
+filesystem.c:  log->nextPage = firstPageOfNewBlock;
+filesystem.c:  // Last page: Next free page is the 2nd-to-last page in the next block
+filesystem.c:  log->nextPage = log->lastBlock + (BLOCKSIZE-2);
+filesystem.c:  freePage->nandPage.nextLogBlock = log->lastBlock;
+filesystem.c:  freePage->nandPage.nextBlockErases = log->lastBlockErases;
+filesystem.c:  freePage->address = log->nextPage;
+filesystem.c:  if (freePage->address % BLOCKSIZE == 0) {
+filesystem.c:  } else if ((freePage->address + 3) % BLOCKSIZE == 0) {
+filesystem.c:  } else if((freePage->address + 2) % BLOCKSIZE == 0) {
+filesystem.c:  } else if((freePage->address + 1) % BLOCKSIZE == 0) {
+filesystem.c:    log->nextPage++;
+filesystem.c:  log->logH.activePages++;
+filesystem.c:  allocateFreePage(wp, key->file->mainExtentLog);
+filesystem.c:  memcpy(wp->nandPage.contents, data, sizeof(wp->nandPage.contents));  
+filesystem.c:    int maxFileHeight = childKey->file->inode.treeHeight;
+filesystem.c:    if ( (maxFileHeight == 2 && childKey->levelsAbove == 0) ||
+filesystem.c:	 (maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 2)) {
+filesystem.c:      int indexToUpdate = getIndexInParent(childKey->siblingNum);
+filesystem.c:      childKey->file->inode.directPage[indexToUpdate] = childAddress;
+filesystem.c:    int indexToUpdate = getIndexInParent(childKey->siblingNum);
+filesystem.c:      page_addr* indirectAddresses = (page_addr *) parentPage->wp->nandPage.contents;
+filesystem.c:    parentPage->dirty = dirty;
+filesystem.c:  writeNAND(&dataPage->nandPage, dataPage->address, 0);
+filesystem.c:  dataKey->file->modified = 1;
+filesystem.c:  int newDataOffset = dataKey->siblingNum * PAGESIZE;
+filesystem.c:  if (newDataOffset >= dataKey->file->inode.i_size) {
+filesystem.c:    while (needsNewLevel(dataKey->file->inode.treeHeight, newDataOffset)) {
+filesystem.c:      addIndirectLevel(cache, dataKey->file);
+filesystem.c:    dataKey->file->inode.i_size = newDataOffset + PAGESIZE;
+filesystem.c:  fs_updateParentPage(cache, dataKey, dataPage->address, dirty);
+filesystem.c:  maxOffset *= power(INDIRECT_PAGES, treeHeight-2) * PAGESIZE;
+filesystem.c:  maxOffset -= PAGESIZE;
+filesystem.c:    return -1;
+filesystem.c:    y--;
+filesystem.c:  page_addr* indirectContents = (page_addr *) indirectPage->nandPage.contents;
+filesystem.c:  memcpy(indirectContents, file->inode.directPage, DIRECT_PAGES*sizeof(page_addr));
+filesystem.c:  file->inode.treeHeight++;
+filesystem.c:  memset(file->inode.directPage, 0, DIRECT_PAGES*sizeof(page_addr));
+filesystem.c:  indirectKey->file = file;
+filesystem.c:  indirectKey->levelsAbove = file->inode.treeHeight - 2;
+filesystem.c:  indirectKey->siblingNum = 0;
+filesystem.c:  cacheEntry current = file->dataHead;
+filesystem.c:    next = current->fileDataNext;
+filesystem.c:  // Flush dirty metadata pages in lowest-to-highest-level order
+filesystem.c:  int max_level = file->inode.treeHeight;
+filesystem.c:    cacheEntry current = file->metadataHead;
+filesystem.c:      cacheEntry next = current->fileMetadataNext;
+filesystem.c:      if (current->key->levelsAbove == level) {
+filesystem.c:	if (current->dirty) {
+filesystem.c:	  writeablePage wp = current->wp;	  
+filesystem.c:	  allocateFreePage(wp, current->key->file->mainExtentLog);
+filesystem.c:	  writeNAND(&wp->nandPage, wp->address, 0);
+filesystem.c:	  fs_updateParentPage(cache, current->key, current->wp->address, current->dirty);
+hello.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+hello.c: * minimal example filesystem using high-level API
+hello.c: *     gcc -Wall hello.c `pkg-config fuse3 --cflags --libs` -o hello
+hello.c:	OPTION("--name=%s", filename),
+hello.c:	OPTION("--contents=%s", contents),
+hello.c:	OPTION("-h", show_help),
+hello.c:	OPTION("--help", show_help),
+hello.c:	cfg->kernel_cache = 1;
+hello.c:		stbuf->st_mode = S_IFDIR | 0755;
+hello.c:		stbuf->st_nlink = 2;
+hello.c:		stbuf->st_mode = S_IFREG | 0444;
+hello.c:		stbuf->st_nlink = 1;
+hello.c:		stbuf->st_size = strlen(options.contents);
+hello.c:		res = -ENOENT;
+hello.c:		return -ENOENT;
+hello.c:		return -ENOENT;
+hello.c:	if ((fi->flags & O_ACCMODE) != O_RDONLY)
+hello.c:		return -EACCES;
+hello.c:		return -ENOENT;
+hello.c:			size = len - offset;
+hello.c:	printf("File-system specific options:\n"
+hello.c:	       "    --name=<s>          Name of the \"hello\" file\n"
+hello.c:	       "    --contents=<s>      Contents \"hello\" file\n"
+hello.c:	/* Set defaults -- we have to use strdup so that
+hello.c:	if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+hello.c:	/* When --help is specified, first print our own file-system
+hello.c:	   additional help (by adding `--help` to the options again)
+hello.c:		assert(fuse_opt_add_arg(&args, "--help") == 0);
+hello_ll.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+hello_ll.c: * minimal example filesystem using low-level API
+hello_ll.c: *     gcc -Wall hello_ll.c `pkg-config fuse3 --cflags --libs` -o hello_ll
+hello_ll.c:	stbuf->st_ino = ino;
+hello_ll.c:		stbuf->st_mode = S_IFDIR | 0755;
+hello_ll.c:		stbuf->st_nlink = 2;
+hello_ll.c:		stbuf->st_mode = S_IFREG | 0444;
+hello_ll.c:		stbuf->st_nlink = 1;
+hello_ll.c:		stbuf->st_size = strlen(hello_str);
+hello_ll.c:		return -1;
+hello_ll.c:	if (hello_stat(ino, &stbuf) == -1)
+hello_ll.c:	size_t oldsize = b->size;
+hello_ll.c:	b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+hello_ll.c:	b->p = (char *) realloc(b->p, b->size);
+hello_ll.c:	fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
+hello_ll.c:			  b->size);
+hello_ll.c:				      min(bufsize - off, maxsize));
+hello_ll.c:	else if ((fi->flags & 3) != O_RDONLY)
+hello_ll.c:	int ret = -1;
+hello_ll.c:	/* Block until ctrl+c or fusermount -u */
+helper.c:  state->lists = superBlock->freeLists;
+helper.c:  readNAND( &page, superBlock->latest_vaddr_map);
+helper.c:  int size = sizeof (struct addrMap) + map->size*sizeof(page_addr);
+helper.c:  printf("Map size = %d Allocation size = %d \n", map->size, size);
+helper.c:  state->vaddrMap = (addrMap) malloc(size);
+helper.c:  memcpy(state->vaddrMap, &page, size);
+helper.c:  state->file_cache = (fileCache) malloc(sizeof (struct fileCache));
+helper.c:  state->file_cache->size = 0;
+helper.c:  state->file_cache->lruFileHead = NULL;
+helper.c:  state->file_cache->lruFileTail = NULL;
+helper.c:  memset(state->file_cache->openFileTable, 0, (PAGEDATASIZE/4 - 2));
+helper.c:	ind->i_mode = mode;
+helper.c:	ind->i_uid = 0;
+helper.c:	ind->i_gid = 0;
+helper.c:	ind->i_flags = 0;
+helper.c:	ind->i_file_no = fileID; //next free slot in vaddrMap
+helper.c:	ind->i_log_no = logID;
+helper.c:	ind->i_links_count = 0;
+helper.c:	ind->i_pages = 0;
+helper.c:	ind->i_size = 0;
+helper.c:	ind->treeHeight = 2;
+helper.c:	memset(ind->directPage, 0, DIRECT_PAGES * sizeof(page_addr));
+helper.c:  logH->totalErases = 0;      //eraseCount = that of 1 block for now
+helper.c:  logH->logId = logId;
+helper.c:  logH->prevBlock = -1; //since we can't put NULL
+helper.c:  logH->prevBlockErases = 0;
+helper.c:  logH->firstBlock = -1;
+helper.c:  logH->firstBlockErases = 0;
+helper.c:  logH->activePages = 0;
+helper.c:  logH->totalBlocks = 1; // we remove one block from the pfree list
+helper.c:  logH->logType = logType;
+helper.c:  logH->content.file.fileCount = 1;
+helper.c:  memset(logH->content.file.fileId, 0, MAX_FILES_IN_LOG*sizeof(page_vaddr));
+helper.c:  theLog->activeFileCount = 0;
+helper.c:  theLog->lastBlock = -1;
+helper.c:  theLog->lastBlockErases = 0;
+helper.c:  theLog->nextPage = nextFreePage;
+helper.c:    theLog->nextPage = theLog->logH.prevBlock + (BLOCKSIZE-1);	
+helper.c:    theLog->nextPage = theLog->lastBlock;
+helper.c:    theLog->nextPage = theLog->lastBlock + (BLOCKSIZE-2);
+helper.c:    theLog->nextPage++;
+helper.c:  oFile->currentOpens = 0;
+helper.c:  oFile->mainExtentLog = log;
+helper.c:  oFile->inode = *ind;
+helper.c:  oFile->address = fileID;
+helper.c:  oFile->modified = 0;
+helper.c:  oFile->dataHead = NULL;
+helper.c:  oFile->dataTail = NULL;
+helper.c:  oFile->metadataHead = NULL;
+helper.c:  oFile->metadataTail = NULL;
+helper.c:  oFile->lruFileNext = NULL;
+helper.c:  oFile->lruFilePrev = NULL;
+helper.c:  int ptr = map->freePtr;
+helper.c:  map->freePtr = abs(map->map[ptr]);
+helper.c:  if (newFile == 0 || lists->partialHead == 0) {
+helper.c:    *freePage = lists->completeHead;
+helper.c:    freePageErases = lists->completeHeadErases;
+helper.c:    readNAND( &buf, ((*freePage + BLOCKSIZE)/BLOCKSIZE)*BLOCKSIZE - 1);
+helper.c:    lists->completeHead = buf.nextLogBlock;
+helper.c:    lists->completeHeadErases = buf.nextBlockErases;
+helper.c:    *freePage = lists->partialHead + 1;
+helper.c:    freePageErases = lists->partialHeadErases;
+helper.c:    readNAND( &buf, lists->partialHead);
+helper.c:    lists->partialHead = buf.nextLogBlock;
+helper.c:    lists->partialHeadErases = buf.nextBlockErases;
+helper.c:  freePage->address = log->nextPage;
+helper.c:  if(freePage->address%BLOCKSIZE == 0) {
+helper.c:    freePage->nandPage.eraseCount = log->lastBlockErases;
+helper.c:    log->nextPage++;
+helper.c:  else if((freePage->address + 3) % BLOCKSIZE == 0) {
+helper.c:    log->nextPage = log->logH.prevBlock + (BLOCKSIZE-1);	
+helper.c:  else if((freePage->address + 2) % BLOCKSIZE == 0) {
+helper.c:    log->lastBlockErases = getFreeBlock(lists, &first, 0);
+helper.c:    freePage->nandPage.nextLogBlock = first;
+helper.c:    freePage->nandPage.nextBlockErases = log->lastBlockErases;
+helper.c:    log->nextPage = first;
+helper.c:    log->lastBlock = first;
+helper.c:  else if((freePage->address + 1) % BLOCKSIZE == 0) {
+helper.c:    log->nextPage = log->lastBlock + (BLOCKSIZE-2);
+helper.c:    freePage->nandPage.nextLogBlock = log->lastBlock;
+helper.c:    freePage->nandPage.nextBlockErases = log->lastBlockErases;
+helper.c:    log->nextPage++;
+helper.c:  log->logH.activePages++;
+helper.c:  page_vaddr logID = getFreePtr(state->vaddrMap); 
+helper.c:  initLogHeader(&(theLog->logH), logID, LTYPE_FILES);  
+helper.c:  inode ind = &(theLog->logH.content.file.fInode);
+helper.c:  theLog->logH.totalErases = theLog->logH.firstBlockErases;
+helper.c:  theLog->logH.firstBlock = *logHeaderPage;
+helper.c:  theLog->logH.firstBlockErases = getFreeBlock(&(state->lists), logHeaderPage, 1);
+helper.c:  theLog->logH.content.file.fileCount = 1;
+helper.c:  theLog->logH.content.file.fileId[0] = fileID;
+helper.c:  theLog->activeFileCount = 1;
+helper.c:  theLog->lastBlock = theLog->logH.firstBlock;
+helper.c:  theLog->lastBlockErases = theLog->logH.firstBlockErases;
+helper.c:  theLog->nextPage = *logHeaderPage;
+helper.c:  state->file_cache->openFileTable[logID] = (openFile) theLog;
+helper.c:  state->vaddrMap->map[logID] = *logHeaderPage;
+helper.c:  if (stubfd == -1) {
+helper.c:    return -1;
+helper.c:  if ( res == -1)
+helper.c:/*  * - curPage is 2nd last of block, no previous block */
+helper.c:/*  * - curPage is 2nd last of block, exists previous block */
+helper.c:/*  * - curPage is last of block */
+helper.c:/*  * - curPage is elsewhere */
+helper.c:/*     if (log->log.total == 2) //there's no block previous to this one */
+helper.c:/*       nextPage = (log->last)*BLOCKSIZE; */
+helper.c:/*       nextPage = (log->log.prev + 1)*BLOCKSIZE - 1; */
+helper.c:/*     nextPage = (log->last)*BLOCKSIZE; */
+helper.c:/*     *eraseCount = *(page->eraseCount); */
+helper.c:/*     *nextLogBlock = *(page->nextLogBlock); */
+helper.c:/*     *nextBlockErases = *(page->nextBlockErases); */
+helper.c:  /* //if there is no prev block, make the address -1 but fill in the other fields for reference */
+helper.c:  /* if(alog->log->prev == -1){ */
+helper.c:  /*   alog->log->first = freePage/BLOCKSIZE; */
+helper.c:  /*   thePage->address = -1; */
+helper.c:  /*   alog->log->prev = alog->last; */
+helper.c:  /*   thePage->address = (alog->log->prev)*BLOCKSIZE + (BLOCKSIZE - 2); */
+helper.c:  /* thePage->page.nextLogBlock = freePage; */
+helper.c:  /* thePage->page.nextBlockErases = freePageErases; */
+helper.c:  /* alog->log->erases = alog->log->erases + freePageErases; */
+helper.c:  /* alog->log->total = alog->log->total + 1; */
+helper.c:  /* alog->last = freePage/BLOCKSIZE; */
+ioctl.c: *     gcc -Wall ioctl.c `pkg-config fuse3 --cflags --libs` -o ioctl
+ioctl.c:		return -ENOMEM;
+ioctl.c:		memset(new_buf + fioc_size, 0, new_size - fioc_size);
+ioctl.c:	stbuf->st_uid = getuid();
+ioctl.c:	stbuf->st_gid = getgid();
+ioctl.c:	stbuf->st_atime = stbuf->st_mtime = time(NULL);
+ioctl.c:		stbuf->st_mode = S_IFDIR | 0755;
+ioctl.c:		stbuf->st_nlink = 2;
+ioctl.c:		stbuf->st_mode = S_IFREG | 0644;
+ioctl.c:		stbuf->st_nlink = 1;
+ioctl.c:		stbuf->st_size = fioc_size;
+ioctl.c:		return -ENOENT;
+ioctl.c:	return -ENOENT;
+ioctl.c:	if (size > fioc_size - offset)
+ioctl.c:		size = fioc_size - offset;
+ioctl.c:		return -EINVAL;
+ioctl.c:		return -ENOMEM;
+ioctl.c:		return -EINVAL;
+ioctl.c:		return -EINVAL;
+ioctl.c:		return -ENOENT;
+ioctl.c:		return -EINVAL;
+ioctl.c:		return -ENOSYS;
+ioctl.c:	return -EINVAL;
+ioctl_client.c: *     gcc -Wall ioctl_client.c -o ioctl_client
+logs.c:  if (nextPage % BLOCKSIZE <= BLOCKSIZE - 3) {
+logs.c:    if (state->lists.partialTail == 0) { 
+logs.c:      state->lists.partialHead = nextPage;
+logs.c:      writeNAND( & fPage, state->lists.partialTail, 0);
+logs.c:    state->lists.partialTail = nextPage;
+logs.c:    if ( nextPage != logH->firstBlock ) {
+logs.c:      lastFullBlock = logH->prevBlock;
+logs.c:    lastFullBlock = (nextPage / BLOCKSIZE) * BLOCKSIZE; // TODO: Dbl-check - was (nextPage % BLOCKSIZE)
+logs.c:    if ( state->lists.completeTail != 0 ) {
+logs.c:      fPage.nextLogBlock = logH->firstBlock;
+logs.c:      fPage.nextBlockErases = logH->firstBlockErases;
+logs.c:      // The flag to allow non-sequential writes may need to be
+logs.c:      writeNAND( &fPage, state->lists.completeTail, 1);
+logs.c:      state->lists.completeHead = logH->firstBlock;
+logs.c:      state->lists.completeHeadErases = logH->firstBlockErases;
+logs.c:    state->lists.completeTail = lastFullBlock;
+lru.c:  cacheEntry prev = entry->lruDataPrev;
+lru.c:  cacheEntry next = entry->lruDataNext;
+lru.c:    prev->lruDataNext = next;
+lru.c:    prev->lruDataPrev = entry;
+lru.c:    next->lruDataPrev = prev;
+lru.c:    cache->lruDataTail = prev;
+lru.c:  entry->lruDataNext = cache->lruDataHead;
+lru.c:  entry->lruDataPrev = NULL;
+lru.c:  cache->lruDataHead = entry;
+lru.c:  cacheEntry curHead = cache->lruDataHead;
+lru.c:  entry->lruDataNext = curHead;
+lru.c:  entry->lruDataPrev = NULL;
+lru.c:    cache->lruDataTail = entry;
+lru.c:    curHead->lruDataPrev = entry;
+lru.c:  cache->lruDataHead = entry;
+lru.c:  if (current == cache->lruDataHead) {
+lru.c:    cache->lruDataHead = current->lruDataNext;
+lru.c:    current->lruDataPrev->lruDataNext = current->lruDataNext;
+lru.c:  if (current == cache->lruDataTail) {
+lru.c:    cache->lruDataTail = current->lruDataPrev;
+lru.c:    current->lruDataNext->lruDataPrev = current->lruDataPrev;
+lru.c:  openFile prev = file->lruFilePrev;
+lru.c:  openFile next = file->lruFilNext;
+lru.c:    prev->lruFileNext = next;
+lru.c:    prev->lruFilePrev = file;
+lru.c:    next->lruFilePrev = prev;
+lru.c:    cache->lruFileTail = prev;
+lru.c:  file->lruFileNext = cache->lruFileHead;
+lru.c:  file->lruFilePrev = NULL;
+lru.c:  cache->lruFileHead = file;
+lru.c:  openFile curHead = cache->lruFileHead;
+lru.c:  file->lruFileNext = curHead;
+lru.c:  file->lruFilePrev = NULL;
+lru.c:    curHead->lruFilePrev = file;
+lru.c:    cache->lruFileTail = file;
+lru.c:  cache->lruFileHead = file;
+lru.c:  openFile next = file->lruFileNext;
+lru.c:  if (file == cache->lruFileHead) {
+lru.c:    cache->lruFileHead = next;
+lru.c:    file->lruFilePrev->lruFileNext = next;
+lru.c:  if (file == cache->lruFileTail) {
+lru.c:    cache->lruFileTail = file->lruFilePrev;
+lru.c:    next->lruFilePrev = file->lruFilePrev;
+lru.c:  if (contains(cache->lruFileHead, file)) {
+makeVirtualNAND.c:    return -1;
+makeVirtualNAND.c:  const char *filename = "/home/parallels/cycology/fuse-3.0.2/example/rootdir/virtualNAND";
+makeVirtualNAND.c:  if (fd == -1) {
+makeVirtualNAND.c:    return -1;
+makeVirtualNAND.c:  if (res == -1)
+makefs.c:  superBlock.freeLists.partialTail = BLOCKSIZE*(features.numBlocks - 1);
+makefs.c:  page.eraseCount = -1;
+makefs.c:  map->size = PAGEDATASIZE/4 - 2;
+makefs.c:  map->freePtr = 1;
+makefs.c:  for (int i = 1; i < map->size - 1; i++) {
+makefs.c:    map->map[i] = -(i+1);
+makefs.c:  map->map[map->size - 1] = 0;     
+makefs.c:  for (int i = 2; i < features.numBlocks - 1; i++) {
+makefs.c:    //writeNAND(array, (i+1)*BLOCKSIZE - 2, 1);
+makefs.c:    return -1;
+makefs.c:  // Blocks 2 - End
+notify_inval_entry.c: * ``--no-notify``
+notify_inval_entry.c: *     $ notify_inval_entry --update-interval=1 --timeout 30 --no-notify mnt/
+notify_inval_entry.c: *     Access: (0444/-r--r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+notify_inval_entry.c: *     Access: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *     Modify: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *     Change: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *      Birth: -
+notify_inval_entry.c: *     $ notify_inval_entry --update-interval=1 --timeout 30 --no-notify mnt/
+notify_inval_entry.c: *     Access: (0000/----------)  Uid: (    0/    root)   Gid: (    0/    root)
+notify_inval_entry.c: *     Access: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *     Modify: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *     Change: 1969-12-31 16:00:00.000000000 -0800
+notify_inval_entry.c: *      Birth: -
+notify_inval_entry.c: *     gcc -Wall notify_inval_entry.c `pkg-config fuse3 --cflags --libs` -o notify_inval_entry
+notify_inval_entry.c:    OPTION("--no-notify", no_notify),
+notify_inval_entry.c:    OPTION("--update-interval=%d", update_interval),
+notify_inval_entry.c:    OPTION("--timeout=%f", timeout),
+notify_inval_entry.c:    stbuf->st_ino = ino;
+notify_inval_entry.c:        stbuf->st_mode = S_IFDIR | 0755;
+notify_inval_entry.c:        stbuf->st_nlink = 1;
+notify_inval_entry.c:        stbuf->st_mode = S_IFREG | 0000;
+notify_inval_entry.c:        stbuf->st_nlink = 1;
+notify_inval_entry.c:        stbuf->st_size = 0;
+notify_inval_entry.c:        return -1;
+notify_inval_entry.c:        lookup_cnt -= nlookup;
+notify_inval_entry.c:    size_t oldsize = b->size;
+notify_inval_entry.c:    b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+notify_inval_entry.c:    b->p = (char *) realloc(b->p, b->size);
+notify_inval_entry.c:    fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
+notify_inval_entry.c:                      b->size);
+notify_inval_entry.c:                              min(bufsize - off, maxsize));
+notify_inval_entry.c:    printf("File-system specific options:\n"
+notify_inval_entry.c:               "    --timeout=<secs>       Timeout for kernel caches\n"
+notify_inval_entry.c:               "    --update-interval=<secs>  Update-rate of file system contents\n"
+notify_inval_entry.c:               "    --no-notify            Disable kernel notifications\n"
+notify_inval_entry.c:    int ret = -1;
+notify_inval_entry.c:    if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+notify_inval_entry.c:    /* Block until ctrl+c or fusermount -u */
+notify_inval_entry.c: * indent-tabs-mode: nil
+notify_inval_entry.c: * c-basic-offset: 4
+notify_inval_inode.c: * the cache has to be invalidated - but the kernel still has to
+notify_inval_inode.c: *  ``--no-notify`` option:
+notify_inval_inode.c: *     $ notify_inval_inode --update-interval=1 --no-notify mnt/
+notify_inval_inode.c: *      $ notify_inval_inode --update-interval=1 mnt/
+notify_inval_inode.c: *     gcc -Wall notify_inval_inode.c `pkg-config fuse3 --cflags --libs` -o notify_inval_inode
+notify_inval_inode.c:    OPTION("--no-notify", no_notify),
+notify_inval_inode.c:    OPTION("--update-interval=%d", update_interval),
+notify_inval_inode.c:    stbuf->st_ino = ino;
+notify_inval_inode.c:        stbuf->st_mode = S_IFDIR | 0755;
+notify_inval_inode.c:        stbuf->st_nlink = 1;
+notify_inval_inode.c:        stbuf->st_mode = S_IFREG | 0444;
+notify_inval_inode.c:        stbuf->st_nlink = 1;
+notify_inval_inode.c:        stbuf->st_size = file_size;
+notify_inval_inode.c:        return -1;
+notify_inval_inode.c:        lookup_cnt -= nlookup;
+notify_inval_inode.c:    size_t oldsize = b->size;
+notify_inval_inode.c:    b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+notify_inval_inode.c:    b->p = (char *) realloc(b->p, b->size);
+notify_inval_inode.c:    fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
+notify_inval_inode.c:                      b->size);
+notify_inval_inode.c:                              min(bufsize - off, maxsize));
+notify_inval_inode.c:    fi->keep_cache = 1;
+notify_inval_inode.c:    else if ((fi->flags & ACCESS_MASK) != O_RDONLY)
+notify_inval_inode.c:        fprintf(stderr, "Got open for non-existing inode!\n");
+notify_inval_inode.c:    printf("File-system specific options:\n"
+notify_inval_inode.c:               "    --update-interval=<secs>  Update-rate of file system contents\n"
+notify_inval_inode.c:               "    --no-notify            Disable kernel notifications\n"
+notify_inval_inode.c:    int ret = -1;
+notify_inval_inode.c:    if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+notify_inval_inode.c:    /* Block until ctrl+c or fusermount -u */
+notify_inval_inode.c: * indent-tabs-mode: nil
+notify_inval_inode.c: * c-basic-offset: 4
+notify_store_retrieve.c: *  ``--no-notify`` option:
+notify_store_retrieve.c: *      $ notify_store_retrieve --update-interval=1 --no-notify mnt/
+notify_store_retrieve.c: *      $ notify_store_retrieve --update-interval=1 mnt/
+notify_store_retrieve.c: *     gcc -Wall notify_store_retrieve.c `pkg-config fuse3 --cflags --libs` -o notify_store_retrieve
+notify_store_retrieve.c:    OPTION("--no-notify", no_notify),
+notify_store_retrieve.c:    OPTION("--update-interval=%d", update_interval),
+notify_store_retrieve.c:    stbuf->st_ino = ino;
+notify_store_retrieve.c:        stbuf->st_mode = S_IFDIR | 0755;
+notify_store_retrieve.c:        stbuf->st_nlink = 1;
+notify_store_retrieve.c:        stbuf->st_mode = S_IFREG | 0444;
+notify_store_retrieve.c:        stbuf->st_nlink = 1;
+notify_store_retrieve.c:        stbuf->st_size = file_size;
+notify_store_retrieve.c:        return -1;
+notify_store_retrieve.c:        lookup_cnt -= nlookup;
+notify_store_retrieve.c:    size_t oldsize = b->size;
+notify_store_retrieve.c:    b->size += fuse_add_direntry(req, NULL, 0, name, NULL, 0);
+notify_store_retrieve.c:    b->p = (char *) realloc(b->p, b->size);
+notify_store_retrieve.c:    fuse_add_direntry(req, b->p + oldsize, b->size - oldsize, name, &stbuf,
+notify_store_retrieve.c:                      b->size);
+notify_store_retrieve.c:                              min(bufsize - off, maxsize));
+notify_store_retrieve.c:    fi->keep_cache = 1;
+notify_store_retrieve.c:    else if ((fi->flags & ACCESS_MASK) != O_RDONLY)
+notify_store_retrieve.c:        fprintf(stderr, "Got open for non-existing inode!\n");
+notify_store_retrieve.c:    printf("File-system specific options:\n"
+notify_store_retrieve.c:               "    --update-interval=<secs>  Update-rate of file system contents\n"
+notify_store_retrieve.c:               "    --no-notify            Disable kernel notifications\n"
+notify_store_retrieve.c:    int ret = -1;
+notify_store_retrieve.c:    if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+notify_store_retrieve.c:    /* Block until ctrl+c or fusermount -u */
+notify_store_retrieve.c: * indent-tabs-mode: nil
+notify_store_retrieve.c: * c-basic-offset: 4
+null.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+null.c: *     gcc -Wall null.c `pkg-config fuse3 --cflags --libs` -o null
+null.c:		return -ENOENT;
+null.c:	stbuf->st_mode = S_IFREG | 0644;
+null.c:	stbuf->st_nlink = 1;
+null.c:	stbuf->st_uid = getuid();
+null.c:	stbuf->st_gid = getgid();
+null.c:	stbuf->st_size = (1ULL << 32); /* 4G */
+null.c:	stbuf->st_blocks = 0;
+null.c:	stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = time(NULL);
+null.c:		return -ENOENT;
+null.c:		return -ENOENT;
+null.c:		return -ENOENT;
+null.c:		return -ENOENT;
+null.c:	if (stat(opts.mountpoint, &stbuf) == -1) {
+openFile.c:  cacheEntry cur = file->dataHead;
+openFile.c:      cur = cur->fileDataNext;
+openFile.c:  cacheEntry tail = file->dataTail;
+openFile.c:  entry->fileDataPrev = tail;
+openFile.c:  entry->fileDataNext = NULL;
+openFile.c:    file->dataHead = entry;
+openFile.c:    tail->fileDataNext = entry;
+openFile.c:  file->dataTail = entry;
+openFile.c:  cacheEntry head = file->dataHead;
+openFile.c:  cacheEntry tail = file->dataTail;
+openFile.c:    file->dataHead = entry->fileDataNext;
+openFile.c:    entry->fileDataPrev->fileDataNext = entry->fileDataNext;
+openFile.c:    file->dataTail = entry->fileDataPrev;
+openFile.c:    entry->fileDataNext->fileDataPrev = entry->fileDataPrev;
+openFile.c: * META-DATA PAGE LIST OPERATIONS
+openFile.c:  cacheEntry cur = file->metadataHead;
+openFile.c:      cur = cur->fileMetadataNext;
+openFile.c:  cacheEntry tail = file->metadataTail;
+openFile.c:    file->metadataTail = entry;
+openFile.c:    file->metadataHead = entry;
+openFile.c:    tail->fileMetadataNext = entry;
+openFile.c:    entry->fileMetadataPrev = tail;
+openFile.c:    file->metadataTail = entry;
+openFile.c:  cacheEntry head = file->metadataHead;
+openFile.c:  cacheEntry tail = file->metadataTail;
+openFile.c:    file->metadataHead = entry->fileMetadataNext;
+openFile.c:    entry->fileMetadataPrev->fileMetadataNext = entry->fileMetadataNext;
+openFile.c:    file->metadataTail = entry->fileMetadataPrev;
+openFile.c:    entry->fileMetadataNext->fileMetadataPrev = entry->fileMetadataPrev;
+openFile.c:  cacheEntry current = file->dataHead;
+openFile.c:    cacheEntry next = current->fileDataNext;    
+openFile.c:  cacheEntry current = file->metadataHead;
+openFile.c:    cacheEntry next = current->fileMetadataNext;    
+passthrough.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+passthrough.c: * just "passing through" all requests to the corresponding user-space
+passthrough.c: *     gcc -Wall passthrough.c `pkg-config fuse3 --cflags --libs` -o passthrough
+passthrough.c:	cfg->use_ino = 1;
+passthrough.c:	   the to-be-removed entry and can therefore not invalidate
+passthrough.c:	   the cache of the associated inode - resulting in an
+passthrough.c:	cfg->entry_timeout = 0;
+passthrough.c:	cfg->attr_timeout = 0;
+passthrough.c:	cfg->negative_timeout = 0;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	res = readlink(path, buf, size - 1);
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:		return -errno;
+passthrough.c:		st.st_ino = de->d_ino;
+passthrough.c:		st.st_mode = de->d_type << 12;
+passthrough.c:		if (filler(buf, de->d_name, &st, 0, 0))
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:		return -EINVAL;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:		res = ftruncate(fi->fh, size);
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	res = open(path, fi->flags, mode);
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	fi->fh = res;
+passthrough.c:	res = open(path, fi->flags);
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	fi->fh = res;
+passthrough.c:		fd = fi->fh;
+passthrough.c:	if (fd == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		res = -errno;
+passthrough.c:		fd = fi->fh;
+passthrough.c:	if (fd == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		res = -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	close(fi->fh);
+passthrough.c:		return -EOPNOTSUPP;
+passthrough.c:		fd = fi->fh;
+passthrough.c:	if (fd == -1)
+passthrough.c:		return -errno;
+passthrough.c:	res = -posix_fallocate(fd, offset, length);
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthrough.c:	if (res == -1)
+passthrough.c:		return -errno;
+passthroughBlocked_fh.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+passthroughBlocked_fh.c: * just "passing through" all requests to the corresponding user-space
+passthroughBlocked_fh.c: *     gcc -Wall passthrough_fh.c `pkg-config fuse3 --cflags --libs` -lulockmgr -o passthrough_fh
+passthroughBlocked_fh.c:  cfg->direct_io = 1;
+passthroughBlocked_fh.c:  state->rootPath = ROOT_PATH;
+passthroughBlocked_fh.c:  state->storePath = STORE_PATH;
+passthroughBlocked_fh.c:  state->nFeatures = initNAND();
+passthroughBlocked_fh.c:  state->addr_cache = cache_create(1000); //TODO: Change the size
+passthroughBlocked_fh.c:  printf("CYCstate:\n rootPath: %s\n storePath: %s\n numBlocks: %d\n memSize: %d\n vaddrMap.freePtr: %d\n", state->rootPath, state->storePath, state->nFeatures.numBlocks,
+passthroughBlocked_fh.c:	 state->nFeatures.memSize, state->vaddrMap->freePtr);
+passthroughBlocked_fh.c:  // empty files, we don't have to worry about flushing dirty/cached meta-data to the
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  superBlock->freeLists = state->lists;
+passthroughBlocked_fh.c:  page_addr mapPage = superBlock->latest_vaddr_map;
+passthroughBlocked_fh.c:  int mapSize = sizeof( struct addrMap) + state->vaddrMap->size*sizeof(page_addr);
+passthroughBlocked_fh.c:  memcpy( &page.contents, state->vaddrMap, mapSize );
+passthroughBlocked_fh.c:  /* page_addr previous = superBlock->latest_vaddr_map; */
+passthroughBlocked_fh.c:  /*   page_addr pageAddr = state->lists.completeTail; */
+passthroughBlocked_fh.c:  /*   state->lists.completeTail = previous + 1;  */
+passthroughBlocked_fh.c:  /* memcpy(buf2, state->vaddrMap, sizeof (struct addrMap) + state->vaddrMap->size*sizeof(page_addr)); */
+passthroughBlocked_fh.c:  /* //superBlock->prev_vaddr_map = newPrevious; */
+passthroughBlocked_fh.c:  /* superBlock->latest_vaddr_map = newBlock; */
+passthroughBlocked_fh.c:  //  stbuf->st_dev = 0;
+passthroughBlocked_fh.c:  stbuf->st_ino = oFile->address;
+passthroughBlocked_fh.c:  stbuf->st_mode = oFile->inode.i_mode;
+passthroughBlocked_fh.c:  stbuf->st_nlink = oFile->inode.i_links_count;
+passthroughBlocked_fh.c:  stbuf->st_uid = oFile->inode.i_uid;
+passthroughBlocked_fh.c:  stbuf->st_gid = oFile->inode.i_gid;
+passthroughBlocked_fh.c:  stbuf->st_rdev = 0;  // irrelevant since no special files
+passthroughBlocked_fh.c:  stbuf->st_size = oFile->inode.i_size;
+passthroughBlocked_fh.c:  stbuf->st_blksize = PAGESIZE;
+passthroughBlocked_fh.c:  stbuf->st_blocks = oFile->inode.i_pages * (stbuf->st_blksize / 512 );
+passthroughBlocked_fh.c:  //stbuf->st_atim = oFile->inode.i_atime;
+passthroughBlocked_fh.c:  //stbuf->st_mtim = oFile->inode.i_mtime;
+passthroughBlocked_fh.c:  //stbuf->st_ctim = oFile->inode.i_ctime;
+passthroughBlocked_fh.c:    res = xmp_fstat(((log_file_info) fi->fh)->oFile, stbuf);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  res = readlink(fullPath, buf, size - 1);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c://it seems like this struct has to be stored in fi->fh, and not in fi->fh->fd
+passthroughBlocked_fh.c:    return -ENOMEM;
+passthroughBlocked_fh.c:  d->dp = opendir(fullPath);
+passthroughBlocked_fh.c:  if (d->dp == NULL) {
+passthroughBlocked_fh.c:    res = -errno;
+passthroughBlocked_fh.c:  d->offset = 0;
+passthroughBlocked_fh.c:  d->entry = NULL;
+passthroughBlocked_fh.c:  fi->fh = (unsigned long) d;
+passthroughBlocked_fh.c:  return (struct xmp_dirp *) (uintptr_t) fi->fh;
+passthroughBlocked_fh.c:  if (offset != d->offset) {
+passthroughBlocked_fh.c:    seekdir(d->dp, offset);
+passthroughBlocked_fh.c:    d->entry = NULL;
+passthroughBlocked_fh.c:    d->offset = offset;
+passthroughBlocked_fh.c:    if (!d->entry) {
+passthroughBlocked_fh.c:      d->entry = readdir(d->dp);
+passthroughBlocked_fh.c:      if (!d->entry)
+passthroughBlocked_fh.c:      res = fstatat(dirfd(d->dp), d->entry->d_name, &st,
+passthroughBlocked_fh.c:      if (res != -1)
+passthroughBlocked_fh.c:      st.st_ino = d->entry->d_ino;
+passthroughBlocked_fh.c:      st.st_mode = d->entry->d_type << 12;
+passthroughBlocked_fh.c:    nextoff = telldir(d->dp);
+passthroughBlocked_fh.c:    if (filler(buf, d->entry->d_name, &st, nextoff, fill_flags))
+passthroughBlocked_fh.c:    d->entry = NULL;
+passthroughBlocked_fh.c:    d->offset = nextoff;
+passthroughBlocked_fh.c:  closedir(d->dp);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    if (res == -1)
+passthroughBlocked_fh.c:      return -errno;
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  openFile oFile = state->file_cache->openFileTable[fileID];
+passthroughBlocked_fh.c:    page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+passthroughBlocked_fh.c:    page_addr lastHeaderAddr = state->vaddrMap->map[logH->logId];
+passthroughBlocked_fh.c:    lastLogH->content.file.fileCount--;
+passthroughBlocked_fh.c:    lastLogH->content.file.fileId[0] = 0;
+passthroughBlocked_fh.c:    if (lastLogH->content.file.fileCount == 0) {
+passthroughBlocked_fh.c:    if (res == -1)
+passthroughBlocked_fh.c:      return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c: * - 'from' in our FS, 'to' in other
+passthroughBlocked_fh.c: * - 'from' in other, 'to' in our FS
+passthroughBlocked_fh.c: * - both in our FS
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    return -EINVAL;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    res = 0; //fchmod(((blocked_file_info) fi->fh)->fd, mode);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    res = 0; //fchown(((blocked_file_info) fi->fh)->fd, uid, gid);
+passthroughBlocked_fh.c:  } if (res == -1)
+passthroughBlocked_fh.c:      return -errno;
+passthroughBlocked_fh.c:    res = 0; //ftruncate(((blocked_file_info) fi->fh)->fd, size);
+passthroughBlocked_fh.c:  } if (res == -1)
+passthroughBlocked_fh.c:      return -errno;
+passthroughBlocked_fh.c:    res = 0; //futimens(((blocked_file_info) fi->fh)->fd, ts);
+passthroughBlocked_fh.c:  } if (res == -1)
+passthroughBlocked_fh.c:      return -errno;
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  page_vaddr fileID = getFreePtr(state->vaddrMap);
+passthroughBlocked_fh.c:  (theLog->logH.content.file.fInode.i_links_count)++;
+passthroughBlocked_fh.c:  state->vaddrMap->map[fileID] = logHeaderPage;
+passthroughBlocked_fh.c:  initOpenFile(oFile, theLog, &(theLog->logH.content.file.fInode), fileID);
+passthroughBlocked_fh.c:  state->file_cache->openFileTable[fileID] = oFile;
+passthroughBlocked_fh.c:  oFile->currentOpens++;
+passthroughBlocked_fh.c:  if (stubfd == -1) {
+passthroughBlocked_fh.c:    perror("ERROR: failed to open stub file --- " );
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  fptr->flag = fi->flags;
+passthroughBlocked_fh.c:  fptr->oFile = oFile;
+passthroughBlocked_fh.c:  fi->fh = (uint64_t) fptr;
+passthroughBlocked_fh.c:  if ( res == -1)
+passthroughBlocked_fh.c:  writeablePage buf = getFreePage(&(state->lists),theLog);
+passthroughBlocked_fh.c:  memcpy(buf->nandPage.contents, &(theLog->logH), sizeof (struct logHeader));
+passthroughBlocked_fh.c:  buf->nandPage.pageType = PTYPE_INODE;
+passthroughBlocked_fh.c:  writeNAND( &(buf->nandPage), buf->address, 0);
+passthroughBlocked_fh.c:  // I HAVE A FEELING THERE SHOULD BE A free(buf) HERE!!! - Tom 9/12/17
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  if (fileID == -1)
+passthroughBlocked_fh.c:    return -1;
+passthroughBlocked_fh.c:  openFile oFile = state->file_cache->openFileTable[fileID];
+passthroughBlocked_fh.c:    page_addr logHeaderAddr = state->vaddrMap->map[fileID];
+passthroughBlocked_fh.c:    inode ind = &(fileLogHeader->content.file.fInode);
+passthroughBlocked_fh.c:    page_vaddr logID = ind->i_log_no;
+passthroughBlocked_fh.c:    activeLog actLog = (activeLog) state->file_cache->openFileTable[logID];
+passthroughBlocked_fh.c:      page_addr lastHeaderAddr = state->vaddrMap->map[logID];
+passthroughBlocked_fh.c:      actLog->logH = *(lastHeader);
+passthroughBlocked_fh.c:      state->file_cache->openFileTable[logID] = (openFile) actLog;
+passthroughBlocked_fh.c:    actLog->activeFileCount++;
+passthroughBlocked_fh.c:    state->file_cache->openFileTable[fileID] = oFile;
+passthroughBlocked_fh.c:  oFile->currentOpens++;
+passthroughBlocked_fh.c:  fptr->oFile = oFile;
+passthroughBlocked_fh.c:  fptr->flag = fi->flags;
+passthroughBlocked_fh.c:  fi->fh = (uint64_t) fptr;
+passthroughBlocked_fh.c:  CYCstate state = fuse_get_context()->private_data;
+passthroughBlocked_fh.c:  addressCache addrCache = state->addr_cache;
+passthroughBlocked_fh.c:  openFile file = ((log_file_info) fi->fh)->oFile;
+passthroughBlocked_fh.c:  if (file->inode.i_size == 0) {
+passthroughBlocked_fh.c:    return -1;
+passthroughBlocked_fh.c:  } else if (size > file->inode.i_size) {
+passthroughBlocked_fh.c:    size = file->inode.i_size;
+passthroughBlocked_fh.c:  int flag = ((log_file_info) fi->fh)->flag;
+passthroughBlocked_fh.c:    return -1;
+passthroughBlocked_fh.c:  unsigned int relativeOffset = offset - pageStartOffset;
+passthroughBlocked_fh.c:  bytesInPage = PAGESIZE - relativeOffset;
+passthroughBlocked_fh.c:  key->file = file;
+passthroughBlocked_fh.c:  key->siblingNum = siblingNum;
+passthroughBlocked_fh.c:  key->levelsAbove = 0;    
+passthroughBlocked_fh.c:    memcpy(buf+bytesRead, entry->wp->nandPage.contents+relativeOffset, bytesInPage);
+passthroughBlocked_fh.c:    key->siblingNum += 1;
+passthroughBlocked_fh.c:    bytesLeft -= bytesInPage;
+passthroughBlocked_fh.c:    return -1;
+passthroughBlocked_fh.c:  CYCstate state = fuse_get_context()->private_data;
+passthroughBlocked_fh.c:  addressCache addrCache = state->addr_cache;
+passthroughBlocked_fh.c:  int flag = ((log_file_info) fi->fh)->flag;
+passthroughBlocked_fh.c:    return -1;
+passthroughBlocked_fh.c:  openFile oFile = ((log_file_info) fi->fh)->oFile;
+passthroughBlocked_fh.c:  int fileSize = oFile->inode.i_size;
+passthroughBlocked_fh.c:    finalFileSize += PAGESIZE - remainder;
+passthroughBlocked_fh.c:  key->file = oFile;
+passthroughBlocked_fh.c:  key->siblingNum = siblingNum;
+passthroughBlocked_fh.c:  key->levelsAbove = 0;
+passthroughBlocked_fh.c:  size_t writeableBytesInPage = PAGESIZE - relativeOffset;
+passthroughBlocked_fh.c:  memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+passthroughBlocked_fh.c:    bytesToWrite -= writeableBytesInPage;
+passthroughBlocked_fh.c:  key->siblingNum += 1;
+passthroughBlocked_fh.c:      memcpy(tempBuf, page->wp->nandPage.contents, PAGESIZE);
+passthroughBlocked_fh.c:    bytesToWrite -= writeableBytesInPage;
+passthroughBlocked_fh.c:    key->siblingNum += 1;
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  addressCache addrCache = state->addr_cache;
+passthroughBlocked_fh.c:  page_vaddr fileID = ((log_file_info) fi->fh)->oFile->inode.i_file_no;
+passthroughBlocked_fh.c:  page_vaddr logID = ((log_file_info) fi->fh)->oFile->inode.i_log_no;
+passthroughBlocked_fh.c:  openFile releasedFile = state->file_cache->openFileTable[fileID];
+passthroughBlocked_fh.c:  releasedFile->currentOpens--;
+passthroughBlocked_fh.c:  releasedFile->mainExtentLog->activeFileCount--;
+passthroughBlocked_fh.c:  if ((((log_file_info) fi->fh)->oFile->currentOpens) == 0) {
+passthroughBlocked_fh.c:    if (releasedFile->modified == 1) {
+passthroughBlocked_fh.c:      memcpy(&releasedFile->mainExtentLog->logH.content.file.fInode, &releasedFile->inode, sizeof (struct inode));
+passthroughBlocked_fh.c:      writeablePage buf = getFreePage(&(state->lists), releasedFile->mainExtentLog);
+passthroughBlocked_fh.c:      memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->logH), sizeof (struct logHeader));
+passthroughBlocked_fh.c:      writeNAND( &(buf->nandPage), buf->address, 0);
+passthroughBlocked_fh.c:      state->vaddrMap->map[fileID] = buf->address;
+passthroughBlocked_fh.c:      state->vaddrMap->map[logID] = buf->address;
+passthroughBlocked_fh.c:    free((openFile) state->file_cache->openFileTable[fileID]);
+passthroughBlocked_fh.c:    state->file_cache->openFileTable[fileID] = NULL;
+passthroughBlocked_fh.c:  activeLog aLog = state->file_cache->openFileTable[logID];
+passthroughBlocked_fh.c:  if (aLog != NULL && aLog->activeFileCount == 0) {
+passthroughBlocked_fh.c:    free((activeLog) state->file_cache->openFileTable[logID]);
+passthroughBlocked_fh.c:    state->file_cache->openFileTable[logID] = NULL;
+passthroughBlocked_fh.c:  free((log_file_info) fi->fh);
+passthroughBlocked_fh.c:    return -ENOMEM;
+passthroughBlocked_fh.c:  src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+passthroughBlocked_fh.c:  src->buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
+passthroughBlocked_fh.c:  src->buf[0].pos = offset;
+passthroughBlocked_fh.c:    memset(buf + endOffset, 0, PAGESIZE - endOffset);
+passthroughBlocked_fh.c:    if (pageNo == fileSizeInPages - 1)          //page being written is last page
+passthroughBlocked_fh.c:      toRead = fileSize - pageNo*PAGESIZE;
+passthroughBlocked_fh.c:    int bytesRead = 0; //pread(((blocked_file_info) fi->fh)->fd, buf, toRead, pageNo*PAGESIZE);
+passthroughBlocked_fh.c:    memset(buf + bytesRead, 0, PAGESIZE - bytesRead);   //set any bytes not obtained from file to 0s
+passthroughBlocked_fh.c:  dst.buf[0].fd = 0; // ((blocked_file_info) fi->fh)->fd;
+passthroughBlocked_fh.c:  //if (res == -1)
+passthroughBlocked_fh.c:  //	return -errno;
+passthroughBlocked_fh.c:  CYCstate state = context->private_data;
+passthroughBlocked_fh.c:  stbuf->f_bsize = PAGESIZE;
+passthroughBlocked_fh.c:  stbuf->f_blocks = BLOCKSIZE*(state->nFeatures.numBlocks);
+passthroughBlocked_fh.c:  stbuf->f_bavail = BLOCKSIZE*(state->nFeatures.numBlocks - 2); //minus superBlock and addrMap block
+passthroughBlocked_fh.c:  stbuf->f_namemax = 255;   //matches that of underlying fs
+passthroughBlocked_fh.c:  res = 0; //close(dup(((blocked_file_info) fi->fh)->fd));
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    res = 0; //fdatasync(((blocked_file_info) fi->fh)->fd);
+passthroughBlocked_fh.c:    res = 0; // fsync(((blocked_file_info) fi->fh)->fd);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:    return -EOPNOTSUPP;
+passthroughBlocked_fh.c:  return 0; //-posix_fallocate(((blocked_file_info) fi->fh)->fd, offset, length);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthroughBlocked_fh.c:  return ulockmgr_op(fi->fh->fd, cmd, lock, &fi->lock_owner,
+passthroughBlocked_fh.c:		     sizeof(fi->lock_owner));
+passthroughBlocked_fh.c:  res = 0; // flock(((blocked_file_info) fi->fh)->fd, op);
+passthroughBlocked_fh.c:  if (res == -1)
+passthroughBlocked_fh.c:    return -errno;
+passthrough_fh.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+passthrough_fh.c: * just "passing through" all requests to the corresponding user-space
+passthrough_fh.c: *     gcc -Wall passthrough_fh.c `pkg-config fuse3 --cflags --libs` -lulockmgr -o passthrough_fh
+passthrough_fh.c:	cfg->use_ino = 1;
+passthrough_fh.c:	cfg->nullpath_ok = 1;
+passthrough_fh.c:	cfg->direct_io = 1;
+passthrough_fh.c:	   the to-be-removed entry and can therefore not invalidate
+passthrough_fh.c:	   the cache of the associated inode - resulting in an
+passthrough_fh.c:	cfg->entry_timeout = 0;
+passthrough_fh.c:	cfg->attr_timeout = 0;
+passthrough_fh.c:	cfg->negative_timeout = 0;
+passthrough_fh.c:		res = fstat(fi->fh, stbuf);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	res = readlink(path, buf, size - 1);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		return -ENOMEM;
+passthrough_fh.c:	d->dp = opendir(path);
+passthrough_fh.c:	if (d->dp == NULL) {
+passthrough_fh.c:		res = -errno;
+passthrough_fh.c:	d->offset = 0;
+passthrough_fh.c:	d->entry = NULL;
+passthrough_fh.c:	fi->fh = (unsigned long) d;
+passthrough_fh.c:	return (struct xmp_dirp *) (uintptr_t) fi->fh;
+passthrough_fh.c:	if (offset != d->offset) {
+passthrough_fh.c:		seekdir(d->dp, offset);
+passthrough_fh.c:		d->entry = NULL;
+passthrough_fh.c:		d->offset = offset;
+passthrough_fh.c:		if (!d->entry) {
+passthrough_fh.c:			d->entry = readdir(d->dp);
+passthrough_fh.c:			if (!d->entry)
+passthrough_fh.c:			res = fstatat(dirfd(d->dp), d->entry->d_name, &st,
+passthrough_fh.c:			if (res != -1)
+passthrough_fh.c:			st.st_ino = d->entry->d_ino;
+passthrough_fh.c:			st.st_mode = d->entry->d_type << 12;
+passthrough_fh.c:		nextoff = telldir(d->dp);
+passthrough_fh.c:		if (filler(buf, d->entry->d_name, &st, nextoff, fill_flags))
+passthrough_fh.c:		d->entry = NULL;
+passthrough_fh.c:		d->offset = nextoff;
+passthrough_fh.c:	closedir(d->dp);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		return -EINVAL;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		res = fchmod(fi->fh, mode);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		res = fchown(fi->fh, uid, gid);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		res = ftruncate(fi->fh, size);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		res = futimens(fi->fh, ts);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	fd = open(path, fi->flags, mode);
+passthrough_fh.c:	if (fd == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	fi->fh = fd;
+passthrough_fh.c:	fd = open(path, fi->flags);
+passthrough_fh.c:	if (fd == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	fi->fh = fd;
+passthrough_fh.c:	res = pread(fi->fh, buf, size, offset);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		res = -errno;
+passthrough_fh.c:		return -ENOMEM;
+passthrough_fh.c:	src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+passthrough_fh.c:	src->buf[0].fd = fi->fh;
+passthrough_fh.c:	src->buf[0].pos = offset;
+passthrough_fh.c:	res = pwrite(fi->fh, buf, size, offset);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		res = -errno;
+passthrough_fh.c:	dst.buf[0].fd = fi->fh;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	res = close(dup(fi->fh));
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	close(fi->fh);
+passthrough_fh.c:		res = fdatasync(fi->fh);
+passthrough_fh.c:		res = fsync(fi->fh);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:		return -EOPNOTSUPP;
+passthrough_fh.c:	return -posix_fallocate(fi->fh, offset, length);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh.c:	return ulockmgr_op(fi->fh, cmd, lock, &fi->lock_owner,
+passthrough_fh.c:			   sizeof(fi->lock_owner));
+passthrough_fh.c:	res = flock(fi->fh, op);
+passthrough_fh.c:	if (res == -1)
+passthrough_fh.c:		return -errno;
+passthrough_fh_save.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+passthrough_fh_save.c: * just "passing through" all requests to the corresponding user-space
+passthrough_fh_save.c: *     gcc -Wall passthrough_fh.c `pkg-config fuse3 --cflags --libs` -lulockmgr -o passthrough_fh
+passthrough_fh_save.c:	cfg->use_ino = 1;
+passthrough_fh_save.c:	cfg->nullpath_ok = 1;
+passthrough_fh_save.c:	   the to-be-removed entry and can therefore not invalidate
+passthrough_fh_save.c:	   the cache of the associated inode - resulting in an
+passthrough_fh_save.c:	cfg->entry_timeout = 0;
+passthrough_fh_save.c:	cfg->attr_timeout = 0;
+passthrough_fh_save.c:	cfg->negative_timeout = 0;
+passthrough_fh_save.c:		res = fstat(fi->fh, stbuf);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	res = readlink(path, buf, size - 1);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		return -ENOMEM;
+passthrough_fh_save.c:	d->dp = opendir(path);
+passthrough_fh_save.c:	if (d->dp == NULL) {
+passthrough_fh_save.c:		res = -errno;
+passthrough_fh_save.c:	d->offset = 0;
+passthrough_fh_save.c:	d->entry = NULL;
+passthrough_fh_save.c:	fi->fh = (unsigned long) d;
+passthrough_fh_save.c:	return (struct xmp_dirp *) (uintptr_t) fi->fh;
+passthrough_fh_save.c:	if (offset != d->offset) {
+passthrough_fh_save.c:		seekdir(d->dp, offset);
+passthrough_fh_save.c:		d->entry = NULL;
+passthrough_fh_save.c:		d->offset = offset;
+passthrough_fh_save.c:		if (!d->entry) {
+passthrough_fh_save.c:			d->entry = readdir(d->dp);
+passthrough_fh_save.c:			if (!d->entry)
+passthrough_fh_save.c:			res = fstatat(dirfd(d->dp), d->entry->d_name, &st,
+passthrough_fh_save.c:			if (res != -1)
+passthrough_fh_save.c:			st.st_ino = d->entry->d_ino;
+passthrough_fh_save.c:			st.st_mode = d->entry->d_type << 12;
+passthrough_fh_save.c:		nextoff = telldir(d->dp);
+passthrough_fh_save.c:		if (filler(buf, d->entry->d_name, &st, nextoff, fill_flags))
+passthrough_fh_save.c:		d->entry = NULL;
+passthrough_fh_save.c:		d->offset = nextoff;
+passthrough_fh_save.c:	closedir(d->dp);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		return -EINVAL;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		res = fchmod(fi->fh, mode);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		res = fchown(fi->fh, uid, gid);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		res = ftruncate(fi->fh, size);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		res = futimens(fi->fh, ts);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	fd = open(path, fi->flags, mode);
+passthrough_fh_save.c:	if (fd == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	fi->fh = fd;
+passthrough_fh_save.c:	fd = open(path, fi->flags);
+passthrough_fh_save.c:	if (fd == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	fi->fh = fd;
+passthrough_fh_save.c:	res = pread(fi->fh, buf, size, offset);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		res = -errno;
+passthrough_fh_save.c:		return -ENOMEM;
+passthrough_fh_save.c:	src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+passthrough_fh_save.c:	src->buf[0].fd = fi->fh;
+passthrough_fh_save.c:	src->buf[0].pos = offset;
+passthrough_fh_save.c:	res = pwrite(fi->fh, buf, size, offset);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		res = -errno;
+passthrough_fh_save.c:	dst.buf[0].fd = fi->fh;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	res = close(dup(fi->fh));
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	close(fi->fh);
+passthrough_fh_save.c:		res = fdatasync(fi->fh);
+passthrough_fh_save.c:		res = fsync(fi->fh);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:		return -EOPNOTSUPP;
+passthrough_fh_save.c:	return -posix_fallocate(fi->fh, offset, length);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_fh_save.c:	return ulockmgr_op(fi->fh, cmd, lock, &fi->lock_owner,
+passthrough_fh_save.c:			   sizeof(fi->lock_owner));
+passthrough_fh_save.c:	res = flock(fi->fh, op);
+passthrough_fh_save.c:	if (res == -1)
+passthrough_fh_save.c:		return -errno;
+passthrough_ll.c:  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+passthrough_ll.c: * just "passing through" all requests to the corresponding user-space
+passthrough_ll.c: * this implementation ises the low-level API. Its performance should
+passthrough_ll.c: *     gcc -Wall passthrough_ll.c `pkg-config fuse3 --cflags --libs` -o passthrough_ll
+passthrough_ll.c:	return -1;
+passthrough_ll.c:	return -1;
+passthrough_ll.c:	return -1;
+passthrough_ll.c:		return &lo_data(req)->root;
+passthrough_ll.c:	return lo_inode(req, ino)->fd;
+passthrough_ll.c:	return lo_data(req)->debug != 0;
+passthrough_ll.c:	conn->want |= FUSE_CAP_EXPORT_SUPPORT;
+passthrough_ll.c:	if (res == -1)
+passthrough_ll.c:	for (p = lo->root.next; p != &lo->root; p = p->next) {
+passthrough_ll.c:		if (p->ino == st->st_ino && p->dev == st->st_dev)
+passthrough_ll.c:	e->attr_timeout = 1.0;
+passthrough_ll.c:	e->entry_timeout = 1.0;
+passthrough_ll.c:	if (newfd == -1)
+passthrough_ll.c:	res = fstatat(newfd, "", &e->attr, AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW);
+passthrough_ll.c:	if (res == -1)
+passthrough_ll.c:	inode = lo_find(lo_data(req), &e->attr);
+passthrough_ll.c:		newfd = -1;
+passthrough_ll.c:		struct lo_inode *prev = &lo_data(req)->root;
+passthrough_ll.c:		struct lo_inode *next = prev->next;
+passthrough_ll.c:		inode->fd = newfd;
+passthrough_ll.c:		inode->ino = e->attr.st_ino;
+passthrough_ll.c:		inode->dev = e->attr.st_dev;
+passthrough_ll.c:		next->prev = inode;
+passthrough_ll.c:		inode->next = next;
+passthrough_ll.c:		inode->prev = prev;
+passthrough_ll.c:		prev->next = inode;
+passthrough_ll.c:	inode->nlookup++;
+passthrough_ll.c:	e->ino = (uintptr_t) inode;
+passthrough_ll.c:		fprintf(stderr, "  %lli/%s -> %lli\n",
+passthrough_ll.c:			(unsigned long long) parent, name, (unsigned long long) e->ino);
+passthrough_ll.c:	if (newfd != -1)
+passthrough_ll.c:	struct lo_inode *prev = inode->prev;
+passthrough_ll.c:	struct lo_inode *next = inode->next;
+passthrough_ll.c:	next->prev = prev;
+passthrough_ll.c:	prev->next = next;
+passthrough_ll.c:	close(inode->fd);
+passthrough_ll.c:		fprintf(stderr, "  forget %lli %lli -%lli\n",
+passthrough_ll.c:			(unsigned long long) ino, (unsigned long long) inode->nlookup,
+passthrough_ll.c:	assert(inode->nlookup >= nlookup);
+passthrough_ll.c:	inode->nlookup -= nlookup;
+passthrough_ll.c:	if (!inode->nlookup)
+passthrough_ll.c:	if (res == -1)
+passthrough_ll.c:	return (struct lo_dirp *) (uintptr_t) fi->fh;
+passthrough_ll.c:	d->fd = openat(lo_fd(req, ino), ".", O_RDONLY);
+passthrough_ll.c:	if (d->fd == -1)
+passthrough_ll.c:	d->dp = fdopendir(d->fd);
+passthrough_ll.c:	if (d->dp == NULL)
+passthrough_ll.c:	d->offset = 0;
+passthrough_ll.c:	d->entry = NULL;
+passthrough_ll.c:	fi->fh = (uintptr_t) d;
+passthrough_ll.c:		if (d->fd != -1)
+passthrough_ll.c:			close(d->fd);
+passthrough_ll.c:	if (offset != d->offset) {
+passthrough_ll.c:		seekdir(d->dp, offset);
+passthrough_ll.c:		d->entry = NULL;
+passthrough_ll.c:		d->offset = offset;
+passthrough_ll.c:		if (!d->entry) {
+passthrough_ll.c:			d->entry = readdir(d->dp);
+passthrough_ll.c:			if (!d->entry) {
+passthrough_ll.c:		nextoff = telldir(d->dp);
+passthrough_ll.c:			err = lo_do_lookup(req, ino, d->entry->d_name, &e);
+passthrough_ll.c:							 d->entry->d_name,
+passthrough_ll.c:				.st_ino = d->entry->d_ino,
+passthrough_ll.c:				.st_mode = d->entry->d_type << 12,
+passthrough_ll.c:						    d->entry->d_name,
+passthrough_ll.c:		rem -= entsize;
+passthrough_ll.c:		d->entry = NULL;
+passthrough_ll.c:		d->offset = nextoff;
+passthrough_ll.c:	fuse_reply_buf(req, buf, size - rem);
+passthrough_ll.c:	closedir(d->dp);
+passthrough_ll.c:	fd = open(buf, fi->flags & ~O_NOFOLLOW);
+passthrough_ll.c:	if (fd == -1)
+passthrough_ll.c:	fi->fh = fd;
+passthrough_ll.c:	close(fi->fh);
+passthrough_ll.c:	buf.buf[0].fd = fi->fh;
+passthrough_ll.c:	int ret = -1;
+passthrough_ll.c:	lo.root.fd = -1;
+passthrough_ll.c:	if (lo.root.fd == -1)
+passthrough_ll.c:	/* Block until ctrl+c or fusermount -u */
+poll.c: *     gcc -Wall poll.c `pkg-config fuse3 --cflags --libs` -o poll
+poll.c: * This is to use file index (0-F) as fh as poll support requires
+poll.c:		return -1;
+poll.c:	return ch <= '9' ? ch - '0' : ch - 'A' + 10;
+poll.c:		stbuf->st_mode = S_IFDIR | 0555;
+poll.c:		stbuf->st_nlink = 2;
+poll.c:		return -ENOENT;
+poll.c:	stbuf->st_mode = S_IFREG | 0444;
+poll.c:	stbuf->st_nlink = 1;
+poll.c:	stbuf->st_size = fsel_cnt[idx];
+poll.c:		return -ENOENT;
+poll.c:		return -ENOENT;
+poll.c:	if ((fi->flags & 3) != O_RDONLY)
+poll.c:		return -EACCES;
+poll.c:		return -EBUSY;
+poll.c:	 * fsel files are nonseekable somewhat pipe-like files which
+poll.c:	fi->fh = idx;
+poll.c:	fi->direct_io = 1;
+poll.c:	fi->nonseekable = 1;
+poll.c:	int idx = fi->fh;
+poll.c:	int idx = fi->fh;
+poll.c:	fsel_cnt[idx] -= size;
+poll.c:	int idx = fi->fh;
+poll.c:			fsel_fuse = cxt->fuse;
+poll_client.c: *      gcc -Wall poll_client.c -o poll_client
+poll_client.c:	nfds = fds[FSEL_FILES - 1] + 1;
+showNAND.c:    return superBlock->freeLists.completeHead;
+showNAND.c:    return superBlock->freeLists.partialHead;
+showNAND.c:    readNAND( &page, freeBlockPtr + BLOCKSIZE - 1);
+showNAND.c:      return previous == superBlock->freeLists.completeTail;
+showNAND.c:      return previous == superBlock->freeLists.partialTail;
+showNAND.c:	 superBlock->freeLists.completeHead,
+showNAND.c:	 superBlock->freeLists.completeTail);
+showNAND.c:	 superBlock->freeLists.partialHead,
+showNAND.c:	 superBlock->freeLists.partialTail);
+showNAND.c:  for (int i; i < map->size; i++) {
+showNAND.c:    if( map->map[i] > 0 ) {
+showNAND.c:      printf("       id %d maps to address %d\n", i, map->map[i] );
+showNAND.c:  int freePos = map->freePtr;
+showNAND.c:      freePos = -map->map[freePos];
+showNAND.c:  switch (page->pageType) {
+showNAND.c:      logHeader logH = (logHeader) & page->contents;
+showNAND.c:      printf("Inode for file %d\n", logH->content.file.fInode.i_file_no );
+showNAND.c:      printf("     Stored in log number %d\n", logH->content.file.fInode.i_log_no);
+showNAND.c:      printf("     Referenced by %d links\n", logH->content.file.fInode.i_links_count );
+showNAND.c:      printf("     File mode is %o\n", logH->content.file.fInode.i_mode );
+showNAND.c:	     logH->content.file.fInode.i_size,
+showNAND.c:	     logH->content.file.fInode.i_pages );
+showNAND.c:	 superBlock->latest_vaddr_map);
+showNAND.c:  printf("Address map size = %d\n", map->size);
+showNAND.c:    return -1;
+statfstest.c:  if (res == -1) {
+testCreate.c:    if (fd == -1) {
+testOpen.c:  char *filename = "/home/parallels/cycology/fuse-3.0.2/example/mntdir/createdFile";
+testOpen.c:  if (fd == -1) {
+testRead.c:    if (fd == -1) {
+testRead123.c:  if (fd == -1) {
+testWrite.c:    if (fd == -1) {
+testWrite123.c:  if (fd == -1) {
+testWrite123.c:  buf[writeSize-1] = '\0';
+test_openFile.c:  file->address = 100;
+test_openFile.c:  file->inode.treeHeight = 4;
+test_openFile.c:  file->inode.directPage[0] = 300;
+test_openFile.c:  file->inode.directPage[127] = 600;
+test_openFile.c:    key->levelsAbove = 0;
+test_openFile.c:    key->file = file;
+test_openFile.c:    key->dataOffset = i*PAGESIZE;
+test_openFile.c:    key->levelsAbove = 1;
+test_openFile.c:    key->file = file;
+test_openFile.c:    key->dataOffset = i*PAGESIZE;
+test_openFile.c:    key->levelsAbove = 0;
+test_openFile.c:    key->file = file;
+test_openFile.c:    key->dataOffset = i*PAGESIZE;
+test_openFile.c:      key->levelsAbove = j;
+test_openFile.c:      key->file = file;
+test_openFile.c:      key->dataOffset = i*PAGESIZE;
+trr.c:  if (fd == -1) {
+trw.c:  if (fd == -1) {
+vNANDlib.c:  if (fd == -1) {
+vNANDlib.c:  if (res == -1)
+vNANDlib.c:    return -1;
+vNANDlib.c:    return -1;
+vNANDlib.c:  if (res == -1) {
+vNANDlib.c:    return -1;
+vNANDlib.c:    return -1;
+vNANDlib.c:  if (res == -1)
+vNANDlib.c:    + (k+1)*(sizeof (struct block) - sizeof (int));
+vNANDlib.c:    return -1;
+vNANDlib.c:  if (res == -1) {
+vNANDlib.c:    return -1;
+vNANDlib.c:  if (res == -1) {
+vNANDlib.c:    return -1;

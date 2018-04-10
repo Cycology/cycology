@@ -563,7 +563,7 @@ static int xmp_chmod(const char *path, mode_t mode,
   return 0;
 }
 
-static int xmp_chown(const char *path, uid_t uid, gid_t gid,
+Static int xmp_chown(const char *path, uid_t uid, gid_t gid,
 		     struct fuse_file_info *fi)
 {
   int res;
@@ -872,12 +872,11 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   size_t bytesInPage = 0;
   
   // Prepare the first page
-  int siblingNum = offset / PAGESIZE;
-  unsigned int pageStartOffset = siblingNum * PAGESIZE;
+  unsigned int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
   unsigned int relativeOffset = offset - pageStartOffset;
   bytesInPage = PAGESIZE - relativeOffset;
   key->file = file;
-  key->siblingNum = siblingNum;
+  key->dataOffset = pageStartOffset;
   key->levelsAbove = 0;    
 
   // In case we need to read less than a full page
@@ -894,7 +893,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     memcpy(buf+bytesRead, entry->wp->nandPage.contents+relativeOffset, bytesInPage);
 
     // Set up for the next page
-    key->siblingNum += 1;
+    key->dataOffset += PAGESIZE;
     bytesLeft -= bytesInPage;
     bytesRead += bytesInPage;
     relativeOffset = 0;
@@ -973,8 +972,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   size_t bytesToWrite = size;
   size_t bytesWritten = 0;
   size_t relativeOffset = offset % PAGESIZE;
-  int siblingNum = offset / PAGESIZE;
-  size_t startPageOffset = siblingNum * PAGESIZE;
+  size_t startPageOffset = (offset / PAGESIZE) * PAGESIZE;
 
   // Modify the size 
   int finalFileSize = offset + bytesToWrite;
@@ -989,7 +987,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   struct pageKey key_s;
   pageKey key = &key_s;
   key->file = oFile;
-  key->siblingNum = siblingNum;
+  key->dataOffset = startPageOffset;
   key->levelsAbove = 0;
 
   // Write out the first page
@@ -1013,7 +1011,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     bytesToWrite -= writeableBytesInPage;
   }
 
-  key->siblingNum += 1;
+  key->dataOffset += PAGESIZE;
   
   // Write out the middle pages
   while (bytesToWrite > 0) {
@@ -1040,7 +1038,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     // Update for the next page
     bytesToWrite -= writeableBytesInPage;
     bytesWritten += writeableBytesInPage;
-    key->siblingNum += 1;
+    key->dataOffset += PAGESIZE;
   }
 
   // TODO: Check final file size against actual file size afterwards
