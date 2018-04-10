@@ -202,46 +202,23 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
   if (desired == NULL) {
     page_addr desiredAddr = 0;
     
-    if (maxFileHeight == 2) {
-      // When the file has no indirect pages; only data and the inode
-      if (desiredKey->levelsAbove == 1) {
-	// Looking for the inode
-	return NULL;
+    if (desiredKey->levelsAbove == maxFileHeight - 1) {
+      // Looking for the inode
+      return NULL;
+	
+    } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
+      // Looking for the highest level indirect page; parent is the inode
+      struct inode ind = desiredKey->file->inode;
+      int desiredIndex = getIndexInParent(desiredKey->siblingNum);
+      desiredAddr = ind.directPage[desiredIndex];
+	
+    } else if (desiredKey->levelsAbove > 0 && desiredKey->levelsAbove < maxFileHeight - 2) {
+      // Looking for middle indirect pages
+      pageKey parentKey = getParentKey(desiredKey);
+      cacheEntry parent = fs_getPage(cache, parentKey);
+      page_vaddr desiredIndex = getIndexInParent(desiredKey->siblingNum);
+      desiredAddr = ((page_vaddr *) parent->wp->nandPage.contents)[desiredIndex];
 
-      } else if (desiredKey->levelsAbove == 0) {
-	// Parent page is the inode
-	struct inode ind = desiredKey->file->inode;
-	int desiredIndex = getIndexInParent(desiredKey->siblingNum);
-	desiredAddr = ind.directPage[desiredIndex];	
-	
-      } else {
-	// Error
-	printf("\nERROR: Looking for invalid page\n");
-	return NULL;
-      }
-      
-    } else if (maxFileHeight > 2) {
-      // There's at least 1 level of indirect pages
-      if (desiredKey->levelsAbove == maxFileHeight - 1) {
-	// Looking for the inode
-	return NULL;
-	
-      } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
-	// Looking for the highest level indirect page; parent is the inode
-	struct inode ind = desiredKey->file->inode;
-	int desiredIndex = getIndexInParent(desiredKey->siblingNum);
-	desiredAddr = ind.directPage[desiredIndex];
-	
-      } else {
-	// Get the lowest-level parent metadata page that is currently cached
-	pageKey parentKey = getParentKey(desiredKey);
-	cacheEntry parent = fs_getPage(cache, parentKey);
-
-	page_vaddr desiredIndex =
-	  getIndexInParent(desiredKey->siblingNum);
-	desiredAddr = ((page_vaddr *) parent->wp->nandPage.contents)[desiredIndex];
-      }
-      
     } else {
       // ERROR
       printf("\nERROR: File height is less than 2\n");
@@ -252,7 +229,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     writeablePage wp = readWpFromDisk(desiredAddr);
     desired = putPageIntoCache(cache, wp, desiredKey);
   }
-
+  
   return desired;
 }
 
@@ -372,34 +349,29 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
   // Get the parent page
   pageKey parentKey = getParentKey(childKey);
   cacheEntry parentPage = fs_getPage(cache, parentKey);
+  int indexToUpdate = getIndexInParent(childKey->siblingNum);
   
+  // Check if NULL because we were looking for the inode
   if (parentPage == NULL) {
-    // Check if NULL because we were looking for the inode
-    int maxFileHeight = childKey->file->inode.treeHeight;
-    if ( (maxFileHeight == 2 && childKey->levelsAbove == 0) ||
-	 (maxFileHeight > 2 && childKey->levelsAbove == maxFileHeight - 2)) {
+    // ERROR
+    if (childKey->levelsAbove != childKey->file->inode.treeHeight - 2) {
+      printf("Error: trying to update invalid parent page");
+    } else {
       // Update the inode's direct pages
-      int indexToUpdate = getIndexInParent(childKey->siblingNum);
       childKey->file->inode.directPage[indexToUpdate] = childAddress;
     }
-
-    // TODO: Write error message here 
-    
+      
   } else {
-    // Update the child pointer address in the parent indirect page
-
-    //TODO: Pull getIndex out of if statements
-    int indexToUpdate = getIndexInParent(childKey->siblingNum);
+    // ERROR
     if (indexToUpdate >= INDIRECT_PAGES || indexToUpdate < 0) {
       printf("\nERROR: Tried to update at invalid index\n");
-      
     } else {
+      // Update the child pointer address in the parent indirect page
       page_addr* indirectAddresses = (page_addr *) parentPage->wp->nandPage.contents;
       indirectAddresses[indexToUpdate] = childAddress;
+      // Mark the parent page as dirty
+      parentPage->dirty = dirty;
     }
-
-    // Mark the parent page as dirty
-    parentPage->dirty = dirty;
   }
 }
 
