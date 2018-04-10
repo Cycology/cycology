@@ -384,4 +384,3 @@ page_vaddr readStubFile(char *fullPath)
  * would have to call getFreeBlock, fill in the fields if necessary
  * updates active pages in logHeader
  */
->>>>>>> fd03b2089072065dcfbaeb6ed92b0cd3543d7015
