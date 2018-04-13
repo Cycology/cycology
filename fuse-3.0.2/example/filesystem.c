@@ -212,8 +212,8 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
       int desiredIndex = getIndexInParent(desiredKey->siblingNum);
       desiredAddr = ind.directPage[desiredIndex];
 	
-    } else if (desiredKey->levelsAbove > 0 && desiredKey->levelsAbove < maxFileHeight - 2) {
-      // Looking for middle indirect pages
+    } else if (desiredKey->levelsAbove >= 0 && desiredKey->levelsAbove < maxFileHeight - 2) {
+      // Looking for data and middle indirect pages
       pageKey parentKey = getParentKey(desiredKey);
       cacheEntry parent = fs_getPage(cache, parentKey);
       page_vaddr desiredIndex = getIndexInParent(desiredKey->siblingNum);
@@ -221,7 +221,7 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
 
     } else {
       // ERROR
-      printf("\nERROR: File height is less than 2\n");
+      printf("\nERROR: Invalid page requested \n");
       return NULL;
     }
 
