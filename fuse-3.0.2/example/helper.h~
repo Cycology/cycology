@@ -1,4 +1,0 @@
-//HELPER FUNCTIONS
-
-//From addressMap.c
-addrMap initAddrMap(void);

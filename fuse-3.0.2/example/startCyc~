@@ -1,5 +1,0 @@
-rm rootdir/virtualNAND
-rm -f rootdir/root/*
-cd .libs
-./makeVirtualNAND 8
-./makefs
