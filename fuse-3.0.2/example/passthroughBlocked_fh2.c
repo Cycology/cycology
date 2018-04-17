@@ -143,7 +143,8 @@ static void xmp_destroy(void *private_data)
   for ( int pageOffset = 0; pageOffset * PAGESIZE < mapSize; pageOffset++ ) {
     memcpy( &page.contents, (char * ) state->vaddrMap + pageOffset*PAGESIZE, PAGESIZE );
     writeNAND( &page, mapPage + pageOffset, 1 );
-  }  
+  }
+      
 
   /* //retrieve CYCstate */
   /* CYCstate state = private_data; */
@@ -850,14 +851,13 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     printf("\nFILE HAS NO DATA\n");
     return -1;
   } else if (size > file->inode.i_size) {
-    // TODO: Account for offset and when offset is greater than size
     size = file->inode.i_size;
   } 
   
   (void) path;
   if (path != NULL) {
     char *fullPath = makePath(path);
-    printf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
+   fprintf(stderr, "Reading %s at %d for %d\n", fullPath, (int) offset, (int) size);
     free(fullPath);
   }	
 
@@ -878,12 +878,11 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
   size_t bytesInPage = 0;
   
   // Prepare the first page
-  int siblingNum = offset / PAGESIZE;
-  unsigned int pageStartOffset = siblingNum * PAGESIZE;
+  unsigned int pageStartOffset = (offset / PAGESIZE) * PAGESIZE;
   unsigned int relativeOffset = offset - pageStartOffset;
   bytesInPage = PAGESIZE - relativeOffset;
   key->file = file;
-  key->siblingNum = siblingNum;
+  key->dataOffset = pageStartOffset;
   key->levelsAbove = 0;    
 
   // In case we need to read less than a full page
@@ -900,7 +899,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     memcpy(buf+bytesRead, entry->wp->nandPage.contents+relativeOffset, bytesInPage);
 
     // Set up for the next page
-    key->siblingNum += 1;
+    key->dataOffset += PAGESIZE;
     bytesLeft -= bytesInPage;
     bytesRead += bytesInPage;
     relativeOffset = 0;
@@ -979,8 +978,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   size_t bytesToWrite = size;
   size_t bytesWritten = 0;
   size_t relativeOffset = offset % PAGESIZE;
-  int siblingNum = offset / PAGESIZE;
-  size_t startPageOffset = siblingNum * PAGESIZE;
+  size_t startPageOffset = (offset / PAGESIZE) * PAGESIZE;
 
   // Modify the size 
   int finalFileSize = offset + bytesToWrite;
@@ -995,7 +993,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   struct pageKey key_s;
   pageKey key = &key_s;
   key->file = oFile;
-  key->siblingNum = siblingNum;
+  key->dataOffset = startPageOffset;
   key->levelsAbove = 0;
 
   // Write out the first page
@@ -1019,12 +1017,11 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     bytesToWrite -= writeableBytesInPage;
   }
 
-  key->siblingNum += 1;
+  key->dataOffset += PAGESIZE;
   
   // Write out the middle pages
   while (bytesToWrite > 0) {
     // TODO: REMOVE printf("**XMP_WRITE: Middle pages. BytesToWrite: %d\n", bytesToWrite);
-    // TODO: Only read in the old page if it's the first or the last page
     page = fs_getPage(addrCache, key);
 
     // Save the page's old contents in tempBuf if necessary
@@ -1046,7 +1043,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
     // Update for the next page
     bytesToWrite -= writeableBytesInPage;
     bytesWritten += writeableBytesInPage;
-    key->siblingNum += 1;
+    key->dataOffset += PAGESIZE;
   }
 
   // TODO: Check final file size against actual file size afterwards
@@ -1122,7 +1119,6 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
     // Flush all data/metadata pages
     fs_flushDataPages(addrCache, releasedFile);
     fs_flushMetadataPages(addrCache, releasedFile);
-    // TODO: Add the file to the LRU list here; separate out the release() from the flush()
     fs_removeFileFromLru(releasedFile);
     
     // Write the most current logHeader from cache to NAND 
@@ -1147,7 +1143,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
   }
 
   // Release the log if no more files open
-  activeLog aLog = state->file_cache->openFileTable[logID];
+  activeLog aLog = (activeLog) state->file_cache->openFileTable[logID];
   if (aLog != NULL && aLog->activeFileCount == 0) {
     free((activeLog) state->file_cache->openFileTable[logID]);
     state->file_cache->openFileTable[logID] = NULL;
@@ -1186,7 +1182,7 @@ static int xmp_read_buf(const char *path, struct fuse_bufvec **bufp,
   unimplemented();
   struct fuse_bufvec *src;
 
-  printf(stderr, "IN xmp_read_buf\n");
+  fprintf(stderr, "IN xmp_read_buf\n");
 	
   (void) path;
 
@@ -1211,7 +1207,7 @@ static char *prepBuffer(char *buf, struct fuse_file_info *fi,
   
   //if new page, unused parts before/after used buffer space should be 0s
   if (pageNo >= fileSizeInPages) {
-    printf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
+    fprintf(stderr, "Clearing buffer to %d and from %d\n", startOffset, endOffset);
     memset(buf, 0, startOffset);
     memset(buf + endOffset, 0, PAGESIZE - endOffset);
 
