@@ -1,6 +1,3 @@
-
-
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -29,24 +26,24 @@ int main(int argc, char *argv[])
 
   int numPages = atoi(argv[1]);
   int readSize = 1024 * numPages;
-  int intReadSize = (1024 / sizeof(int)) * (numPages);
+  int intReadSize = 128 * numPages;
   int buf[intReadSize];
   int bytesRead = 0;
-  int curOffset = 0;
+  int curOffset = 2048 * (numPages - 1);
   int offset = 0;
-  for (int i = 0; i < numPages; i++) {
+  for (int i = 0; i < numPages - 1; i++) {
     bytesRead += read(fd, buf+offset, 1024);
-    offset += 1024 / sizeof(int);
+    printf("i: %d, \toffset: %d, \tbytesRead: %d, \tcurOffset: %d\n", i, offset, bytesRead, curOffset);
+    offset += 128;
 
     // Skip every other page 
-    curOffset += (1024 * 2);
+    curOffset -= 2048;
     lseek(fd, curOffset, SEEK_SET);
-    //printf("curOffset: %d\n", curOffset);
   }
 
 
   printf("BYTES READ = %d\n", bytesRead);
-  for (int i = 0; i < intReadSize; i += 1024 / sizeof(int)) {
+  for (int i = 0; i < intReadSize; i += 128) {
     printf("%d\n", buf[i]);
   }
   close( fd );
