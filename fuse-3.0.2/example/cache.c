@@ -44,40 +44,46 @@ addressCache cache_create( int size ) {
   return cache;	
 }
 
+char* keyHash(pageKey page_key) {
+  int numKey = 1 + (page_key->file->address * 11) +
+    (page_key->siblingNum * 17) +
+    (page_key->levelsAbove * 29);
+  int length = (int)((ceil(log10(numKey))+1)*sizeof(char));
+  char* strKey = malloc(sizeof(char) * length);
+  sprintf(strKey, "%d", numKey);
+
+  return strKey;
+}
+
 int keyCmp(pageKey key1, pageKey key2) {
   if (key1 == NULL || key2 == NULL || key1->file == NULL || key2->file == NULL) {
     printf("\n\n******ERROR: KEYCMP KEYS OR FILES ARE NULL*******\n\n");
     return -1;
   }
   
-  int num1 = key1->file->address + key1->siblingNum + key1->levelsAbove;
-  int length1 = (int)((ceil(log10(num1))+1)*sizeof(char));
-  char str1[length1];
-  sprintf(str1, "%d", num1);
+  char* str1 = keyHash(key1);
+  char* str2 = keyHash(key2);
+  int res = strcmp(str1, str2);
+  free(str1);
+  free(str2);
 
-  int num2 = key2->file->address + key2->siblingNum + key2->levelsAbove;
-  int length2 = (int)((ceil(log10(num2))+1)*sizeof(char));
-  char str2[length2];
-  sprintf(str2, "%d", num2);
-
-  return strcmp(str1, str2);
+  return res;
 }
 
 /* Hash a string for a particular hash table. */
 int cache_hash( addressCache cache, pageKey page_key ) {
-  int numKey = page_key->file->address + page_key->siblingNum + page_key->levelsAbove;
-  int length = (int)((ceil(log10(numKey))+1)*sizeof(char));
-  char strKey[length];
-  sprintf(strKey, "%d", numKey);
+  // Remember to free() strkey!
+  char* strKey = keyHash(page_key);
 
   unsigned long hash = 5381;
   int c = 0;
   int index = 0;
-
   while ((c = strKey[index])) {
     hash = ((hash << 5) + hash) + c;
     index++;
   }
+
+  free(strKey);
 
   return hash % cache->MAX_SIZE;
 }
@@ -92,6 +98,13 @@ cacheEntry cache_newEntry( addressCache cache, pageKey page_key, writeablePage w
   }
 
   if( ( newentry = malloc( sizeof( struct cacheEntry ) ) ) == NULL ) {
+    return NULL;
+  }
+
+  cache->size++;
+  if (cache->size > cache->MAX_SIZE) {
+    printf("******************************************");
+    printf("**************** CACHE OVERFLOW **********");
     return NULL;
   }
 
@@ -111,8 +124,6 @@ cacheEntry cache_newEntry( addressCache cache, pageKey page_key, writeablePage w
   newentry->fileDataPrev = NULL;
   newentry->fileMetadataNext = NULL;
   newentry->fileMetadataPrev = NULL;
-
-  cache->size++;
 
   return newentry;
 }
@@ -160,6 +171,9 @@ cacheEntry cache_set( addressCache cache, pageKey key, writeablePage wp) {
     }
   }
 
+  // TODO: Debugging
+  NAND_trackKey(key);
+  
   return newentry;
 }
 

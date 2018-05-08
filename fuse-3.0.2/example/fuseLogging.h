@@ -86,6 +86,9 @@ typedef struct openFile {
   //virtual addr of inode, ie. file ID number
   page_vaddr address;
 
+  int numDataPages;
+  int numMetadataPages;
+
   /*flag to signify whether the file has been modified
     in xmp_write when writing to the file, must set this
     flag to 1
@@ -104,6 +107,7 @@ typedef struct pageKey {
   struct openFile* file;
   int siblingNum;
   int levelsAbove;
+  int phys_addr;
   
 } *pageKey;
 

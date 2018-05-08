@@ -53,6 +53,7 @@
 #include <sys/file.h> /* flock(2) */
 
 //.h files of our own
+
 #include "loggingDiskFormats.h"
 #include "fuseLogging.h"
 #include "filesystem.h"
@@ -1052,7 +1053,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
   // TODO: Check final file size against actual file size afterwards
   
   // TODO: REMOVE printf("Finished XMP_WRITE(). Bytes Written: %d\n", bytesWritten);
-
+  
   return bytesWritten;
 }
 
@@ -1135,11 +1136,21 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
       memcpy(buf->nandPage.contents, &(releasedFile->mainExtentLog->logH), sizeof (struct logHeader));
       writeNAND( &(buf->nandPage), buf->address, 0);
 
+      // TODO: Debugging
+      struct pageKey pKey_s;
+      pageKey pKey = &pKey_s;
+      pKey->levelsAbove = releasedFile->inode.treeHeight - 1;
+      pKey->siblingNum = 0;
+      NAND_trackAddress(buf->address, pKey);
+
       // TODO: free() buf!!!
       // Update the vAddr Map
       state->vaddrMap->map[fileID] = buf->address;
       state->vaddrMap->map[logID] = buf->address;
     }
+
+    // fs_printFileTree(releasedFile->inode);
+    NAND_printKeys(1);
 	  
     //remove openFile from cache since it's not referenced anymore
     free((openFile) state->file_cache->openFileTable[fileID]);
@@ -1155,7 +1166,7 @@ static int xmp_release(const char *path, struct fuse_file_info *fi)
 
   free((log_file_info) fi->fh);
 
-  // TODO: REMOVE printf("\nFILE CLOSED\n");
+  printf("\nFILE CLOSED\n");
   
   return 0;
 }

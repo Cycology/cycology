@@ -1,3 +1,4 @@
+sudo umount mntdir
 rm rootdir/virtualNAND
 rm -f rootdir/root/*
 ./makeVirtualNAND 8

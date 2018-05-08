@@ -47,6 +47,8 @@ void openFile_addDataPage(openFile file, cacheEntry entry) {
   }
 
   file->dataTail = entry;
+
+  file->numDataPages++;
 }
 
 /* Remove cacheEntry from OpenFile Data List */
@@ -65,6 +67,8 @@ void openFile_removeDataPage(openFile file, cacheEntry entry) {
   } else {
     entry->fileDataNext->fileDataPrev = entry->fileDataPrev;
   }
+
+  file->numDataPages--;
 }
 
 
@@ -105,6 +109,8 @@ void openFile_addMetadataPage(openFile file, cacheEntry entry) {
     entry->fileMetadataPrev = tail;
     file->metadataTail = entry;
   }
+
+  file->numMetadataPages++;
 }
 
 /* Remove the entry from the file's metadata pages list */
@@ -123,6 +129,8 @@ void openFile_removeMetadataPage(openFile file, cacheEntry entry) {
   } else {
     entry->fileMetadataNext->fileMetadataPrev = entry->fileMetadataPrev;
   }
+
+  file->numMetadataPages--;
 }
 
 /*************************************************************

@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
   }
 
   char* name;
-  name = "../mntdir/t1";
+  name = "mntdir/t1";
   int fd = open(name, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING FILE");

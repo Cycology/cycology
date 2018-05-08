@@ -1,0 +1,17 @@
+// Joseph Oh
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+#include "loggingDiskFormats.h"
+#include "fuseLogging.h"
+#include "vNANDlib.h"
+
+
+int main (int argc, char *argv[]) {
+
+}

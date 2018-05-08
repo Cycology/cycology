@@ -149,6 +149,8 @@ void initOpenFile(openFile oFile, struct activeLog *log,
   oFile->inode = *ind;
   oFile->address = fileID;
   oFile->modified = 0;
+  oFile->numDataPages = 0;
+  oFile->numMetadataPages = 0;
 
   oFile->dataHead = NULL;
   oFile->dataTail = NULL;

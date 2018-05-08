@@ -68,7 +68,7 @@ void addFileToLru(fileCache fCache, openFile file) {
 }
 
 /* Check if the LRU File list contains the given file */
-int lruContains(openFile head, openFile file) {
+int lruFileContains(openFile head, openFile file) {
   openFile cur = head;
   while (cur != NULL) {
     if (cur == file) {
@@ -88,7 +88,7 @@ void fs_updateFileInLru(openFile file) {
   addressCache addrCache = state->addr_cache;
   fileCache fCache = state->file_cache;
   
-  if (lruContains(fCache->lruFileHead, file) == 1) {
+  if (lruFileContains(fCache->lruFileHead, file) == 1) {
     updateLruFileHead(fCache, file);
   } else {
     addFileToLru(fCache, file);
@@ -98,7 +98,12 @@ void fs_updateFileInLru(openFile file) {
 /* Remove an openFile from the LRU File list */
 void fs_removeFileFromLru(openFile file) {
   CYCstate state = fuse_get_context()->private_data;
-  fileCache fCache = state->file_cache;  
+  fileCache fCache = state->file_cache;
+
+  // Don't remove if not in the LRU file cache
+  if (lruFileContains(fCache->lruFileHead, file) == 0) {
+    return;
+  }
   
   openFile next = file->lruFileNext;
 
@@ -184,7 +189,7 @@ writeablePage readWpFromDisk(page_addr address) {
   
 /* Get the index of the given data page from the parent indirect page's contents array */
 page_vaddr getIndexInParent(int childSiblingNum) {
-  return childSiblingNum / INDIRECT_PAGES;
+  return childSiblingNum % INDIRECT_PAGES;
 }
 
 /* Return the requested page from cache memory */
@@ -209,14 +214,14 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     } else if (desiredKey->levelsAbove == maxFileHeight - 2) {
       // Looking for the highest level indirect page; parent is the inode
       struct inode ind = desiredKey->file->inode;
-      int desiredIndex = getIndexInParent(desiredKey->siblingNum);
-      desiredAddr = ind.directPage[desiredIndex];
+      desiredAddr = ind.directPage[desiredKey->siblingNum];
 	
     } else if (desiredKey->levelsAbove >= 0 && desiredKey->levelsAbove < maxFileHeight - 2) {
       // Looking for data and middle indirect pages
       pageKey parentKey = getParentKey(desiredKey);
       cacheEntry parent = fs_getPage(cache, parentKey);
       page_vaddr desiredIndex = getIndexInParent(desiredKey->siblingNum);
+  
       desiredAddr = ((page_vaddr *) parent->wp->nandPage.contents)[desiredIndex];
 
     } else {
@@ -228,6 +233,9 @@ cacheEntry fs_getPage(addressCache cache, pageKey desiredKey) {
     // Read in the desired page from the disk
     writeablePage wp = readWpFromDisk(desiredAddr);
     desired = putPageIntoCache(cache, wp, desiredKey);
+
+    // TODO: Debugging
+    
   }
   
   return desired;
@@ -358,7 +366,7 @@ void fs_updateParentPage(addressCache cache, pageKey childKey, page_addr childAd
       printf("Error: trying to update invalid parent page");
     } else {
       // Update the inode's direct pages
-      childKey->file->inode.directPage[indexToUpdate] = childAddress;
+      childKey->file->inode.directPage[childKey->siblingNum] = childAddress;
     }
       
   } else {
@@ -382,6 +390,10 @@ writeablePage fs_writeData(addressCache cache, pageKey dataKey, char * data) {
   writeablePage dataPage = prepareWriteablePage(dataKey, data);
   writeNAND(&dataPage->nandPage, dataPage->address, 0);
   dataKey->file->modified = 1;
+
+  // TODO: Debugging
+  NAND_trackAddress(dataPage->address, dataKey);
+  printf("\n\n\t******Wrote Data: (Level: %d, Sib: %d, Addr: %d)\n", dataKey->levelsAbove, dataKey->siblingNum, dataPage->address);
 
   // Increase the size of the file if necessary
   int newDataOffset = dataKey->siblingNum * PAGESIZE;
@@ -429,6 +441,7 @@ int power(int x, int y) {
 /* Increases the tree height of the file by 1 */
 void addIndirectLevel(addressCache cache, openFile file) {
   // Create and initialize a new indirect page to hold prev. inode's directPages
+  // Create a new inode that points to the newly created indirect page
   writeablePage indirectPage = malloc( sizeof( struct writeablePage ) );
   page_addr* indirectContents = (page_addr *) indirectPage->nandPage.contents;
   memset(indirectContents, 0, INDIRECT_PAGES*sizeof(page_addr));
@@ -445,7 +458,10 @@ void addIndirectLevel(addressCache cache, openFile file) {
   indirectKey->file = file;
   indirectKey->levelsAbove = file->inode.treeHeight - 2;
   indirectKey->siblingNum = 0;
-  putPageIntoCache(cache, indirectPage, indirectKey);
+  cacheEntry entry = putPageIntoCache(cache, indirectPage, indirectKey);
+
+  // Mark the entry as dirty
+  entry->dirty = 1;
 }
 
 
@@ -488,6 +504,9 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
 	  allocateFreePage(wp, current->key->file->mainExtentLog);
 	  writeNAND(&wp->nandPage, wp->address, 0);
 
+	  // TODO: Remove after debug
+	  NAND_trackAddress(wp->address, current->key);
+
 	  // Update the parent page with the written information
 	  fs_updateParentPage(cache, current->key, current->wp->address, current->dirty);
 	}
@@ -501,3 +520,50 @@ void fs_flushMetadataPages(addressCache cache, openFile file) {
     }
   }
 }
+
+
+/***** HELPER METHODS ******/
+int fs_printFileTree(struct inode ind) {
+  int addrs[1000];
+  int curIndex = 0;
+  int lastIndex = 0;
+  
+  // Print the inode contents
+  printf("******************* INODE *********************\n");
+  printf("\n1:\t[");
+  for (int i = 0; i < DIRECT_PAGES; i++) {
+    printf("%d", ind.directPage[i]);
+    if (i != DIRECT_PAGES - 1) {
+      printf(",\t");
+    }
+    addrs[lastIndex++] = ind.directPage[i];
+  }
+  printf("]\n");
+
+  // Print the indirect pages' contents
+  int siblingsAtLevel = DIRECT_PAGES;
+  for (int level = ind.treeHeight - 2; level > 0; level--) {
+    printf("\n****************** LEVEL: %d **********************\n", level);
+    // Get each page at this level
+    for (int sibNum = 0; sibNum < siblingsAtLevel; sibNum++) {
+      // Print the page's contents
+      struct fullPage page;
+      int pAddr = addrs[curIndex++];
+      readNAND(&page, pAddr);
+      int* contents = (int*) page.contents;
+
+      printf("%d:\t[", sibNum);
+      for (int i = 0; i < INDIRECT_PAGES; i++) {
+	printf("%d", contents[i]);
+	if (i != siblingsAtLevel - 1) {
+	  printf(",\t");
+	}
+	addrs[lastIndex++] = contents[i];
+      }
+      printf("]\n");
+    }
+    
+    siblingsAtLevel *= INDIRECT_PAGES; 
+  }
+}
+

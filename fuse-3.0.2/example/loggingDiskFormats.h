@@ -12,10 +12,10 @@
 #define EXTENT_PAGES 128
 
 /* The number of pointers directly to data pages that can fit into an inode.            */
-#define DIRECT_PAGES 16
+#define DIRECT_PAGES 2 // TODO: 16
 
 /* The number of pointers to indirect or data pages that can fit into an indirect page.  */
-#define INDIRECT_PAGES 128
+#define INDIRECT_PAGES 2 // TODO: 128
 
 /* The maximum number of files that can be merged into a single log.                    */
 #define MAX_FILES_IN_LOG 8

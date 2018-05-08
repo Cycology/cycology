@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
   }
 
   char* name;
-  name = "../mntdir/t1";
+  name = "mntdir/t1";
   int fd = open(name, O_CREAT | O_RDWR, S_IRWXU);
   if (fd == -1) {
     perror("ERROR IN CREATING FILE");
@@ -35,8 +35,7 @@ int main(int argc, char *argv[])
     bytesWritten += write(fd, page, 1024);
     printf("i: %d, \tbytesWritten: %d, \tcurOffset: %d\n", i, bytesWritten, curOffset);
 
-    // Skip every other page 
-    curOffset += 1024 * 2;
+    curOffset += 1024;
     lseek(fd, curOffset, SEEK_SET);
   }
 

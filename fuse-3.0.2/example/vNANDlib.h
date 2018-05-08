@@ -53,3 +53,7 @@ int eraseNAND(page_addr k);
 
 //POST: close NAND file; free nandFeatures field
 void stopNAND(void);
+
+void NAND_trackKey(pageKey key, int write);
+void NAND_printKeys(int write);
+void NAND_trackAddress(int addr, pageKey key);
